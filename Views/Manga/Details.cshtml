@@ -1,0 +1,327 @@
+@model manga_reader_web.Models.MangaDetailViewModel
+@{
+    ViewData["Title"] = Model.Manga?.Title ?? "Chi tiết manga";
+}
+
+<div class="manga-details-container">
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-danger mb-4">@ViewBag.ErrorMessage</div>
+    }
+    
+    @if (Model.Manga != null)
+    {
+        <div class="manga-header" style="background-image: url('@Model.Manga.CoverUrl')">
+            <div class="manga-header-overlay">
+                <div class="container py-5">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="manga-cover-container">
+                                <img src="@Model.Manga.CoverUrl" class="manga-cover" alt="@Model.Manga.Title">
+                            </div>
+                        </div>
+                        <div class="col-md-8 text-white">
+                            <h1 class="manga-title mb-3">@Model.Manga.Title</h1>
+                            
+                            <div class="mb-3">
+                                <span class="badge bg-primary me-2">@TranslateStatus(Model.Manga.Status)</span>
+                                @foreach (var tag in Model.Manga.Tags.Take(5))
+                                {
+                                    <span class="badge bg-secondary me-2 mb-1">@tag</span>
+                                }
+                                @if (Model.Manga.Tags.Count > 5)
+                                {
+                                    <span class="badge bg-info me-2 mb-1">+@(Model.Manga.Tags.Count - 5)</span>
+                                }
+                            </div>
+                            
+                            <div class="mb-3">
+                                <p><strong><i class="bi bi-person-fill me-2"></i>Tác giả:</strong> @Model.Manga.Author</p>
+                            </div>
+                            
+                            <div class="d-flex gap-2 mb-4">
+                                @if (Model.Chapters.Any())
+                                {
+                                    <a asp-controller="Chapter" asp-action="Read" asp-route-id="@Model.Chapters.First().Id" asp-route-mangaId="@Model.Manga.Id" class="btn btn-primary">
+                                        <i class="bi bi-book-fill me-2"></i>Đọc từ đầu
+                                    </a>
+                                    <a asp-controller="Chapter" asp-action="Read" asp-route-id="@Model.Chapters.OrderByDescending(c => c.Number).First().Id" asp-route-mangaId="@Model.Manga.Id" class="btn btn-success">
+                                        <i class="bi bi-lightning-fill me-2"></i>Đọc mới nhất
+                                    </a>
+                                }
+                                
+                                <button class="btn btn-outline-light" id="followBtn">
+                                    <i class="bi bi-bookmark-plus me-2"></i>Theo dõi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="container mt-4">
+            <ul class="nav nav-tabs mb-4" id="mangaDetailTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="chapters-tab" data-bs-toggle="tab" data-bs-target="#chapters" type="button" role="tab" aria-controls="chapters" aria-selected="true">
+                        <i class="bi bi-list-ol me-2"></i>Danh sách chương (@Model.Chapters.Count)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="false">
+                        <i class="bi bi-info-circle me-2"></i>Thông tin chi tiết
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content" id="mangaDetailTabsContent">
+                <div class="tab-pane fade show active" id="chapters" role="tabpanel" aria-labelledby="chapters-tab">
+                    <div class="mb-3">
+                        <div class="btn-group" role="group" aria-label="Lọc ngôn ngữ">
+                            <input type="radio" class="btn-check" name="language" id="langAll" value="all" checked autocomplete="off">
+                            <label class="btn btn-outline-primary" for="langAll">Tất cả</label>
+                            
+                            <input type="radio" class="btn-check" name="language" id="langVi" value="vi" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="langVi">Tiếng Việt</label>
+                            
+                            <input type="radio" class="btn-check" name="language" id="langEn" value="en" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="langEn">Tiếng Anh</label>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover chapter-table">
+                            <thead>
+                                <tr>
+                                    <th>Số chương</th>
+                                    <th>Tiêu đề</th>
+                                    <th>Ngôn ngữ</th>
+                                    <th>Ngày phát hành</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var chapter in Model.Chapters.OrderByDescending(c => c.Number))
+                                {
+                                    <tr class="chapter-row" data-language="@chapter.Language">
+                                        <td>@chapter.Number</td>
+                                        <td>@(string.IsNullOrEmpty(chapter.Title) ? $"Chapter {chapter.Number}" : chapter.Title)</td>
+                                        <td><span class="badge bg-@(chapter.Language == "vi" ? "success" : "info")">@TranslateLanguage(chapter.Language)</span></td>
+                                        <td>@chapter.PublishedAt.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            <a asp-controller="Chapter" asp-action="Read" asp-route-id="@chapter.Id" asp-route-mangaId="@Model.Manga.Id" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-book"></i> Đọc
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="info" role="tabpanel" aria-labelledby="info-tab">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">Mô tả</h5>
+                            <p class="card-text manga-description">@Model.Manga.Description</p>
+                            
+                            <h5 class="card-title mt-4 mb-3">Thông tin chi tiết</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-person-fill me-2"></i>Tác giả</span>
+                                    <span>@Model.Manga.Author</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-flag-fill me-2"></i>Trạng thái</span>
+                                    <span class="badge bg-primary">@TranslateStatus(Model.Manga.Status)</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-translate me-2"></i>Ngôn ngữ có sẵn</span>
+                                    <span>
+                                        @{
+                                            var languages = Model.Chapters.Select(c => c.Language).Distinct().ToList();
+                                            foreach (var lang in languages)
+                                            {
+                                                <span class="badge bg-@(lang == "vi" ? "success" : "info") me-1">@TranslateLanguage(lang)</span>
+                                            }
+                                        }
+                                    </span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-list-ol me-2"></i>Số chương</span>
+                                    <span>@Model.Chapters.Count</span>
+                                </li>
+                            </ul>
+                            
+                            <h5 class="card-title mt-4 mb-3">Thể loại</h5>
+                            <div>
+                                @foreach (var tag in Model.Manga.Tags)
+                                {
+                                    <span class="badge bg-secondary me-2 mb-2">@tag</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="container">
+            <div class="text-center py-5">
+                <i class="bi bi-emoji-frown display-1 text-muted"></i>
+                <h3 class="mt-3">Không tìm thấy thông tin manga</h3>
+                <p class="text-muted">Manga bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.</p>
+                <a asp-controller="Home" asp-action="Index" class="btn btn-primary mt-3">
+                    <i class="bi bi-house-door me-2"></i>Quay lại trang chủ
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+@section Styles {
+    <style>
+        .manga-details-container {
+            margin-top: -1.5rem;
+        }
+        
+        .manga-header {
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        
+        .manga-header-overlay {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem 0;
+        }
+        
+        .manga-cover-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .manga-cover {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .manga-title {
+            font-weight: 700;
+        }
+        
+        .manga-description {
+            white-space: pre-line;
+            line-height: 1.6;
+        }
+        
+        .chapter-table tr {
+            transition: background-color 0.2s;
+        }
+        
+        .chapter-table tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+        
+        .nav-tabs .nav-link {
+            color: #495057;
+        }
+        
+        .nav-tabs .nav-link.active {
+            font-weight: 600;
+            color: #0d6efd;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Lọc chapter theo ngôn ngữ
+            $('input[name="language"]').change(function() {
+                var lang = $(this).val();
+                
+                if (lang === 'all') {
+                    $('.chapter-row').show();
+                } else {
+                    $('.chapter-row').hide();
+                    $('.chapter-row[data-language="' + lang + '"]').show();
+                }
+            });
+            
+            // Xử lý nút theo dõi
+            $('#followBtn').click(function() {
+                $(this).toggleClass('btn-outline-light btn-light');
+                var isFollowing = $(this).hasClass('btn-light');
+                
+                if (isFollowing) {
+                    $(this).html('<i class="bi bi-bookmark-check-fill me-2"></i>Đang theo dõi');
+                    showToast('Đã thêm vào danh sách theo dõi!', 'success');
+                } else {
+                    $(this).html('<i class="bi bi-bookmark-plus me-2"></i>Theo dõi');
+                    showToast('Đã xóa khỏi danh sách theo dõi!', 'info');
+                }
+            });
+            
+            // Hiển thị toast thông báo
+            function showToast(message, type) {
+                // Tạo toast container nếu chưa tồn tại
+                if ($('#toastContainer').length === 0) {
+                    $('body').append('<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>');
+                }
+                
+                // Tạo toast
+                var toastId = 'toast-' + Date.now();
+                var toast = `
+                    <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                ${message}
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                `;
+                
+                // Thêm toast vào container
+                $('#toastContainer').append(toast);
+                
+                // Hiển thị toast
+                var toastElement = new bootstrap.Toast(document.getElementById(toastId), {
+                    delay: 3000
+                });
+                toastElement.show();
+            }
+        });
+    </script>
+}
+
+@functions {
+    public string TranslateStatus(string status)
+    {
+        return status switch
+        {
+            "ongoing" => "Đang tiến hành",
+            "completed" => "Hoàn thành",
+            "hiatus" => "Tạm ngưng",
+            "cancelled" => "Đã hủy",
+            _ => "Không rõ"
+        };
+    }
+    
+    public string TranslateLanguage(string lang)
+    {
+        return lang switch
+        {
+            "vi" => "Tiếng Việt",
+            "en" => "Tiếng Anh",
+            _ => lang?.ToUpper() ?? "Không rõ"
+        };
+    }
+} 

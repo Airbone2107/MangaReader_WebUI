@@ -1,8 +1,89 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model List<manga_reader_web.Models.MangaViewModel>
+@{
+    ViewData["Title"] = "Trang chủ";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container mt-4">
+    @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+    {
+        <div class="alert alert-danger mb-4" role="alert">
+            <h4 class="alert-heading">Đã xảy ra lỗi!</h4>
+            <p>@ViewBag.ErrorMessage</p>
+            
+            @if (ViewBag.StackTrace != null)
+            {
+                <hr>
+                <details>
+                    <summary>Chi tiết lỗi (dành cho người phát triển)</summary>
+                    <pre class="mt-2 small" style="max-height: 200px; overflow: auto;">@ViewBag.StackTrace</pre>
+                </details>
+            }
+            
+            <hr>
+            <p class="mb-0">
+                <a href="/Home/ApiTest" class="btn btn-info btn-sm">Kiểm tra API</a>
+                <a href="/" class="btn btn-primary btn-sm ms-2">Thử lại</a>
+            </p>
+        </div>
+    }
+    
+    @if (ViewBag.IsConnected == false)
+    {
+        <div class="alert alert-warning mb-4">
+            <h5>Trạng thái kết nối</h5>
+            <p>Không thể kết nối đến API MangaDex. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.</p>
+            <p>URL API: <code>https://manga-reader-app-backend.onrender.com/api/mangadex</code></p>
+        </div>
+    }
+
+    <h1 class="mb-4">Truyện mới cập nhật</h1>
+    
+    @if (Model.Count > 0)
+    {
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-4">
+            @foreach (var manga in Model)
+            {
+                <div class="col">
+                    <div class="card h-100 manga-card">
+                        <a href="/Manga/Details/@manga.Id">
+                            <img src="@manga.CoverUrl" class="card-img-top" alt="@manga.Title" 
+                                 onerror="this.onerror=null; this.src='/images/no-cover.png';">
+                        </a>
+                        <div class="card-body">
+                            <h5 class="card-title text-truncate" title="@manga.Title">
+                                <a href="/Manga/Details/@manga.Id" class="text-dark text-decoration-none">@manga.Title</a>
+                            </h5>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else if (string.IsNullOrEmpty(ViewBag.ErrorMessage))
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <h5>Đang tải dữ liệu truyện...</h5>
+        </div>
+    }
 </div>
+
+@section Scripts {
+    <script>
+        // JavaScript để xử lý hiệu ứng và chức năng tương tác
+        document.addEventListener('DOMContentLoaded', function() {
+            // Xử lý hiệu ứng hover cho manga card
+            const mangaCards = document.querySelectorAll('.manga-card');
+            mangaCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.classList.add('shadow');
+                });
+                card.addEventListener('mouseleave', function() {
+                    this.classList.remove('shadow');
+                });
+            });
+        });
+    </script>
+}
