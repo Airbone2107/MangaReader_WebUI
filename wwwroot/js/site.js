@@ -27,6 +27,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Khởi tạo chức năng chuyển đổi chế độ tối/sáng
     initDarkModeToggle();
+    
+    // Khởi tạo chức năng xử lý lỗi
+    initErrorHandling();
 });
 
 /**
@@ -239,4 +242,50 @@ function initDarkModeToggle() {
     
     // Tạo hàm global để các trang có thể sử dụng
     window.toggleDarkMode = toggleDarkMode;
+}
+
+/**
+ * Khởi tạo chức năng xử lý lỗi
+ */
+function initErrorHandling() {
+    // Kiểm tra và hiển thị thông báo lỗi từ API
+    const errorContainer = document.querySelector('.api-error-container');
+    if (errorContainer) {
+        const retryButton = errorContainer.querySelector('.retry-button');
+        if (retryButton) {
+            retryButton.addEventListener('click', function() {
+                window.location.reload();
+            });
+        }
+    }
+
+    // Xử lý lỗi khi tải hình ảnh
+    document.querySelectorAll('img').forEach(img => {
+        img.addEventListener('error', function() {
+            this.src = '/images/no-cover.png';
+        });
+    });
+
+    // Thêm event listener cho nút reconnect API
+    const reconnectButtons = document.querySelectorAll('.reconnect-api');
+    reconnectButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            showToast('Đang kết nối lại...', 'info');
+            
+            // Gửi request kiểm tra API
+            fetch('/Home/ApiTest')
+                .then(response => {
+                    if (response.ok) {
+                        showToast('Kết nối thành công!', 'success');
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        showToast('Không thể kết nối đến API', 'error');
+                    }
+                })
+                .catch(() => {
+                    showToast('Không thể kết nối đến API', 'error');
+                });
+        });
+    });
 }

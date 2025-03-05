@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using manga_reader_web.Models;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using System.Threading;
 
 namespace manga_reader_web.Services
 {
@@ -54,17 +55,49 @@ namespace manga_reader_web.Services
             try
             {
                 Console.WriteLine($"Kiểm tra kết nối đến: {_baseUrl}/status");
-                var response = await _httpClient.GetAsync($"{_baseUrl}/status");
+                
+                // Đặt thời gian chờ ngắn hơn cho request kiểm tra kết nối
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{_baseUrl}/status");
+                
+                var response = await _httpClient.SendAsync(requestMessage, cts.Token);
                 var content = await response.Content.ReadAsStringAsync();
                 
                 Console.WriteLine($"Kết quả kiểm tra kết nối: {(int)response.StatusCode} - {content}");
                 
                 return response.IsSuccessStatusCode;
             }
+            catch (TaskCanceledException ex)
+            {
+                // Xử lý timeout riêng
+                Console.WriteLine($"Timeout khi kiểm tra kết nối: {ex.Message}");
+                _logger?.LogWarning($"Timeout khi kiểm tra kết nối đến API: {ex.Message}");
+                return false;
+            }
+            catch (HttpRequestException ex)
+            {
+                // Xử lý lỗi HTTP riêng
+                Console.WriteLine($"Lỗi HTTP khi kiểm tra kết nối: {ex.Message}");
+                _logger?.LogWarning($"Lỗi HTTP khi kết nối đến API: {ex.Message}");
+                return false;
+            }
+            catch (OperationCanceledException ex)
+            {
+                // Bắt lỗi hủy thao tác 
+                Console.WriteLine($"Kiểm tra kết nối bị hủy: {ex.Message}");
+                _logger?.LogWarning($"Yêu cầu kiểm tra kết nối bị hủy: {ex.Message}");
+                return false;
+            }
             catch (Exception ex)
             {
+                // Bắt tất cả lỗi khác
                 Console.WriteLine($"Lỗi khi kiểm tra kết nối: {ex.Message}");
-                _logger?.LogError($"Lỗi khi kiểm tra kết nối: {ex.Message}");
+                _logger?.LogError($"Lỗi không xác định khi kiểm tra kết nối: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+                    _logger?.LogError($"Inner Exception: {ex.InnerException.Message}");
+                }
                 return false;
             }
         }
@@ -299,32 +332,55 @@ namespace manga_reader_web.Services
         // Lấy ảnh bìa của manga
         public async Task<string> FetchCoverUrlAsync(string mangaId)
         {
-            var response = await _httpClient.GetAsync($"{_baseUrl}/cover?manga[]={mangaId}");
-            var content = await response.Content.ReadAsStringAsync();
-
-            if (response.IsSuccessStatusCode)
+            try
             {
-                var data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(content, _jsonOptions);
-                var coverData = JsonSerializer.Deserialize<List<Dictionary<string, JsonElement>>>(data["data"].ToString(), _jsonOptions);
+                var queryParams = new Dictionary<string, List<string>>();
+                AddOrUpdateParam(queryParams, "manga[]", mangaId);
+                
+                var url = BuildUrl($"{_baseUrl}/cover", queryParams);
+                var response = await _httpClient.GetAsync(url);
+                var content = await response.Content.ReadAsStringAsync();
 
-                if (coverData != null && coverData.Count > 0)
+                if (response.IsSuccessStatusCode)
                 {
-                    var coverAttributes = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(coverData[0]["attributes"].ToString(), _jsonOptions);
-                    string coverId = coverAttributes["fileName"].ToString();
-                    
-                    // URL này sẽ qua proxy để tránh CORS
-                    return $"{_baseUrl}/proxy-image?url={Uri.EscapeDataString($"https://uploads.mangadex.org/covers/{mangaId}/{coverId}.512.jpg")}";
+                    var data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(content, _jsonOptions);
+                    var coverData = JsonSerializer.Deserialize<List<Dictionary<string, JsonElement>>>(data["data"].ToString(), _jsonOptions);
+
+                    if (coverData != null && coverData.Count > 0)
+                    {
+                        var coverAttributes = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(coverData[0]["attributes"].ToString(), _jsonOptions);
+                        string coverId = coverAttributes["fileName"].ToString();
+                        
+                        // URL này sẽ qua proxy để tránh CORS
+                        return $"{_baseUrl}/proxy-image?url={Uri.EscapeDataString($"https://uploads.mangadex.org/covers/{mangaId}/{coverId}.512.jpg")}";
+                    }
+                    else
+                    {
+                        // Trả về URL ảnh mặc định nếu không tìm thấy
+                        Console.WriteLine($"Không tìm thấy ảnh bìa cho manga {mangaId}");
+                        return "/images/no-cover.png";
+                    }
+                }
+                else if ((int)response.StatusCode == 503)
+                {
+                    // Ảnh bìa mặc định nếu server bảo trì
+                    Console.WriteLine("Server MangaDex đang bảo trì");
+                    return "/images/no-cover.png";
                 }
                 else
                 {
+                    // Ảnh bìa mặc định nếu có lỗi khác
                     LogError("FetchCoverUrlAsync", response, content);
-                    throw new Exception("Không tìm thấy ảnh bìa");
+                    Console.WriteLine($"Lỗi khi tải ảnh bìa: {(int)response.StatusCode}");
+                    return "/images/no-cover.png";
                 }
             }
-            else
+            catch (Exception ex)
             {
-                LogError("FetchCoverUrlAsync", response, content);
-                throw new Exception("Lỗi khi tải ảnh bìa");
+                // Ghi log lỗi nhưng vẫn trả về ảnh mặc định thay vì throw exception
+                Console.WriteLine($"Lỗi không xác định khi tải ảnh bìa: {ex.Message}");
+                _logger?.LogError($"Lỗi khi tải ảnh bìa: {ex.Message}");
+                return "/images/no-cover.png";
             }
         }
 
@@ -377,25 +433,36 @@ namespace manga_reader_web.Services
             if (mangaIds == null || mangaIds.Count == 0)
                 return new List<dynamic>();
 
-            var queryParams = new Dictionary<string, List<string>>();
-            foreach (var id in mangaIds)
+            try
             {
-                AddOrUpdateParam(queryParams, "ids", id);
-            }
+                var queryParams = new Dictionary<string, List<string>>();
+                foreach (var id in mangaIds)
+                {
+                    AddOrUpdateParam(queryParams, "ids[]", id);
+                }
 
-            var url = BuildUrl($"{_baseUrl}/manga-by-ids", queryParams);
-            var response = await _httpClient.GetAsync(url);
-            var content = await response.Content.ReadAsStringAsync();
+                var url = BuildUrl($"{_baseUrl}/manga", queryParams);
+                Console.WriteLine($"Gửi request lấy manga theo IDs: {url}");
+                
+                var response = await _httpClient.GetAsync(url);
+                var content = await response.Content.ReadAsStringAsync();
 
-            if (response.IsSuccessStatusCode)
-            {
-                var data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(content, _jsonOptions);
-                return JsonSerializer.Deserialize<List<dynamic>>(data["data"].ToString(), _jsonOptions);
+                if (response.IsSuccessStatusCode)
+                {
+                    var data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(content, _jsonOptions);
+                    return JsonSerializer.Deserialize<List<dynamic>>(data["data"].ToString(), _jsonOptions);
+                }
+                else
+                {
+                    LogError("FetchMangaByIdsAsync", response, content);
+                    throw new Exception($"Lỗi khi tải manga theo IDs: {(int)response.StatusCode}");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                LogError("FetchMangaByIdsAsync", response, content);
-                throw new Exception($"Lỗi khi tải manga theo IDs: {(int)response.StatusCode}");
+                Console.WriteLine($"Lỗi khi tải manga theo IDs: {ex.Message}");
+                _logger?.LogError($"Lỗi khi tải manga theo IDs: {ex.Message}");
+                throw;
             }
         }
     }

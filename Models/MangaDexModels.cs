@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using System.Linq;
 
 namespace manga_reader_web.Models
 {
@@ -62,6 +63,7 @@ namespace manga_reader_web.Models
         {
             var parameters = new Dictionary<string, object>();
 
+            // Chỉ thêm tham số nếu có dữ liệu
             if (!string.IsNullOrEmpty(Title))
                 parameters["title"] = Title;
 
@@ -80,10 +82,27 @@ namespace manga_reader_web.Models
             if (ExcludedTags.Count > 0)
                 parameters["excludedTags[]"] = ExcludedTags;
 
-            if (Languages.Count > 0)
-                parameters["availableTranslatedLanguage[]"] = Languages;
+            // Chỉ thêm tham số ngôn ngữ nếu danh sách không rỗng
+            if (Languages != null && Languages.Count > 0)
+            {
+                // Kiểm tra mã ngôn ngữ hợp lệ
+                var validLanguages = Languages.Where(lang => 
+                    !string.IsNullOrWhiteSpace(lang) && 
+                    System.Text.RegularExpressions.Regex.IsMatch(lang.Trim(), @"^[a-z]{2}(-[a-z]{2})?$")
+                ).ToList();
+                
+                if (validLanguages.Count > 0)
+                    parameters["availableTranslatedLanguage[]"] = validLanguages;
+            }
 
+            // Sắp xếp theo cập nhật mới nhất hoặc cũ nhất
             parameters["order[updatedAt]"] = SortBy == "Mới cập nhật" ? "desc" : "asc";
+
+            // Sắp xếp theo lượt xem nếu cần
+            if (SortBy == "Lượt xem")
+            {
+                parameters["order[followedCount]"] = "desc";
+            }
 
             return parameters;
         }
