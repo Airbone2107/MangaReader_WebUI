@@ -9,6 +9,7 @@ using manga_reader_web.Models;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using System.Threading;
+using System.Dynamic;
 
 namespace manga_reader_web.Services
 {
@@ -463,6 +464,32 @@ namespace manga_reader_web.Services
                 Console.WriteLine($"Lỗi khi tải manga theo IDs: {ex.Message}");
                 _logger?.LogError($"Lỗi khi tải manga theo IDs: {ex.Message}");
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Lấy thông tin chi tiết của một chapter dựa vào ID
+        /// </summary>
+        /// <param name="chapterId">ID của chapter cần lấy thông tin</param>
+        /// <returns>Đối tượng chứa thông tin chapter</returns>
+        public async Task<object> FetchChapterInfoAsync(string chapterId)
+        {
+            try
+            {
+                string url = $"{_baseUrl}/chapter/{chapterId}";
+                _logger.LogInformation($"Đang gọi API: {url}");
+                
+                var response = await _httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+                
+                var content = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<ExpandoObject>(content);
+                
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return null;
             }
         }
     }

@@ -1,5 +1,16 @@
-/* Base styles */
+/* Z-index layers */
 :root {
+    /* Z-index layers */
+    --z-index-dropdown: 1000;
+    --z-index-navbar: 1030;
+    --z-index-fixed: 1040;
+    --z-index-modal-backdrop: 1050;
+    --z-index-modal: 1060;
+    --z-index-tooltip: 1070;
+    --z-index-toast: 1080;
+    --z-index-popover: 1090;
+    
+    /* Theme colors - Light mode */
     --primary-color: #0d6efd;
     --secondary-color: #6c757d;
     --success-color: #198754;
@@ -8,29 +19,116 @@
     --danger-color: #dc3545;
     --light-color: #f8f9fa;
     --dark-color: #212529;
+    
+    /* Background & Text */
     --body-bg: #f8f9fa;
+    --body-color: #212529;
+    --card-bg: #ffffff;
+    --card-color: #212529;
+    --navbar-bg: var(--primary-color);
+    --navbar-color: #ffffff;
+    --footer-bg: var(--primary-color);
+    --footer-color: #ffffff;
+    
+    /* Shadows & Effects */
     --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     --hover-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     --transition-speed: 0.3s;
+    
+    /* Borders */
+    --border-color: rgba(0, 0, 0, 0.125);
 }
 
+[data-bs-theme="dark"] {
+    /* Theme colors - Dark mode */
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --info-color: #0dcaf0;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-color: #212529;
+    --dark-color: #f8f9fa;
+    
+    /* Background & Text */
+    --body-bg: #121212;
+    --body-color: #e1e1e1;
+    --card-bg: #1e1e1e;
+    --card-color: #e1e1e1;
+    --navbar-bg: #1a1a1a;
+    --navbar-color: #ffffff;
+    --footer-bg: #1a1a1a;
+    --footer-color: #ffffff;
+    
+    /* Shadows & Effects */
+    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    --hover-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+    
+    /* Borders */
+    --border-color: rgba(255, 255, 255, 0.125);
+}
+
+/* Main structure */
 html {
-    font-size: 14px;
+  font-size: 14px;
     position: relative;
-    min-height: 100%;
+    height: 100%;
+    scroll-padding-top: 70px; /* Add padding to account for fixed navbar */
+    scroll-behavior: smooth;
 }
 
 @media (min-width: 768px) {
-    html {
-        font-size: 16px;
-    }
+  html {
+    font-size: 16px;
+  }
 }
 
 body {
-    margin-bottom: 60px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     background-color: var(--body-bg);
+    color: var(--body-color);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: var(--dark-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    animation: fadeIn 0.3s ease-in-out;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+    padding: 0;
+    margin: 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Cấu trúc mới cho header, content và footer */
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-index-navbar);
+    width: 100%;
+}
+
+.content-wrapper {
+    flex: 1 0 auto; /* Flex grow, no shrink, auto basis */
+    width: 100%;
+    min-height: calc(100vh - 56px - 200px); /* Viewport height minus header and footer */
+    padding-bottom: 2rem;
+}
+
+.site-content {
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+}
+
+.site-footer {
+    flex-shrink: 0; /* Prevent footer from shrinking */
+    width: 100%;
+    background-color: var(--footer-bg);
+    color: var(--footer-color);
+    z-index: 2;
+    margin-top: auto; /* Push to bottom if content doesn't fill page */
 }
 
 /* Focus styles */
@@ -45,9 +143,11 @@ body {
 /* Common components */
 .card {
     border-radius: 0.5rem;
-    border: none;
+    border: 1px solid var(--border-color);
     box-shadow: var(--card-shadow);
     transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+    background-color: var(--card-bg);
+    color: var(--card-color);
 }
 
 .card:hover {
@@ -58,16 +158,76 @@ body {
     border-radius: 0.375rem;
     padding: 0.5rem 1rem;
     transition: all var(--transition-speed);
+    position: relative;
+    overflow: hidden;
 }
 
-.btn-primary {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%, -50%);
+    transform-origin: 50% 50%;
 }
 
-.btn-primary:hover {
-    background-color: #0b5ed7;
-    border-color: #0a58ca;
+.btn:hover::after {
+    animation: ripple 1s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(30, 30);
+        opacity: 0;
+    }
+}
+
+/* Navbar customization */
+.navbar {
+    position: relative;
+    width: 100%;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: var(--z-index-navbar);
+}
+
+.navbar-scrolled {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-hidden {
+    transform: translateY(-100%);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.nav-link {
+    font-weight: 500;
+}
+
+.navbar-dark {
+    background-color: var(--navbar-bg) !important;
+}
+
+/* Theme Switcher */
+#themeSwitcher {
+    cursor: pointer;
+}
+
+#themeSwitch {
+    cursor: pointer;
 }
 
 /* Manga card styles */
@@ -75,6 +235,9 @@ body {
     transition: transform var(--transition-speed), box-shadow var(--transition-speed);
     border-radius: 0.5rem;
     overflow: hidden;
+    height: 100%;
+    background-color: var(--card-bg);
+    color: var(--card-color);
 }
 
 .manga-card:hover {
@@ -91,6 +254,7 @@ body {
 
 .manga-cover {
     height: 100%;
+    width: 100%;
     object-fit: cover;
     transition: transform 0.5s ease;
 }
@@ -116,6 +280,72 @@ body {
     margin-bottom: 0.5rem;
 }
 
+/* Manga details page */
+.manga-details-container {
+    margin-top: 0;
+    position: relative;
+    z-index: 1;
+    padding-bottom: 2rem;
+}
+
+.manga-header {
+    position: relative;
+    z-index: 0; /* Lower z-index to prevent overlap */
+}
+
+.manga-header-overlay {
+    background: rgba(0, 0, 0, 0.8);
+    padding: 2rem 0;
+}
+
+.manga-cover-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.manga-description {
+    white-space: pre-line;
+    line-height: 1.6;
+}
+
+/* Chapter list accordion */
+.chapters-container {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 2rem;
+}
+
+.chapters-container .accordion-button:not(.collapsed) {
+    background-color: rgba(13, 110, 253, 0.1);
+    z-index: 3;
+}
+
+.chapters-container .accordion-button:focus {
+    box-shadow: none;
+}
+
+.chapters-container .list-group-item-action:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+.chapters-container .accordion-body .accordion-item {
+    border-left: none;
+    border-right: none;
+    margin-bottom: 2px;
+    overflow: visible; /* Ensure content is not clipped */
+}
+
+.chapters-container .accordion-body .accordion-item:first-of-type {
+    border-top: none;
+}
+
+.chapters-container .accordion-body .accordion-button {
+    padding-left: 2rem;
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
 /* Pagination */
 .pagination .page-link {
     border-radius: 0.25rem;
@@ -127,27 +357,6 @@ body {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
     color: white;
-}
-
-/* Navbar customization */
-.navbar {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.navbar-brand {
-    font-weight: 700;
-    font-size: 1.5rem;
-}
-
-.nav-link {
-    font-weight: 500;
-}
-
-/* Footer */
-.footer {
-    background-color: var(--dark-color);
-    color: var(--light-color);
-    padding: 1rem 0;
 }
 
 /* Utility classes */
@@ -175,19 +384,62 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: var(--body-bg);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #888;
+    background: var(--secondary-color);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: var(--dark-color);
+}
+
+/* HomePage specific styles */
+.featured-manga {
+    position: relative;
+    height: 400px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.featured-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 2rem;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0) 100%);
+    color: white;
 }
 
 /* Responsive adjustments */
+@media (max-width: 991.98px) {
+    .navbar-collapse {
+        padding: 1rem 0;
+    }
+    
+    .nav-item {
+        margin-bottom: 0.5rem;
+    }
+    
+    .site-header {
+        position: relative; /* Not sticky on mobile */
+    }
+    
+    .content-wrapper {
+        min-height: calc(100vh - 200px); /* Adjusted for mobile */
+    }
+    
+    .featured-manga {
+        height: 300px;
+    }
+}
+
 @media (max-width: 767.98px) {
     .manga-cover-link {
         height: 200px;
@@ -200,40 +452,410 @@ body {
     .navbar-brand {
         font-size: 1.25rem;
     }
+    
+    .featured-manga {
+        height: 250px;
+    }
+    
+    .featured-overlay h2 {
+        font-size: 1.5rem;
+    }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --body-bg: #121212;
-        --dark-color: #e1e1e1;
-        --light-color: #121212;
-        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+/* Additional style for active navigation item */
+.navbar-nav .nav-item .nav-link.active {
+    font-weight: 600;
+    position: relative;
+}
+
+.navbar-nav .nav-item .nav-link.active:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0.5rem;
+    right: 0.5rem;
+    height: 2px;
+    background-color: currentColor;
+}
+
+/* Add style for form controls in dark mode */
+[data-bs-theme="dark"] .form-control {
+    background-color: #2c2c2c;
+    border-color: #444;
+    color: #e1e1e1;
+}
+
+[data-bs-theme="dark"] .form-control:focus {
+    background-color: #333;
+    border-color: var(--primary-color);
+    color: #fff;
+}
+
+/* Error image placeholder */
+img.error-image {
+    opacity: 0.5;
+    filter: grayscale(100%);
+}
+
+/* Fix for dark mode inputs */
+[data-bs-theme="dark"] .btn-check:checked + .btn-outline-primary,
+[data-bs-theme="dark"] .btn-check:active + .btn-outline-primary,
+[data-bs-theme="dark"] .btn-outline-primary:active,
+[data-bs-theme="dark"] .btn-outline-primary.active,
+[data-bs-theme="dark"] .btn-outline-primary.dropdown-toggle.show {
+    color: #fff;
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Fix badge contrast */
+[data-bs-theme="dark"] .badge.bg-secondary {
+    background-color: #495057 !important;
+}
+
+/* Enhance buttons hover effect */
+.btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%, -50%);
+    transform-origin: 50% 50%;
+}
+
+.btn:hover::after {
+    animation: ripple 1s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(30, 30);
+        opacity: 0;
+    }
+}
+
+/* Fix navbar positioning */
+header {
+    position: relative;
+    width: 100%;
+    z-index: var(--z-index-navbar);
+}
+
+/* Adjust accordion positioning */
+.accordion {
+    position: relative;
+    z-index: 1; /* Lower z-index than navbar/footer */
+}
+
+.accordion-button {
+    position: relative;
+    z-index: 2; /* Higher than accordion container but lower than fixed elements */
+}
+
+.accordion-collapse {
+    position: relative;
+    z-index: 1;
+    transition: all 0.35s ease;
+}
+
+/* Ensure dropdowns appear over other content */
+.dropdown-menu {
+    z-index: var(--z-index-dropdown);
+    margin-top: 0.5rem !important;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Toast container should be above everything */
+#toastContainer {
+    z-index: var(--z-index-toast);
+}
+
+/* Back to top button */
+#backToTopBtn {
+    width: 45px;
+    height: 45px;
+    padding: 0;
+    z-index: var(--z-index-fixed);
+    opacity: 0.8;
+    border-radius: 50%;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+#backToTopBtn:hover {
+    opacity: 1;
+    transform: translateY(-3px);
+}
+
+/* Improve container boundaries */
+.container {
+  position: relative;
+    z-index: 1;
+}
+
+/* Manga title link styles */
+.manga-title-link {
+    color: var(--body-color);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.manga-title-link:hover {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+[data-bs-theme="dark"] .manga-title-link {
+    color: var(--body-color);
+}
+
+[data-bs-theme="dark"] .manga-title-link:hover {
+    color: var(--primary-color);
+}
+
+/* Improve contrast for manga card in dark mode */
+[data-bs-theme="dark"] .card-body {
+    background-color: var(--card-bg);
+}
+
+/* Improve error handling for images */
+img[src="/images/no-cover.png"] {
+    object-fit: contain !important;
+    background-color: #f8f9fa;
+    padding: 10px;
+}
+
+[data-bs-theme="dark"] img[src="/images/no-cover.png"] {
+    background-color: #2c2c2c;
+}
+
+/* Sidebar menu */
+.offcanvas-start {
+    width: 280px;
+    transform: translateX(-280px);
+    transition: transform 0.3s ease;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 1045;
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: var(--card-bg);
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+}
+
+body.sidebar-open {
+    overflow-x: hidden;
+}
+
+.site-content,
+.site-footer,
+.site-header,
+.content-wrapper {
+    transition: margin-left 0.3s ease, width 0.3s ease;
+    width: 100%;
+}
+
+body.sidebar-open .site-content,
+body.sidebar-open .site-footer,
+body.sidebar-open .site-header,
+body.sidebar-open .content-wrapper {
+    margin-left: 10%;
+    width: calc(100% - 10%);
+}
+
+/* Ẩn nút menu và logo khi sidebar mở */
+body.sidebar-open .navbar-toggler.sidebar-toggler,
+body.sidebar-open .navbar-brand {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.navbar-toggler.sidebar-toggler,
+.navbar-brand {
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* Điều chỉnh thanh tìm kiếm khi sidebar mở */
+body.sidebar-open .search-container {
+    margin-left: -5%;
+    transition: margin-left 0.3s ease;
+    max-width: 100%;
+}
+
+/* Thiết lập lại card grid khi sidebar mở */
+body.sidebar-open .manga-card-grid {
+    --bs-gutter-x: 1rem;
+}
+
+body.sidebar-open .manga-card-grid > .col {
+    width: 25%;
+}
+
+@media (max-width: 1400px) {
+    body.sidebar-open .manga-card-grid > .col {
+        width: 33.333%;
+    }
+}
+
+@media (max-width: 1200px) {
+    body.sidebar-open .manga-card-grid > .col {
+        width: 50%;
+    }
+}
+
+/* Card grid cho manga */
+.manga-card-grid {
+    --bs-gutter-x: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.sidebar-backdrop {
+    display: none; /* Loại bỏ backdrop để cho phép tương tác với nội dung */
+}
+
+.offcanvas-body .nav-link {
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+}
+
+.offcanvas-body .nav-link:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.offcanvas-body .nav-link.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+#sidebarThemeSwitcher {
+    transition: background-color 0.3s ease;
+}
+
+[data-bs-theme="dark"] #sidebarThemeSwitcher {
+    background-color: var(--card-bg) !important;
+    color: var(--body-color);
+}
+
+/* Navbar new styles */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-toggler {
+    border: none;
+    background: transparent;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+    .search-container {
+        max-width: 100%;
     }
     
-    body {
-        background-color: var(--body-bg);
-        color: var(--dark-color);
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+}
+
+/* Fix for navbar color in dark mode */
+[data-bs-theme="dark"] .navbar-dark {
+    background-color: var(--navbar-bg) !important;
+}
+
+[data-bs-theme="dark"] .bg-body-tertiary {
+    background-color: var(--card-bg) !important;
+}
+
+[data-bs-theme="dark"] .offcanvas {
+    background-color: var(--card-bg);
+    color: var(--body-color);
+}
+
+[data-bs-theme="dark"] .offcanvas .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Adjust navbar collapse for new layout */
+@media (min-width: 992px) {
+    .navbar-toggler.sidebar-toggler {
+        display: inline-block;
+    }
+}
+
+/* Fix sidebar behavior on smaller screens */
+@media (max-width: 767px) {
+    body.sidebar-open .site-content,
+    body.sidebar-open .site-footer,
+    body.sidebar-open .site-header,
+    body.sidebar-open .content-wrapper {
+        margin-left: 0;
+        width: 100%;
     }
     
-    .card {
-        background-color: #1e1e1e;
-        color: #e1e1e1;
+    .offcanvas-start {
+        width: 250px;
+        transform: translateX(-250px);
     }
     
-    .text-dark {
-        color: #e1e1e1 !important;
+    body.sidebar-open .offcanvas-start {
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
     }
     
-    .text-muted {
-        color: #adb5bd !important;
+    /* Đảm bảo thanh tìm kiếm mobile vẫn hiển thị tốt */
+    body.sidebar-open .container.d-block.d-lg-none {
+        margin-left: 0;
     }
     
-    .navbar-dark {
-        background-color: #1a1a1a !important;
+    /* Điều chỉnh thanh tìm kiếm khi sidebar mở trên mobile */
+    body.sidebar-open .search-container {
+        margin-left: 0;
     }
     
-    .border-bottom {
-        border-color: #2c2c2c !important;
+    /* Điều chỉnh card grid trên mobile */
+    body.sidebar-open .manga-card-grid > .col {
+        width: 50%;
     }
+}
+
+@media (max-width: 576px) {
+    body.sidebar-open .manga-card-grid > .col {
+        width: 100%;
+    }
+}
+
+/* Transition classes */
+.text-transition {
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.position-transition {
+    transition: margin-left 0.3s ease, transform 0.3s ease;
+}
+
+.search-container {
+    transition: margin-left 0.3s ease;
+    width: 100%;
+    max-width: 500px;
 }

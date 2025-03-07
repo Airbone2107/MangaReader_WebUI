@@ -3,6 +3,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+// Thêm cấu hình Session
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // Thời gian timeout cho session
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 // Cấu hình logging chi tiết
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -52,6 +61,9 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+// Sử dụng Session (phải đặt sau UseRouting và trước UseAuthorization)
+app.UseSession();
 
 app.UseAuthorization();
 

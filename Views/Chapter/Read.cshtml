@@ -20,7 +20,7 @@
             
             <div class="text-center">
                 <h5 class="m-0">@Model.MangaTitle</h5>
-                <div>Chapter @Model.ChapterNumber</div>
+                <div>@Model.ChapterTitle <span class="badge bg-info">@TranslateLanguage(Model.ChapterLanguage)</span></div>
             </div>
             
             <div class="d-flex gap-2">
@@ -125,4 +125,16 @@
             });
         });
     </script>
+}
+
+@functions {
+    public string TranslateLanguage(string lang)
+    {
+        return lang switch
+        {
+            "vi" => "Tiếng Việt",
+            "en" => "Tiếng Anh",
+            _ => lang?.ToUpper() ?? "Không rõ"
+        };
+    }
 } 

@@ -40,18 +40,18 @@
     
     @if (Model.Count > 0)
     {
-        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-4">
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-4 manga-card-grid">
             @foreach (var manga in Model)
             {
                 <div class="col">
                     <div class="card h-100 manga-card">
-                        <a href="/Manga/Details/@manga.Id">
+                        <a href="/Manga/Details/@manga.Id" class="manga-cover-link">
                             <img src="@manga.CoverUrl" class="card-img-top" alt="@manga.Title" 
-                                 onerror="this.onerror=null; this.src='/images/no-cover.png';">
+                                 onerror="this.onerror=null; this.src='/images/no-cover.png';" loading="lazy">
                         </a>
                         <div class="card-body">
                             <h5 class="card-title text-truncate" title="@manga.Title">
-                                <a href="/Manga/Details/@manga.Id" class="text-dark text-decoration-none">@manga.Title</a>
+                                <a href="/Manga/Details/@manga.Id" class="manga-title-link">@manga.Title</a>
                             </h5>
                         </div>
                     </div>

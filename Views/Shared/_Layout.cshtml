@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-bs-theme="light">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,55 +8,169 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/manga_reader_web.styles.css" asp-append-version="true" />
+    <link rel="icon" type="image/png" href="~/favicon.png">
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="description" content="Đọc manga online miễn phí với chất lượng cao">
     @await RenderSectionAsync("Styles", required: false)
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Manga Reader</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+<body class="manga-reader-app d-flex flex-column min-vh-100">
+    <header class="site-header">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <!-- Nút menu bên trái -->
+                <button class="navbar-toggler sidebar-toggler me-2" type="button" aria-controls="sidebarMenu" aria-expanded="false">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-light" asp-area="" asp-controller="Home" asp-action="Index">
-                                <i class="bi bi-house-door"></i> Trang chủ
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" asp-area="" asp-controller="Manga" asp-action="Index">
-                                <i class="bi bi-book"></i> Danh sách manga
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" asp-area="" asp-controller="Manga" asp-action="Popular">
-                                <i class="bi bi-star"></i> Phổ biến
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" asp-area="" asp-controller="Manga" asp-action="Search">
-                                <i class="bi bi-search"></i> Tìm kiếm
-                            </a>
-                        </li>
-                    </ul>
+                
+                <!-- Logo và tên trang web -->
+                <a class="navbar-brand text-transition" asp-area="" asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-book-half me-2"></i>Manga Reader
+                </a>
+                
+                <!-- Phần giữa: Thanh tìm kiếm -->
+                <div class="search-container mx-auto d-none d-lg-block position-transition">
+                    <form class="d-flex" id="quickSearchForm" action="/Manga/Search" method="get">
+                        <div class="input-group">
+                            <input class="form-control" id="quickSearchInput" name="title" type="search" placeholder="Tìm truyện..." aria-label="Search">
+                            <button class="btn btn-light" type="submit"><i class="bi bi-search"></i></button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Phần phải: Tài khoản -->
+                <div class="ms-auto d-flex align-items-center">
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-bookmark me-2"></i>Danh sách theo dõi</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-clock-history me-2"></i>Lịch sử đọc</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" id="themeSwitcher">
+                                    <span id="themeText"><i class="bi bi-moon-stars me-2"></i>Chế độ tối</span>
+                                    <div class="form-check form-switch mb-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="themeSwitch">
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </nav>
+        
+        <!-- Mobile Search -->
+        <div class="container d-block d-lg-none py-2 bg-body-tertiary border-bottom">
+            <form class="d-flex" id="mobileSearchForm" action="/Manga/Search" method="get">
+                <div class="input-group">
+                    <input class="form-control" name="title" type="search" placeholder="Tìm truyện..." aria-label="Search">
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+                </div>
+            </form>
+        </div>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+    
+    <!-- Sidebar Menu -->
+    <div class="offcanvas-start bg-body" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="sidebarMenuLabel">
+                <i class="bi bi-book-half me-2"></i>Manga Reader
+            </h5>
+            <div class="ms-auto d-flex">
+                <button type="button" class="btn-close" id="closeSidebar" aria-label="Close"></button>
+            </div>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="navbar-nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">
+                        <i class="bi bi-house-door me-2"></i>Trang chủ
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-area="" asp-controller="Manga" asp-action="Index">
+                        <i class="bi bi-book me-2"></i>Danh sách manga
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-area="" asp-controller="Manga" asp-action="Popular">
+                        <i class="bi bi-star me-2"></i>Phổ biến
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link dropdown-toggle" href="#" id="categoriesDropdown" role="button" data-bs-toggle="collapse" data-bs-target="#categoriesCollapse" aria-expanded="false">
+                        <i class="bi bi-list me-2"></i>Thể loại
+                    </a>
+                    <div class="collapse" id="categoriesCollapse">
+                        <ul class="navbar-nav ps-3">
+                            <li><a class="nav-link" href="/Manga/Search?tags=Action">Action</a></li>
+                            <li><a class="nav-link" href="/Manga/Search?tags=Adventure">Adventure</a></li>
+                            <li><a class="nav-link" href="/Manga/Search?tags=Comedy">Comedy</a></li>
+                            <li><a class="nav-link" href="/Manga/Search?tags=Drama">Drama</a></li>
+                            <li><a class="nav-link" href="/Manga/Search?tags=Fantasy">Fantasy</a></li>
+                            <li><a class="nav-link" href="/Manga/Search?tags=Horror">Horror</a></li>
+                            <li><a class="nav-link" href="/Manga/Search?tags=Romance">Romance</a></li>
+                            <li><a class="nav-link" href="/Manga/Tags">Tất cả thể loại</a></li>
+                        </ul>
+                    </div>
+                </li>
+            </ul>
+            <hr>
+            <div class="d-flex justify-content-between align-items-center p-3 rounded bg-light" id="sidebarThemeSwitcher">
+                <span id="sidebarThemeText"><i class="bi bi-moon-stars me-2"></i>Chế độ tối</span>
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" role="switch" id="sidebarThemeSwitch">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="content-wrapper flex-grow-1">
+        <main role="main" class="site-content">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted bg-dark">
-        <div class="container text-light">
-            &copy; 2025 - Manga Reader - <a class="text-light" asp-area="" asp-controller="Home" asp-action="Privacy">Chính sách bảo mật</a>
+    <footer class="site-footer">
+        <div class="container py-4">
+            <div class="row">
+                <div class="col-lg-6">
+                    <h5><i class="bi bi-book-half me-2"></i>Manga Reader</h5>
+                    <p class="mb-3">Trang web đọc truyện manga online miễn phí với chất lượng cao.</p>
+                    <p>&copy; 2025 - Manga Reader - <a class="text-light" asp-area="" asp-controller="Home" asp-action="Privacy">Chính sách bảo mật</a></p>
+                </div>
+                <div class="col-lg-3 mt-4 mt-lg-0">
+                    <h6 class="mb-3">Liên kết</h6>
+                    <ul class="list-unstyled">
+                        <li><a class="text-light" href="/Manga/Popular">Truyện phổ biến</a></li>
+                        <li><a class="text-light" href="/Manga/Latest">Truyện mới cập nhật</a></li>
+                        <li><a class="text-light" href="/Manga/Tags">Thể loại</a></li>
+                        <li><a class="text-light" href="/Home/About">Giới thiệu</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 mt-4 mt-lg-0">
+                    <h6 class="mb-3">Theo dõi chúng tôi</h6>
+                    <div class="d-flex gap-3 fs-4">
+                        <a href="#" class="text-light"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="text-light"><i class="bi bi-twitter-x"></i></a>
+                        <a href="#" class="text-light"><i class="bi bi-discord"></i></a>
+                        <a href="#" class="text-light"><i class="bi bi-github"></i></a>
+                    </div>
+                </div>
+            </div>
         </div>
     </footer>
+
+    <!-- Back to top button -->
+    <button id="backToTopBtn" class="btn btn-primary rounded-circle position-fixed bottom-0 end-0 m-4 d-none" title="Về đầu trang">
+        <i class="bi bi-arrow-up"></i>
+    </button>
+
+    <!-- Toast container -->
+    <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+    
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

@@ -60,7 +60,7 @@
             </div>
         </div>
         
-        <div class="container mt-4">
+        <div class="container mt-4 mb-5 pb-5">
             <ul class="nav nav-tabs mb-4" id="mangaDetailTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="chapters-tab" data-bs-toggle="tab" data-bs-target="#chapters" type="button" role="tab" aria-controls="chapters" aria-selected="true">
@@ -89,34 +89,83 @@
                         </div>
                     </div>
                     
-                    <div class="table-responsive">
-                        <table class="table table-hover chapter-table">
-                            <thead>
-                                <tr>
-                                    <th>Số chương</th>
-                                    <th>Tiêu đề</th>
-                                    <th>Ngôn ngữ</th>
-                                    <th>Ngày phát hành</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var chapter in Model.Chapters.OrderByDescending(c => c.Number))
-                                {
-                                    <tr class="chapter-row" data-language="@chapter.Language">
-                                        <td>@chapter.Number</td>
-                                        <td>@(string.IsNullOrEmpty(chapter.Title) ? $"Chapter {chapter.Number}" : chapter.Title)</td>
-                                        <td><span class="badge bg-@(chapter.Language == "vi" ? "success" : "info")">@TranslateLanguage(chapter.Language)</span></td>
-                                        <td>@chapter.PublishedAt.ToString("dd/MM/yyyy")</td>
-                                        <td>
-                                            <a asp-controller="Chapter" asp-action="Read" asp-route-id="@chapter.Id" asp-route-mangaId="@Model.Manga.Id" class="btn btn-sm btn-primary">
-                                                <i class="bi bi-book"></i> Đọc
-                                            </a>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
+                    @{
+                        // Nhóm chapters theo ngôn ngữ
+                        var chaptersByLanguage = Model.Chapters
+                            .GroupBy(c => c.Language)
+                            .ToDictionary(g => g.Key, g => g.ToList());
+                        
+                        // Sắp xếp ngôn ngữ: Tiếng Việt lên đầu, sau đó là tiếng Anh và các ngôn ngữ khác
+                        var sortedLanguages = chaptersByLanguage.Keys
+                            .OrderBy(lang => lang == "vi" ? 0 : lang == "en" ? 1 : 2)
+                            .ThenBy(lang => lang)
+                            .ToList();
+                    }
+                    
+                    <div class="chapters-container">
+                        <div class="accordion" id="chaptersAccordion">
+                            @foreach (var language in sortedLanguages)
+                            {
+                                var langChapters = chaptersByLanguage[language];
+                                var langId = $"lang-{language}";
+                                
+                                // Nhóm chapters theo tập (volume)
+                                var chaptersByVolume = langChapters
+                                    .GroupBy(c => GetVolumeFromChapterNumber(c.Number))
+                                    .OrderBy(g => g.Key)
+                                    .ToDictionary(g => g.Key, g => g.OrderBy(c => c.Number).ToList());
+                                
+                                <div class="accordion-item chapter-lang-item" data-language="@language">
+                                    <h2 class="accordion-header" id="heading-@langId">
+                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@langId" aria-expanded="true" aria-controls="collapse-@langId">
+                                            <i class="bi bi-translate me-2"></i>Ngôn ngữ: <span class="fw-bold ms-2">@TranslateLanguage(language)</span>
+                                            <span class="badge bg-@(language == "vi" ? "success" : "info") ms-2">@langChapters.Count chương</span>
+                                        </button>
+                                    </h2>
+                                    <div id="collapse-@langId" class="accordion-collapse collapse show" aria-labelledby="heading-@langId" data-bs-parent="#chaptersAccordion">
+                                        <div class="accordion-body p-0">
+                                            <div class="accordion" id="volumeAccordion-@langId">
+                                                @foreach (var volume in chaptersByVolume.Keys)
+                                                {
+                                                    var volumeChapters = chaptersByVolume[volume];
+                                                    var volumeId = $"{langId}-vol-{volume.Replace(".", "-")}";
+                                                    
+                                                    <div class="accordion-item">
+                                                        <h2 class="accordion-header" id="heading-@volumeId">
+                                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@volumeId" aria-expanded="false" aria-controls="collapse-@volumeId">
+                                                                <i class="bi bi-journal-bookmark me-2"></i>Tập @volume
+                                                                <span class="badge bg-secondary ms-2">@volumeChapters.Count chương</span>
+                                                            </button>
+                                                        </h2>
+                                                        <div id="collapse-@volumeId" class="accordion-collapse collapse" aria-labelledby="heading-@volumeId" data-bs-parent="#volumeAccordion-@langId">
+                                                            <div class="accordion-body p-0">
+                                                                <div class="list-group list-group-flush">
+                                                                    @foreach (var chapter in volumeChapters.OrderBy(c => c.Number))
+                                                                    {
+                                                                        <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
+                                                                            <div>
+                                                                                <h6 class="mb-0">@chapter.Title</h6>
+                                                                                <small class="text-muted">@chapter.PublishedAt.ToString("dd/MM/yyyy")</small>
+                                                                            </div>
+                                                                            <a asp-controller="Chapter" asp-action="Read" 
+                                                                               asp-route-id="@chapter.Id" 
+                                                                               asp-route-mangaId="@Model.Manga.Id"
+                                                                               class="btn btn-sm btn-primary">
+                                                                                <i class="bi bi-book"></i> Đọc
+                                                                            </a>
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
                     </div>
                 </div>
                 
@@ -184,6 +233,11 @@
 
 @section Styles {
     <style>
+        body {
+            min-height: 100vh;
+            position: relative;
+        }
+        
         .manga-details-container {
             margin-top: -1.5rem;
         }
@@ -221,14 +275,6 @@
             line-height: 1.6;
         }
         
-        .chapter-table tr {
-            transition: background-color 0.2s;
-        }
-        
-        .chapter-table tr:hover {
-            background-color: rgba(0, 123, 255, 0.05);
-        }
-        
         .nav-tabs .nav-link {
             color: #495057;
         }
@@ -236,6 +282,45 @@
         .nav-tabs .nav-link.active {
             font-weight: 600;
             color: #0d6efd;
+        }
+        
+        /* Style mới cho accordion chapters */
+        .chapters-container .accordion-button:not(.collapsed) {
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+        
+        .chapters-container .accordion-button:focus {
+            box-shadow: none;
+        }
+        
+        .chapters-container .list-group-item-action:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+        
+        .chapters-container .accordion-body .accordion-item {
+            border-left: none;
+            border-right: none;
+        }
+        
+        .chapters-container .accordion-body .accordion-item:first-of-type {
+            border-top: none;
+        }
+        
+        .chapters-container .accordion-body .accordion-button {
+            padding-left: 2rem;
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+        
+        /* Đảm bảo footer không che lấp nội dung */
+        footer {
+            width: 100%;
+            position: relative;
+            margin-top: 20px;
+        }
+        
+        /* Thêm khoảng cách cuối trang */
+        .tab-content {
+            margin-bottom: 30px;
         }
     </style>
 }
@@ -248,10 +333,10 @@
                 var lang = $(this).val();
                 
                 if (lang === 'all') {
-                    $('.chapter-row').show();
+                    $('.chapter-lang-item').show();
                 } else {
-                    $('.chapter-row').hide();
-                    $('.chapter-row[data-language="' + lang + '"]').show();
+                    $('.chapter-lang-item').hide();
+                    $('.chapter-lang-item[data-language="' + lang + '"]').show();
                 }
             });
             
@@ -323,5 +408,19 @@
             "en" => "Tiếng Anh",
             _ => lang?.ToUpper() ?? "Không rõ"
         };
+    }
+    
+    // Tách volume từ số chapter, ví dụ: "12.5" -> "12"
+    public string GetVolumeFromChapterNumber(string chapterNumber)
+    {
+        // Nếu không thể parse số chapter, trả về "Không xác định"
+        if (string.IsNullOrEmpty(chapterNumber) || !double.TryParse(chapterNumber, out double number))
+        {
+            return "Không xác định";
+        }
+        
+        // Ví dụ: Chapter 1-10 thuộc tập 1, Chapter 11-20 thuộc tập 2, v.v.
+        int volume = (int)(Math.Floor(number) / 10) + 1;
+        return volume.ToString();
     }
 } 

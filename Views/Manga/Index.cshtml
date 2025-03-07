@@ -81,7 +81,8 @@
                 <div class="col-6 col-md-4 col-lg-3 mb-4">
                     <div class="card h-100 manga-card">
                         <a asp-action="Details" asp-route-id="@manga.Id" class="manga-cover-link">
-                            <img src="@manga.CoverUrl" class="card-img-top manga-cover" alt="@manga.Title" loading="lazy">
+                            <img src="@manga.CoverUrl" class="card-img-top manga-cover" alt="@manga.Title" loading="lazy"
+                                 onerror="this.onerror=null; this.src='/images/no-cover.png';">
                             @if (!string.IsNullOrEmpty(manga.Status))
                             {
                                 <span class="manga-status badge @(manga.Status == "ongoing" ? "bg-success" : "bg-secondary")">
@@ -91,7 +92,7 @@
                         </a>
                         <div class="card-body">
                             <h5 class="card-title manga-title">
-                                <a asp-action="Details" asp-route-id="@manga.Id" class="text-decoration-none text-dark">
+                                <a asp-action="Details" asp-route-id="@manga.Id" class="manga-title-link">
                                     @manga.Title
                                 </a>
                             </h5>

@@ -7,6 +7,7 @@ using manga_reader_web.Models;
 using manga_reader_web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 
 namespace manga_reader_web.Controllers
 {
@@ -70,7 +71,29 @@ namespace manga_reader_web.Controllers
                             continue;
                         }
                         
-                        var mangaTitle = GetLocalizedTitle(attributesDict["title"].ToString()) ?? "Không có tiêu đề";
+                        // Lấy title từ attributesDict
+                        var titleObj = attributesDict["title"];
+                        string mangaTitle = "Không có tiêu đề";
+                        
+                        // Phương pháp xử lý đúng cách title
+                        if (titleObj is Dictionary<string, object> titleDict)
+                        {
+                            // Ưu tiên tiếng Việt
+                            if (titleDict.ContainsKey("vi"))
+                                mangaTitle = titleDict["vi"].ToString();
+                            // Nếu không có tiếng Việt, lấy tiếng Anh
+                            else if (titleDict.ContainsKey("en"))
+                                mangaTitle = titleDict["en"].ToString();
+                            // Hoặc lấy giá trị đầu tiên nếu không có các ngôn ngữ ưu tiên
+                            else if (titleDict.Count > 0)
+                                mangaTitle = titleDict.FirstOrDefault().Value?.ToString() ?? "Không có tiêu đề";
+                        }
+                        else
+                        {
+                            // Thử phương pháp khác nếu title không phải là Dictionary
+                            mangaTitle = GetLocalizedTitle(JsonSerializer.Serialize(titleObj)) ?? "Không có tiêu đề";
+                        }
+                        
                         var description = "";
                         if (attributesDict.ContainsKey("description") && attributesDict["description"] != null)
                         {
@@ -199,7 +222,12 @@ namespace manga_reader_web.Controllers
                             
                         var chapterTitle = chapterAttributesDict.ContainsKey("title") && chapterAttributesDict["title"] != null
                             ? chapterAttributesDict["title"].ToString() 
-                            : $"Chapter {chapterNumber}";
+                            : "";
+                            
+                        // Xử lý tên chương theo cách của Flutter: nếu tên chương trùng số chương hoặc rỗng, chỉ hiển thị "Chương X"
+                        var displayTitle = string.IsNullOrEmpty(chapterTitle) || chapterTitle == chapterNumber 
+                            ? $"Chương {chapterNumber}" 
+                            : $"Chương {chapterNumber}: {chapterTitle}";
                             
                         var publishedAt = chapterAttributesDict.ContainsKey("publishAt") && chapterAttributesDict["publishAt"] != null
                             ? DateTime.Parse(chapterAttributesDict["publishAt"].ToString()) 
@@ -212,7 +240,7 @@ namespace manga_reader_web.Controllers
                         chapterViewModels.Add(new ChapterViewModel
                         {
                             Id = chapterDict["id"].ToString(),
-                            Title = chapterTitle,
+                            Title = displayTitle,
                             Number = chapterNumber,
                             Language = language,
                             PublishedAt = publishedAt
@@ -231,6 +259,29 @@ namespace manga_reader_web.Controllers
                         return number;
                     return 0;
                 }).ToList();
+                
+                // Lưu danh sách tất cả chapters vào session storage
+                HttpContext.Session.SetString($"Manga_{id}_AllChapters", JsonSerializer.Serialize(chapterViewModels));
+                _logger.LogInformation($"Đã lưu {chapterViewModels.Count} chapters của manga {id} vào session");
+                
+                // Phân loại chapters theo ngôn ngữ và lưu riêng từng ngôn ngữ
+                var chaptersByLanguage = chapterViewModels.GroupBy(c => c.Language)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+                
+                foreach (var language in chaptersByLanguage.Keys)
+                {
+                    var chaptersInLanguage = chaptersByLanguage[language];
+                    // Sắp xếp chapters theo thứ tự tăng dần của số chương
+                    chaptersInLanguage = chaptersInLanguage.OrderBy(c => 
+                    {
+                        if (float.TryParse(c.Number, out float number))
+                            return number;
+                        return 0;
+                    }).ToList();
+                    
+                    HttpContext.Session.SetString($"Manga_{id}_Chapters_{language}", JsonSerializer.Serialize(chaptersInLanguage));
+                    _logger.LogInformation($"Đã lưu {chaptersInLanguage.Count} chapters ngôn ngữ {language} của manga {id} vào session");
+                }
                 
                 var viewModel = new MangaDetailViewModel
                 {

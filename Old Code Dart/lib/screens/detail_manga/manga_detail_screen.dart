@@ -78,24 +78,36 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
             var details = snapshot.data ?? {};
             var attributes = details['attributes'] ?? {};
 
-            String title = (attributes['title']?['en'] ?? 'Không có tiêu đề') as String;
-            String description = (attributes['description']?['en'] ?? 'Không có mô tả') as String;
-            String status = (attributes['status'] ?? 'Không xác định') as String;
+            String title =
+                (attributes['title']?['en'] ?? 'Không có tiêu đề') as String;
+            String description = (attributes['description']?['en'] ??
+                'Không có mô tả') as String;
+            String status =
+                (attributes['status'] ?? 'Không xác định') as String;
             int? year = attributes['year'] as int?;
-            String contentRating = (attributes['contentRating'] ?? 'Không rõ') as String;
+            String contentRating =
+                (attributes['contentRating'] ?? 'Không rõ') as String;
 
             List<dynamic> tags = (attributes['tags'] as List<dynamic>? ?? [])
                 .map((tag) => tag['attributes']?['name']?['en'] ?? 'Không rõ')
                 .toList();
 
-            Map<String, String> links = (attributes['links'] as Map<String, dynamic>? ?? {})
-                .map((key, value) => MapEntry(key, value.toString()));
+            Map<String, String> links =
+                (attributes['links'] as Map<String, dynamic>? ?? {})
+                    .map((key, value) => MapEntry(key, value.toString()));
 
             // Lấy thông tin tác giả
-            List<dynamic>? relationships = details['relationships'] as List<dynamic>?;
-            List<dynamic> authors = relationships?.where((relation) => relation['type'] == 'author').toList() ?? [];
+            List<dynamic>? relationships =
+                details['relationships'] as List<dynamic>?;
+            List<dynamic> authors = relationships
+                    ?.where((relation) => relation['type'] == 'author')
+                    .toList() ??
+                [];
             String authorNames = authors.isNotEmpty
-                ? authors.map((author) => author['attributes']?['name'] ?? 'Không rõ').join(', ')
+                ? authors
+                    .map(
+                        (author) => author['attributes']?['name'] ?? 'Không rõ')
+                    .join(', ')
                 : 'Không rõ';
 
             return Column(
@@ -108,7 +120,8 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                       FutureBuilder<String>(
                         future: coverUrl,
                         builder: (context, coverSnapshot) {
-                          if (coverSnapshot.connectionState == ConnectionState.waiting) {
+                          if (coverSnapshot.connectionState ==
+                              ConnectionState.waiting) {
                             return SizedBox(
                               width: MediaQuery.of(context).size.width / 3,
                               height: 150,
@@ -133,7 +146,8 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                           children: [
                             Text(
                               title,
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold),
                             ),
                             SizedBox(height: 8),
                             GestureDetector(
@@ -151,54 +165,90 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                                       ),
                                       content: SingleChildScrollView(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text('Tiêu đề:',
-                                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                            Text(title, style: TextStyle(fontSize: 14)),
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16)),
+                                            Text(title,
+                                                style: TextStyle(fontSize: 14)),
                                             SizedBox(height: 8),
                                             Text('Tác giả:',
-                                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                            Text(authorNames, style: TextStyle(fontSize: 14)),
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16)),
+                                            Text(authorNames,
+                                                style: TextStyle(fontSize: 14)),
                                             SizedBox(height: 8),
                                             Text('Mô tả:',
-                                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                            Text(description, style: TextStyle(fontSize: 14)),
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16)),
+                                            Text(description,
+                                                style: TextStyle(fontSize: 14)),
                                             SizedBox(height: 8),
                                             Text('Trạng thái:',
-                                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                            Text(status, style: TextStyle(fontSize: 14)),
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16)),
+                                            Text(status,
+                                                style: TextStyle(fontSize: 14)),
                                             SizedBox(height: 8),
                                             Text('Năm phát hành:',
-                                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                            Text('${year ?? 'Không rõ'}', style: TextStyle(fontSize: 14)),
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16)),
+                                            Text('${year ?? 'Không rõ'}',
+                                                style: TextStyle(fontSize: 14)),
                                             SizedBox(height: 8),
                                             Text('Đánh giá nội dung:',
-                                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                            Text(contentRating, style: TextStyle(fontSize: 14)),
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16)),
+                                            Text(contentRating,
+                                                style: TextStyle(fontSize: 14)),
                                             SizedBox(height: 8),
                                             Text('Thể loại:',
-                                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16)),
                                             ...tags.map((tag) => Padding(
-                                              padding: const EdgeInsets.only(left: 8.0),
-                                              child: Text('- $tag', style: TextStyle(fontSize: 14)),
-                                            )),
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          left: 8.0),
+                                                  child: Text('- $tag',
+                                                      style: TextStyle(
+                                                          fontSize: 14)),
+                                                )),
                                             SizedBox(height: 8),
                                             if (links.isNotEmpty)
                                               Text('Liên kết liên quan:',
-                                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                            ...links.entries.map((entry) => Padding(
-                                              padding: const EdgeInsets.only(left: 8.0),
-                                              child: Text('${entry.key}: ${entry.value}',
-                                                  style: TextStyle(fontSize: 14)),
-                                            )),
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 16)),
+                                            ...links.entries
+                                                .map((entry) => Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                              left: 8.0),
+                                                      child: Text(
+                                                          '${entry.key}: ${entry.value}',
+                                                          style: TextStyle(
+                                                              fontSize: 14)),
+                                                    )),
                                           ],
                                         ),
                                       ),
                                       actions: [
                                         TextButton(
-                                          onPressed: () => Navigator.of(context).pop(),
-                                          child: Text('Đóng', style: TextStyle(color: Colors.red)),
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(),
+                                          child: Text('Đóng',
+                                              style:
+                                                  TextStyle(color: Colors.red)),
                                         ),
                                       ],
                                     );
@@ -233,7 +283,9 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                         // Organize chapters by language
                         Map<String, List<dynamic>> chaptersByLanguage = {};
                         for (var chapter in chapterList) {
-                          String lang = chapter['attributes']['translatedLanguage'] ?? 'Unknown';
+                          String lang = chapter['attributes']
+                                  ['translatedLanguage'] ??
+                              'Unknown';
                           chaptersByLanguage.putIfAbsent(lang, () => []);
                           chaptersByLanguage[lang]!.add(chapter);
                         }
@@ -246,25 +298,33 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                             // Group chapters by volume for display
                             Map<String, List<dynamic>> chaptersByVolume = {};
                             for (var chapter in languageChapters) {
-                              String volume = chapter['attributes']['volume'] ?? 'Không xác định';
+                              String volume = chapter['attributes']['volume'] ??
+                                  'Không xác định';
                               chaptersByVolume.putIfAbsent(volume, () => []);
                               chaptersByVolume[volume]!.add(chapter);
                             }
 
                             return ExpansionTile(
-                              title: Text('Ngôn ngữ: ${language.toUpperCase()}'),
-                              children: chaptersByVolume.entries.map((volEntry) {
+                              title:
+                                  Text('Ngôn ngữ: ${language.toUpperCase()}'),
+                              children:
+                                  chaptersByVolume.entries.map((volEntry) {
                                 String volume = volEntry.key;
                                 List<dynamic> volumeChapters = volEntry.value;
 
                                 return ExpansionTile(
                                   title: Text('Tập: $volume'),
-                                  children: volumeChapters.map<Widget>((chapter) {
-                                    String chapterTitle = chapter['attributes']['title'] ?? '';
-                                    String chapterNumber = chapter['attributes']['chapter'] ?? 'N/A';
+                                  children:
+                                      volumeChapters.map<Widget>((chapter) {
+                                    String chapterTitle =
+                                        chapter['attributes']['title'] ?? '';
+                                    String chapterNumber = chapter['attributes']
+                                            ['chapter'] ??
+                                        'N/A';
 
-                                    String displayTitle =
-                                    chapterTitle.isEmpty || chapterTitle == chapterNumber
+                                    String displayTitle = chapterTitle
+                                                .isEmpty ||
+                                            chapterTitle == chapterNumber
                                         ? 'Chương $chapterNumber'
                                         : 'Chương $chapterNumber: $chapterTitle';
 
@@ -273,7 +333,8 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                                       onTap: () => Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => ChapterReaderScreen(
+                                          builder: (context) =>
+                                              ChapterReaderScreen(
                                             chapter: Chapter(
                                               mangaId: widget.mangaId,
                                               chapterId: chapter['id'],
@@ -314,7 +375,8 @@ Future<void> followManga(BuildContext context, String mangaId) async {
       return;
     }
 
-    await UserService(baseUrl: 'https://manga-reader-app-backend.onrender.com').addToFollowing(mangaId);
+    await UserService(baseUrl: 'https://manga-reader-app-backend.onrender.com')
+        .addToFollowing(mangaId);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Đã thêm truyện vào danh sách theo dõi.')),
@@ -337,7 +399,8 @@ Future<void> removeFromFollowing(BuildContext context, String mangaId) async {
       return;
     }
 
-    await UserService(baseUrl: 'https://manga-reader-app-backend.onrender.com').removeFromFollowing(mangaId);
+    await UserService(baseUrl: 'https://manga-reader-app-backend.onrender.com')
+        .removeFromFollowing(mangaId);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Đã bỏ theo dõi truyện.')),
@@ -356,7 +419,9 @@ Future<bool> isFollowingManga(String mangaId) async {
       return false;
     }
 
-    return await UserService(baseUrl: 'https://manga-reader-app-backend.onrender.com').checkIfUserIsFollowing(mangaId);
+    return await UserService(
+            baseUrl: 'https://manga-reader-app-backend.onrender.com')
+        .checkIfUserIsFollowing(mangaId);
   } catch (e) {
     print("Lỗi khi kiểm tra theo dõi: $e");
     return false;

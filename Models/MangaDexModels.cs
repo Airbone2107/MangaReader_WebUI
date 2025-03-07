@@ -155,6 +155,7 @@ namespace manga_reader_web.Models
         public string ChapterId { get; set; }
         public string ChapterTitle { get; set; }
         public string ChapterNumber { get; set; }
+        public string ChapterLanguage { get; set; }
         public List<string> Pages { get; set; } = new List<string>();
         public string PrevChapterId { get; set; }
         public string NextChapterId { get; set; }
