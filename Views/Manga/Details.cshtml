@@ -103,7 +103,7 @@
                     }
                     
                     <div class="chapters-container">
-                        <div class="accordion" id="chaptersAccordion">
+                        <div class="accordion theme-aware-accordion" id="chaptersAccordion">
                             @foreach (var language in sortedLanguages)
                             {
                                 var langChapters = chaptersByLanguage[language];
@@ -124,7 +124,7 @@
                                     </h2>
                                     <div id="collapse-@langId" class="accordion-collapse collapse show" aria-labelledby="heading-@langId" data-bs-parent="#chaptersAccordion">
                                         <div class="accordion-body p-0">
-                                            <div class="accordion" id="volumeAccordion-@langId">
+                                            <div class="accordion theme-aware-accordion" id="volumeAccordion-@langId">
                                                 @foreach (var volume in chaptersByVolume.Keys)
                                                 {
                                                     var volumeChapters = chaptersByVolume[volume];
@@ -139,7 +139,7 @@
                                                         </h2>
                                                         <div id="collapse-@volumeId" class="accordion-collapse collapse" aria-labelledby="heading-@volumeId" data-bs-parent="#volumeAccordion-@langId">
                                                             <div class="accordion-body p-0">
-                                                                <div class="list-group list-group-flush">
+                                                                <div class="list-group list-group-flush theme-aware-list">
                                                                     @foreach (var chapter in volumeChapters.OrderBy(c => c.Number))
                                                                     {
                                                                         <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">

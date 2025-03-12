@@ -653,7 +653,6 @@ img[src="/images/no-cover.png"] {
     left: 0;
     height: 100%;
     z-index: 1045;
-    border-right: 1px solid rgba(0, 0, 0, 0.1);
     background-color: var(--card-bg);
     box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
     overflow-y: auto;
@@ -858,4 +857,311 @@ body.sidebar-open .manga-card-grid > .col {
     transition: margin-left 0.3s ease;
     width: 100%;
     max-width: 500px;
+}
+
+/* Sidebar Menu */
+.offcanvas-start {
+    width: 280px;
+    transform: translateX(-280px);
+    transition: transform 0.3s ease;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 1045;
+    background-color: var(--card-bg);
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+}
+
+/* Cải thiện hiển thị sidebar nav-link active */
+.sidebar-nav-link {
+    color: var(--bs-body-color);
+    transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+.sidebar-nav-link:hover {
+    color: var(--bs-primary);
+    background-color: var(--hover-bg);
+}
+
+.sidebar-nav-link.active {
+    color: var(--bs-primary) !important; /* Dùng !important để ghi đè inline style có thể tồn tại */
+    font-weight: 600;
+    background-color: var(--active-bg);
+}
+
+/* Định nghĩa rõ ràng màu chữ cho chế độ tối */
+[data-bs-theme="dark"] .sidebar-nav-link {
+    color: #e1e1e1 !important; /* Màu sáng hơn để tương phản với nền tối */
+}
+
+[data-bs-theme="dark"] .sidebar-nav-link.active {
+    color: var(--bs-primary) !important;
+    background-color: rgba(13, 110, 253, 0.15);
+}
+
+[data-bs-theme="light"] .sidebar-nav-link.active {
+    color: var(--bs-primary) !important;
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+/* Xử lý trường hợp các nav-link khác */
+.nav-link.active {
+    color: var(--bs-primary);
+    font-weight: 600;
+}
+
+[data-bs-theme="dark"] .nav-link.active:not(.sidebar-nav-link) {
+    color: var(--bs-primary);
+}
+
+[data-bs-theme="light"] .nav-link.active:not(.sidebar-nav-link) {
+    color: var(--bs-primary);
+}
+
+.theme-switcher-container {
+    background-color: var(--card-bg);
+    color: var(--bs-body-color);
+    border: 1px solid var(--border-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark theme specific variables */
+[data-bs-theme="dark"] {
+    --card-bg: #2b2b2b;
+    --hover-bg: rgba(255, 255, 255, 0.05);
+    --active-bg: rgba(13, 110, 253, 0.15);
+    --border-color: #444;
+}
+
+/* Light theme specific variables */
+[data-bs-theme="light"] {
+    --card-bg: #ffffff;
+    --hover-bg: rgba(0, 0, 0, 0.05);
+    --active-bg: rgba(13, 110, 253, 0.1);
+    --border-color: #dee2e6;
+}
+
+/* Style cho accordion chapters chế độ theme-aware */
+.theme-aware-accordion .accordion-button {
+    color: var(--bs-body-color);
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+.theme-aware-accordion .accordion-button:not(.collapsed) {
+    color: var(--bs-primary);
+    background-color: var(--active-bg);
+}
+
+.theme-aware-accordion .accordion-button:focus {
+    box-shadow: none;
+    border-color: var(--border-color);
+}
+
+.theme-aware-accordion .accordion-item {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+.theme-aware-list .list-group-item {
+    background-color: var(--card-bg);
+    color: var(--bs-body-color);
+    border-color: var(--border-color);
+    transition: background-color 0.3s ease;
+}
+
+.theme-aware-list .list-group-item-action:hover {
+    background-color: var(--hover-bg);
+}
+
+.theme-aware-list .list-group-item .text-muted {
+    color: var(--bs-secondary-color) !important;
+}
+
+/* Đảm bảo hình ảnh manga hiển thị đúng trong chế độ tối */
+[data-bs-theme="dark"] .manga-cover {
+    border: 1px solid var(--border-color);
+}
+
+/* Cải thiện độ tương phản cho badge trong chế độ tối */
+[data-bs-theme="dark"] .badge.bg-secondary {
+    background-color: #505a68 !important;
+}
+
+/* Cải thiện màu nền accordion */
+[data-bs-theme="dark"] .chapters-container .accordion-body .accordion-button {
+    background-color: #333;
+}
+
+[data-bs-theme="dark"] .chapters-container .accordion-body .accordion-button.collapsed {
+    background-color: #2b2b2b;
+}
+
+[data-bs-theme="light"] .chapters-container .accordion-body .accordion-button {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+[data-bs-theme="light"] .chapters-container .accordion-body .accordion-button.collapsed {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Cải thiện dropdown menu và menu con trong sidebar */
+.offcanvas-body .collapse .navbar-nav {
+    padding-left: 1rem;
+    border-left: 1px solid var(--border-color);
+    margin-left: 0.5rem;
+}
+
+.offcanvas-body .nav-link.dropdown-toggle {
+    position: relative;
+}
+
+.offcanvas-body .nav-link.dropdown-toggle[aria-expanded="true"] {
+    color: var(--bs-primary);
+}
+
+/* Hiệu ứng chỉ báo cho dropdown đang mở */
+.offcanvas-body .nav-link.dropdown-toggle[aria-expanded="true"]::after {
+    transform: rotate(180deg);
+}
+
+/* Đảm bảo dropdown menu trong sidebar hiển thị đúng */
+[data-bs-theme="dark"] .offcanvas-body .collapse .navbar-nav .nav-link {
+    color: #e1e1e1 !important;
+}
+
+[data-bs-theme="dark"] .offcanvas-body .collapse .navbar-nav .nav-link:hover,
+[data-bs-theme="dark"] .offcanvas-body .collapse .navbar-nav .nav-link.active {
+    color: var(--bs-primary) !important;
+}
+
+/* Chiều cao dòng trong sidebar */
+.offcanvas-body .nav-link {
+    padding: 0.625rem 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 0.125rem;
+}
+
+/* Đảm bảo chỉ báo dropdown mũi tên hiển thị đúng */
+.offcanvas-body .dropdown-toggle::after {
+    transition: transform 0.25s ease;
+}
+
+/* Nền hover cho các mục trong chế độ tối */
+[data-bs-theme="dark"] .offcanvas-body .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Cải thiện hiển thị trong chế độ tối cho tên chapter và ngày xuất bản */
+[data-bs-theme="dark"] .theme-aware-list .list-group-item h6 {
+    color: #e1e1e1;
+}
+
+[data-bs-theme="dark"] .theme-aware-list .list-group-item small.text-muted {
+    color: #adb5bd !important;
+}
+
+/* Đảm bảo theme-aware list hiển thị đúng trong dark mode */
+[data-bs-theme="dark"] .theme-aware-list .list-group-item {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+[data-bs-theme="dark"] .theme-aware-list .list-group-item-action:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Đảm bảo các phần tử khác cũng hiển thị đúng trong dark mode */
+[data-bs-theme="dark"] .card-title,
+[data-bs-theme="dark"] .card-text,
+[data-bs-theme="dark"] .list-group-item {
+    color: var(--bs-body-color);
+}
+
+/* Cải thiện hiển thị văn bản trong accordion-header theo chế độ theme */
+.theme-aware-accordion .accordion-button {
+    color: var(--bs-body-color);
+}
+
+/* Áp dụng màu đúng cho text trong accordion-button */
+[data-bs-theme="dark"] .theme-aware-accordion .accordion-button,
+[data-bs-theme="dark"] .accordion-button {
+    color: #e1e1e1;
+}
+
+/* Cải thiện màu cho các phần tử inline trong accordion-button */
+[data-bs-theme="dark"] .accordion-button i,
+[data-bs-theme="dark"] .accordion-button span:not(.badge) {
+    color: #e1e1e1;
+}
+
+/* Đảm bảo văn bản "Ngôn ngữ: " và "Tập: " hiển thị đúng màu */
+.accordion-button .fw-bold {
+    display: inline-block;
+    transition: color 0.3s ease;
+}
+
+[data-bs-theme="dark"] .accordion-button .fw-bold {
+    color: #ffffff;
+}
+
+/* Cải thiện màu chữ của accordion khi collapsed */
+[data-bs-theme="dark"] .accordion-button.collapsed {
+    color: #e1e1e1;
+}
+
+/* Cải thiện màu của icons trong accordion-button */
+[data-bs-theme="dark"] .accordion-button i.bi {
+    color: #e1e1e1;
+}
+
+/* Đảm bảo badge vẫn hiển thị đúng */
+.accordion-button .badge {
+    transition: background-color 0.3s ease;
+}
+
+/* Cải thiện màu văn bản khi accordion được mở */
+[data-bs-theme="dark"] .accordion-button:not(.collapsed) {
+    color: var(--bs-primary);
+}
+
+/* Thêm màu đặc biệt cho các phần văn bản quan trọng */
+[data-bs-theme="dark"] .accordion-button span.fw-bold {
+    color: #fff;
+}
+
+[data-bs-theme="light"] .accordion-button span.fw-bold {
+    color: var(--bs-dark);
+}
+
+/* Đảm bảo icon mũi tên hiển thị đúng trong chế độ tối */
+[data-bs-theme="dark"] .accordion-button::after {
+    filter: brightness(2);
+}
+
+/* Cải thiện các phần tử khác trong accordion */
+[data-bs-theme="dark"] .accordion-body {
+    color: #e1e1e1;
+    background-color: var(--card-bg);
+}
+
+/* Đảm bảo mũi tên hiển thị rõ ràng khi accordion được mở */
+[data-bs-theme="dark"] .accordion-button:not(.collapsed)::after {
+    filter: none;
+}
+
+/* Nút đọc chapter luôn hiển thị rõ ràng */
+.list-group-item-action .btn-primary {
+    transition: all 0.2s ease;
+}
+
+.list-group-item-action:hover .btn-primary {
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+}
+
+/* Làm rõ ranh giới giữa các phần tử trong dark mode */
+[data-bs-theme="dark"] .accordion-item {
+    border-color: rgba(255, 255, 255, 0.125);
 }

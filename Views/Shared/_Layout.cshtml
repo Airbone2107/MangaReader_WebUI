@@ -73,8 +73,8 @@
     </header>
     
     <!-- Sidebar Menu -->
-    <div class="offcanvas-start bg-body" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
-        <div class="offcanvas-header">
+    <div class="offcanvas-start" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
+        <div class="offcanvas-header border-bottom">
             <h5 class="offcanvas-title" id="sidebarMenuLabel">
                 <i class="bi bi-book-half me-2"></i>Manga Reader
             </h5>
@@ -85,40 +85,40 @@
         <div class="offcanvas-body">
             <ul class="navbar-nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">
+                    <a class="nav-link sidebar-nav-link" asp-area="" asp-controller="Home" asp-action="Index">
                         <i class="bi bi-house-door me-2"></i>Trang chủ
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" asp-area="" asp-controller="Manga" asp-action="Index">
+                    <a class="nav-link sidebar-nav-link" asp-area="" asp-controller="Manga" asp-action="Index">
                         <i class="bi bi-book me-2"></i>Danh sách manga
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" asp-area="" asp-controller="Manga" asp-action="Popular">
+                    <a class="nav-link sidebar-nav-link" asp-area="" asp-controller="Manga" asp-action="Popular">
                         <i class="bi bi-star me-2"></i>Phổ biến
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link dropdown-toggle" href="#" id="categoriesDropdown" role="button" data-bs-toggle="collapse" data-bs-target="#categoriesCollapse" aria-expanded="false">
+                    <a class="nav-link dropdown-toggle sidebar-nav-link" href="#" id="categoriesDropdown" role="button" data-bs-toggle="collapse" data-bs-target="#categoriesCollapse" aria-expanded="false">
                         <i class="bi bi-list me-2"></i>Thể loại
                     </a>
                     <div class="collapse" id="categoriesCollapse">
                         <ul class="navbar-nav ps-3">
-                            <li><a class="nav-link" href="/Manga/Search?tags=Action">Action</a></li>
-                            <li><a class="nav-link" href="/Manga/Search?tags=Adventure">Adventure</a></li>
-                            <li><a class="nav-link" href="/Manga/Search?tags=Comedy">Comedy</a></li>
-                            <li><a class="nav-link" href="/Manga/Search?tags=Drama">Drama</a></li>
-                            <li><a class="nav-link" href="/Manga/Search?tags=Fantasy">Fantasy</a></li>
-                            <li><a class="nav-link" href="/Manga/Search?tags=Horror">Horror</a></li>
-                            <li><a class="nav-link" href="/Manga/Search?tags=Romance">Romance</a></li>
-                            <li><a class="nav-link" href="/Manga/Tags">Tất cả thể loại</a></li>
+                            <li><a class="nav-link sidebar-nav-link" href="/Manga/Search?tags=Action">Action</a></li>
+                            <li><a class="nav-link sidebar-nav-link" href="/Manga/Search?tags=Adventure">Adventure</a></li>
+                            <li><a class="nav-link sidebar-nav-link" href="/Manga/Search?tags=Comedy">Comedy</a></li>
+                            <li><a class="nav-link sidebar-nav-link" href="/Manga/Search?tags=Drama">Drama</a></li>
+                            <li><a class="nav-link sidebar-nav-link" href="/Manga/Search?tags=Fantasy">Fantasy</a></li>
+                            <li><a class="nav-link sidebar-nav-link" href="/Manga/Search?tags=Horror">Horror</a></li>
+                            <li><a class="nav-link sidebar-nav-link" href="/Manga/Search?tags=Romance">Romance</a></li>
+                            <li><a class="nav-link sidebar-nav-link" href="/Manga/Tags">Tất cả thể loại</a></li>
                         </ul>
                     </div>
                 </li>
             </ul>
             <hr>
-            <div class="d-flex justify-content-between align-items-center p-3 rounded bg-light" id="sidebarThemeSwitcher">
+            <div class="d-flex justify-content-between align-items-center p-3 rounded theme-switcher-container" id="sidebarThemeSwitcher">
                 <span id="sidebarThemeText"><i class="bi bi-moon-stars me-2"></i>Chế độ tối</span>
                 <div class="form-check form-switch mb-0">
                     <input class="form-check-input" type="checkbox" role="switch" id="sidebarThemeSwitch">

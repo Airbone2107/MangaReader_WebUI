@@ -12,6 +12,9 @@
  * Khởi tạo khi DOM đã sẵn sàng
  */
 document.addEventListener('DOMContentLoaded', function() {
+    // Xóa bỏ inline style của các active nav-link
+    cleanupActiveLinks();
+    
     // Khởi tạo tooltips
     initTooltips();
     
@@ -51,6 +54,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Khởi tạo sidebar menu
     initSidebar();
 });
+
+/**
+ * Xóa bỏ inline style của các nav-link active
+ */
+function cleanupActiveLinks() {
+    document.querySelectorAll('.nav-link.active, .sidebar-nav-link.active').forEach(link => {
+        // Xóa bỏ thuộc tính style color inline nếu có
+        if (link.style.color) {
+            link.style.removeProperty('color');
+        }
+    });
+}
 
 /**
  * Khởi tạo tooltips cho các phần tử có thuộc tính data-bs-toggle="tooltip"
@@ -120,50 +135,44 @@ function initQuickSearch() {
  * @param {string} type - Loại thông báo (success, danger, warning, info)
  * @param {number} duration - Thời gian hiển thị (ms)
  */
-function showToast(message, type = 'info', duration = 2000) {
+function showToast(message, type = 'primary', duration = 3000) {
     // Tạo toast container nếu chưa tồn tại
     if (!document.getElementById('toastContainer')) {
-        const toastContainer = document.createElement('div');
-        toastContainer.id = 'toastContainer';
-        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-        document.body.appendChild(toastContainer);
+        const container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(container);
     }
-    
-    // Xóa toàn bộ toast cũ
-    const toastContainer = document.getElementById('toastContainer');
-    const oldToasts = toastContainer.querySelectorAll('.toast');
-    oldToasts.forEach(toast => {
-        const bsToast = bootstrap.Toast.getInstance(toast);
-        if (bsToast) {
-            bsToast.dispose();
-        }
-        toast.remove();
-    });
     
     // Tạo toast
     const toastId = 'toast-' + Date.now();
-    const toastHtml = `
-        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body">
-                    ${message}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    const toast = document.createElement('div');
+    toast.id = toastId;
+    toast.className = `toast align-items-center text-white bg-${type} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                ${message}
             </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     `;
     
     // Thêm toast vào container
-    toastContainer.innerHTML += toastHtml;
+    document.getElementById('toastContainer').appendChild(toast);
     
     // Hiển thị toast
-    const toastElement = new bootstrap.Toast(document.getElementById(toastId), {
+    const bsToast = new bootstrap.Toast(toast, {
         delay: duration
     });
-    toastElement.show();
+    bsToast.show();
     
-    // Xóa toast sau khi ẩn
-    document.getElementById(toastId).addEventListener('hidden.bs.toast', function() {
+    // Tự động loại bỏ toast sau khi ẩn
+    toast.addEventListener('hidden.bs.toast', function() {
         this.remove();
     });
 }
@@ -273,56 +282,101 @@ function applyTheme(theme) {
  */
 function initThemeSwitcher() {
     const themeSwitch = document.getElementById('themeSwitch');
-    const themeSwitcher = document.getElementById('themeSwitcher');
+    const sidebarThemeSwitch = document.getElementById('sidebarThemeSwitch');
+    const themeText = document.getElementById('themeText');
+    const sidebarThemeText = document.getElementById('sidebarThemeText');
+    const htmlElement = document.documentElement;
+
+    // Kiểm tra theme đã lưu
+    const savedTheme = localStorage.getItem('theme');
     
-    if (!themeSwitch || !themeSwitcher) return;
-    
-    // Đọc chủ đề từ localStorage
-    let savedTheme = localStorage.getItem('theme');
-    
-    // Nếu không có chủ đề đã lưu, sử dụng chủ đề theo cài đặt của hệ thống
-    if (!savedTheme) {
-        savedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (savedTheme) {
+        htmlElement.setAttribute('data-bs-theme', savedTheme);
+        updateSwitches(savedTheme === 'dark');
+    }
+
+    // Cập nhật trạng thái các switcher
+    function updateSwitches(isDark) {
+        if (themeSwitch) themeSwitch.checked = isDark;
+        if (sidebarThemeSwitch) sidebarThemeSwitch.checked = isDark;
+        
+        // Cập nhật text
+        if (themeText) {
+            themeText.innerHTML = isDark ? 
+                '<i class="bi bi-sun me-2"></i>Chế độ sáng' : 
+                '<i class="bi bi-moon-stars me-2"></i>Chế độ tối';
+        }
+        
+        if (sidebarThemeText) {
+            sidebarThemeText.innerHTML = isDark ? 
+                '<i class="bi bi-sun me-2"></i>Chế độ sáng' : 
+                '<i class="bi bi-moon-stars me-2"></i>Chế độ tối';
+        }
+        
+        // Xóa bỏ toàn bộ inline style color trên các nav-link active
+        cleanupActiveLinks();
+    }
+
+    // Hàm thay đổi theme
+    function changeTheme(isDark, showNotification = true) {
+        const theme = isDark ? 'dark' : 'light';
+        
+        // Thiết lập theme
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('theme', theme);
+        
+        // Cập nhật UI
+        updateSwitches(isDark);
+        
+        // Hiển thị thông báo nếu cần
+        if (showNotification) {
+            showToast(`Đã chuyển sang chế độ ${theme === 'dark' ? 'tối' : 'sáng'}!`, 'info');
+        }
+    }
+
+    // Đăng ký sự kiện cho theme switch chính
+    if (themeSwitch) {
+        themeSwitch.addEventListener('change', function() {
+            changeTheme(this.checked);
+        });
     }
     
-    // Áp dụng chủ đề ban đầu
-    applyTheme(savedTheme);
+    // Đăng ký sự kiện cho sidebar theme switch
+    if (sidebarThemeSwitch) {
+        sidebarThemeSwitch.addEventListener('change', function() {
+            changeTheme(this.checked);
+        });
+    }
     
-    // Xử lý sự kiện khi người dùng bấm vào phần container
-    themeSwitcher.addEventListener('click', function(event) {
-        // Nếu người dùng nhấn vào checkbox, không làm gì cả để checkbox tự xử lý
-        if (event.target === themeSwitch) {
-            return;
-        }
-        
-        // Ngăn chặn hành vi mặc định của thẻ a
-        event.preventDefault();
-        
-        // Đảo ngược trạng thái checkbox
-        themeSwitch.checked = !themeSwitch.checked;
-        
-        // Kích hoạt sự kiện change của checkbox
-        themeSwitch.dispatchEvent(new Event('change'));
-    });
+    // Đánh dấu theme switcher container khi hover
+    const themeSwitcherContainer = document.getElementById('themeSwitcher');
+    const sidebarThemeSwitcherContainer = document.getElementById('sidebarThemeSwitcher');
     
-    // Xử lý sự kiện khi người dùng thay đổi checkbox
-    themeSwitch.addEventListener('change', function() {
-        const newTheme = themeSwitch.checked ? 'dark' : 'light';
-        applyTheme(newTheme);
-        saveTheme(newTheme);
+    if (themeSwitcherContainer) {
+        themeSwitcherContainer.addEventListener('mouseenter', function() {
+            this.classList.add('active');
+        });
         
-        // Hiển thị thông báo
-        showToast('Đã chuyển sang ' + (newTheme === 'dark' ? 'chế độ tối' : 'chế độ sáng'), 'info', 2000);
-    });
+        themeSwitcherContainer.addEventListener('mouseleave', function() {
+            this.classList.remove('active');
+        });
+    }
     
-    // Lắng nghe sự kiện thay đổi prefers-color-scheme
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(event) {
-        // Chỉ tự động thay đổi nếu người dùng chưa thiết lập chủ đề
-        if (!localStorage.getItem('theme')) {
-            const systemTheme = event.matches ? 'dark' : 'light';
-            applyTheme(systemTheme);
-        }
-    });
+    if (sidebarThemeSwitcherContainer) {
+        sidebarThemeSwitcherContainer.addEventListener('mouseenter', function() {
+            this.classList.add('active');
+        });
+        
+        sidebarThemeSwitcherContainer.addEventListener('mouseleave', function() {
+            this.classList.remove('active');
+        });
+    }
+    
+    // Khởi chạy lần đầu tiên mà không hiển thị thông báo
+    changeTheme(savedTheme === 'dark', false);
+    
+    // Thêm phương thức toàn cục để các phần khác có thể sử dụng
+    window.changeTheme = changeTheme;
 }
 
 /**
@@ -606,46 +660,9 @@ function createDefaultImage() {
  * Khởi tạo sidebar menu và xử lý đồng bộ theme
  */
 function initSidebar() {
-    const sidebarThemeSwitch = document.getElementById('sidebarThemeSwitch');
-    const mainThemeSwitch = document.getElementById('themeSwitch');
-    const sidebarThemeText = document.getElementById('sidebarThemeText');
     const sidebar = document.getElementById('sidebarMenu');
     const sidebarToggler = document.querySelector('.sidebar-toggler');
     const closeSidebarBtn = document.getElementById('closeSidebar');
-    
-    if (!sidebarThemeSwitch || !mainThemeSwitch || !sidebarThemeText) return;
-    
-    // Đồng bộ trạng thái ban đầu với theme chính
-    sidebarThemeSwitch.checked = mainThemeSwitch.checked;
-    
-    if (sidebarThemeSwitch.checked) {
-        sidebarThemeText.innerHTML = '<i class="bi bi-sun me-2"></i>Chế độ sáng';
-    } else {
-        sidebarThemeText.innerHTML = '<i class="bi bi-moon-stars me-2"></i>Chế độ tối';
-    }
-    
-    // Đồng bộ khi thay đổi theme từ sidebar
-    sidebarThemeSwitch.addEventListener('change', function() {
-        mainThemeSwitch.checked = sidebarThemeSwitch.checked;
-        mainThemeSwitch.dispatchEvent(new Event('change'));
-        
-        if (sidebarThemeSwitch.checked) {
-            sidebarThemeText.innerHTML = '<i class="bi bi-sun me-2"></i>Chế độ sáng';
-        } else {
-            sidebarThemeText.innerHTML = '<i class="bi bi-moon-stars me-2"></i>Chế độ tối';
-        }
-    });
-    
-    // Đồng bộ khi thay đổi theme từ menu chính
-    mainThemeSwitch.addEventListener('change', function() {
-        sidebarThemeSwitch.checked = mainThemeSwitch.checked;
-        
-        if (sidebarThemeSwitch.checked) {
-            sidebarThemeText.innerHTML = '<i class="bi bi-sun me-2"></i>Chế độ sáng';
-        } else {
-            sidebarThemeText.innerHTML = '<i class="bi bi-moon-stars me-2"></i>Chế độ tối';
-        }
-    });
     
     // Đánh dấu menu item active dựa trên URL hiện tại
     const currentUrl = window.location.pathname;
@@ -653,17 +670,33 @@ function initSidebar() {
     
     navLinks.forEach(link => {
         const href = link.getAttribute('href');
-        if (href && (href === currentUrl || currentUrl.startsWith(href))) {
-            link.classList.add('active');
+        if (href) {
+            // Xác định chính xác các điều kiện để đánh dấu link active
+            const isExactMatch = href === currentUrl;
+            const isIndexAction = (currentUrl === '/Home' || currentUrl === '/') && (href === '/' || href === '/Home' || href === '/Home/Index');
+            const isMangaLink = href === '/Manga' && currentUrl === '/Manga';
+            const isSubdirectory = currentUrl.startsWith(href + '/') && href !== '/' && href !== '/Home';
             
-            // Nếu link thuộc về submenu, mở rộng parent
-            const parent = link.closest('.collapse');
-            if (parent) {
-                parent.classList.add('show');
-                const toggle = document.querySelector(`[data-bs-target="#${parent.id}"]`);
-                if (toggle) {
-                    toggle.setAttribute('aria-expanded', 'true');
+            if (isExactMatch || isIndexAction || isMangaLink || isSubdirectory) {
+                link.classList.add('active');
+                
+                // Xóa bỏ inline style nếu có
+                if (link.style.color) {
+                    link.style.removeProperty('color');
                 }
+                
+                // Nếu link thuộc về submenu, mở rộng parent
+                const parent = link.closest('.collapse');
+                if (parent) {
+                    parent.classList.add('show');
+                    const toggle = document.querySelector(`[data-bs-target="#${parent.id}"]`);
+                    if (toggle) {
+                        toggle.setAttribute('aria-expanded', 'true');
+                    }
+                }
+            } else {
+                // Đảm bảo không có active nếu không khớp
+                link.classList.remove('active');
             }
         }
     });
