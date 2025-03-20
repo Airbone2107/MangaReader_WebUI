@@ -10,36 +10,74 @@
         <div class="alert alert-danger mb-4">@ViewBag.ErrorMessage</div>
     }
     
-    <div class="reader-controls sticky-top bg-dark p-3 text-white">
+    <div class="reader-controls bg-dark p-3 text-white" id="readerHeader">
         <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <a asp-controller="Manga" asp-action="Details" asp-route-id="@Model.MangaId" class="btn btn-outline-light">
+            <div class="d-flex align-items-center">
+                <a asp-controller="Manga" asp-action="Details" asp-route-id="@Model.MangaId" class="btn btn-outline-light me-3">
                     <i class="bi bi-arrow-left"></i> Quay lại
                 </a>
+                <div class="text-center">
+                    <h5 class="m-0">@Model.MangaTitle</h5>
+                    <div>@Model.ChapterTitle <span class="badge bg-info">@TranslateLanguage(Model.ChapterLanguage)</span></div>
+                </div>
             </div>
             
-            <div class="text-center">
-                <h5 class="m-0">@Model.MangaTitle</h5>
-                <div>@Model.ChapterTitle <span class="badge bg-info">@TranslateLanguage(Model.ChapterLanguage)</span></div>
-            </div>
-            
-            <div class="d-flex gap-2">
-                @if (!string.IsNullOrEmpty(Model.PrevChapterId))
-                {
-                    <a asp-action="Read" asp-route-id="@Model.PrevChapterId" asp-route-mangaId="@Model.MangaId" class="btn btn-outline-light">
-                        <i class="bi bi-chevron-left"></i> Chương trước
-                    </a>
-                }
-                
-                @if (!string.IsNullOrEmpty(Model.NextChapterId))
-                {
-                    <a asp-action="Read" asp-route-id="@Model.NextChapterId" asp-route-mangaId="@Model.MangaId" class="btn btn-outline-light">
-                        Chương sau <i class="bi bi-chevron-right"></i>
-                    </a>
-                }
+            <div>
+                <button class="btn btn-outline-light" id="menuToggleBtn">
+                    <i class="bi bi-list"></i> Menu
+                </button>
             </div>
         </div>
     </div>
+    
+    <!-- Sidebar Menu -->
+    <div class="sidebar-menu" id="sidebarMenu">
+        <div class="sidebar-header">
+            <h5>Thiết lập</h5>
+            <button class="btn-close text-white" id="closeSidebarBtn"></button>
+        </div>
+        
+        <div class="sidebar-content">
+            <div class="sidebar-section">
+                <h6>Chương</h6>
+                <div class="chapter-navigation mb-3">
+                    <div class="d-flex gap-2 mb-3">
+                        @if (!string.IsNullOrEmpty(Model.PrevChapterId))
+                        {
+                            <a asp-action="Read" asp-route-id="@Model.PrevChapterId" asp-route-mangaId="@Model.MangaId" class="btn btn-outline-light w-100">
+                                <i class="bi bi-chevron-left"></i> Chương trước
+                            </a>
+                        }
+                        
+                        @if (!string.IsNullOrEmpty(Model.NextChapterId))
+                        {
+                            <a asp-action="Read" asp-route-id="@Model.NextChapterId" asp-route-mangaId="@Model.MangaId" class="btn btn-outline-light w-100">
+                                Chương sau <i class="bi bi-chevron-right"></i>
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h6>Danh sách chương</h6>
+                <div class="chapter-list">
+                    <!-- Đây là nơi để hiển thị danh sách các chương cùng ngôn ngữ -->
+                    <!-- Bạn có thể thêm một partial view hoặc truyền dữ liệu từ controller -->
+                    <div class="text-center py-3">
+                        <a asp-controller="Manga" asp-action="Details" asp-route-id="@Model.MangaId" class="btn btn-outline-light">
+                            Xem tất cả chương
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Các thiết lập khác sẽ được thêm vào đây sau -->
+        </div>
+    </div>
+    
+    <!-- Overlay để đóng sidebar khi click bên ngoài -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
     
     <div class="d-flex flex-column align-items-center my-4">
         @if (Model.Pages != null && Model.Pages.Any())
@@ -96,8 +134,73 @@
         }
         
         .reader-controls {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .reader-controls.hidden {
+            transform: translateY(-100%);
+        }
+        
+        /* Sidebar styles */
+        .sidebar-menu {
+            position: fixed;
+            top: 0;
+            right: -320px;
+            width: 320px;
+            height: 100vh;
+            background-color: #333;
+            z-index: 1100;
+            transition: right 0.3s ease;
+            color: white;
+            overflow-y: auto;
+        }
+        
+        .sidebar-menu.active {
+            right: 0;
+        }
+        
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #444;
+        }
+        
+        .sidebar-content {
+            padding: 1rem;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #444;
+        }
+        
+        .sidebar-section:last-child {
+            border-bottom: none;
+        }
+        
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1050;
+            display: none;
+        }
+        
+        .chapter-list {
+            max-height: 300px;
+            overflow-y: auto;
         }
     </style>
 }
@@ -105,6 +208,36 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
+            const header = $('#readerHeader');
+            const sidebar = $('#sidebarMenu');
+            const overlay = $('#sidebarOverlay');
+            let lastScrollTop = 0;
+            
+            // Xử lý ẩn/hiện header khi cuộn
+            $(window).scroll(function() {
+                const scrollTop = $(this).scrollTop();
+                
+                // Nếu cuộn xuống và đã cuộn quá 100px
+                if (scrollTop > lastScrollTop && scrollTop > 100) {
+                    header.addClass('hidden');
+                } else {
+                    header.removeClass('hidden');
+                }
+                
+                lastScrollTop = scrollTop;
+            });
+            
+            // Xử lý mở/đóng sidebar
+            $('#menuToggleBtn').click(function() {
+                sidebar.addClass('active');
+                overlay.fadeIn();
+            });
+            
+            $('#closeSidebarBtn, #sidebarOverlay').click(function() {
+                sidebar.removeClass('active');
+                overlay.fadeOut();
+            });
+            
             // Keyboard shortcuts
             $(document).keydown(function(e) {
                 // Left arrow key
@@ -121,6 +254,12 @@
                     if (nextChapterLink.length) {
                         window.location.href = nextChapterLink.attr('href');
                     }
+                }
+                
+                // ESC key để đóng sidebar
+                if (e.keyCode == 27 && sidebar.hasClass('active')) {
+                    sidebar.removeClass('active');
+                    overlay.fadeOut();
                 }
             });
         });

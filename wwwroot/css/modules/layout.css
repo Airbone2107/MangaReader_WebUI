@@ -1,0 +1,104 @@
+/* Layout CSS - Chứa styles cho cấu trúc trang website */
+
+/* Main structure */
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-index-navbar);
+    width: 100%;
+}
+
+.content-wrapper {
+    flex: 1 0 auto; /* Flex grow, no shrink, auto basis */
+    width: 100%;
+    min-height: calc(100vh - 56px - 200px); /* Viewport height minus header and footer */
+    padding-bottom: 2rem;
+}
+
+.site-content {
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+}
+
+.site-footer {
+    flex-shrink: 0; /* Prevent footer from shrinking */
+    width: 100%;
+    background-color: var(--footer-bg);
+    color: var(--footer-color);
+    z-index: 2;
+    margin-top: auto; /* Push to bottom if content doesn't fill page */
+}
+
+/* Container and content */
+.container {
+    position: relative;
+    z-index: 1;
+}
+
+/* Transition classes */
+.text-transition {
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.position-transition {
+    transition: margin-left 0.3s ease, transform 0.3s ease;
+}
+
+/* Với sidebar mở */
+body.sidebar-open .site-content,
+body.sidebar-open .site-footer,
+body.sidebar-open .site-header,
+body.sidebar-open .content-wrapper {
+    margin-left: 10%;
+    width: calc(100% - 10%);
+    transition: margin-left 0.3s ease, width 0.3s ease;
+}
+
+.site-content,
+.site-footer,
+.site-header,
+.content-wrapper {
+    transition: margin-left 0.3s ease, width 0.3s ease;
+    width: 100%;
+}
+
+/* Back to top button */
+#backToTopBtn {
+    width: 45px;
+    height: 45px;
+    padding: 0;
+    z-index: var(--z-index-fixed);
+    opacity: 0.8;
+    border-radius: 50%;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+#backToTopBtn:hover {
+    opacity: 1;
+    transform: translateY(-3px);
+}
+
+/* Toast container */
+#toastContainer {
+    z-index: var(--z-index-toast);
+}
+
+/* Adjustments for mobile */
+@media (max-width: 767px) {
+    body.sidebar-open .site-content,
+    body.sidebar-open .site-footer,
+    body.sidebar-open .site-header,
+    body.sidebar-open .content-wrapper {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .site-header {
+        position: relative; /* Not sticky on mobile */
+    }
+    
+    .content-wrapper {
+        min-height: calc(100vh - 200px); /* Adjusted for mobile */
+    }
+} 

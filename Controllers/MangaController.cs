@@ -27,6 +27,9 @@ namespace manga_reader_web.Controllers
         {
             try
             {
+                // Thiết lập page type để chọn CSS phù hợp (trang liệt kê sử dụng CSS như trang chủ)
+                ViewData["PageType"] = "home";
+                
                 var sortManga = new SortManga
                 {
                     Title = title,
@@ -136,6 +139,12 @@ namespace manga_reader_web.Controllers
                     SortOptions = sortManga
                 };
 
+                // Nếu là HTMX request, chỉ trả về nội dung một phần
+                if (Request.Headers.ContainsKey("HX-Request"))
+                {
+                    return PartialView("_MangaList", viewModel);
+                }
+
                 return View(viewModel);
             }
             catch (Exception ex)
@@ -151,6 +160,9 @@ namespace manga_reader_web.Controllers
         {
             try
             {
+                // Thiết lập page type để chọn CSS phù hợp cho trang chi tiết manga
+                ViewData["PageType"] = "manga-details";
+                
                 var manga = await _mangaDexService.FetchMangaDetailsAsync(id);
                 var mangaElement = JsonSerializer.Deserialize<JsonElement>(manga.ToString());
                 var mangaDict = ConvertJsonElementToDict(mangaElement);
@@ -288,6 +300,12 @@ namespace manga_reader_web.Controllers
                     Manga = mangaViewModel,
                     Chapters = chapterViewModels
                 };
+                
+                // Nếu là HTMX request, chỉ trả về nội dung một phần
+                if (Request.Headers.ContainsKey("HX-Request"))
+                {
+                    return PartialView(viewModel);
+                }
                 
                 return View(viewModel);
             }
@@ -459,6 +477,405 @@ namespace manga_reader_web.Controllers
                 }
             }
             return list;
+        }
+
+        // Các action khác liên quan đến danh sách, search, filter
+        public async Task<IActionResult> Search(string title = "", string tags = "", string artists = "", string authors = "",
+            int year = 0, string status = "", string publicationDemographic = "", string contentRating = "",
+            int page = 1, int pageSize = 24)
+        {
+            try
+            {
+                // Thiết lập page type để chọn CSS phù hợp (trang tìm kiếm sử dụng CSS như trang chủ)
+                ViewData["PageType"] = "home";
+
+                var sortManga = new SortManga
+                {
+                    Title = title,
+                    SortBy = "latest"
+                };
+
+                var mangas = await _mangaDexService.FetchMangaAsync(limit: pageSize, offset: (page - 1) * pageSize, sortManga: sortManga);
+                var totalCount = 100; // Giả định tổng số manga
+
+                var mangaViewModels = new List<MangaViewModel>();
+                foreach (var manga in mangas)
+                {
+                    try
+                    {
+                        // Sử dụng JsonSerializer để chuyển đổi chính xác
+                        var mangaElement = JsonSerializer.Deserialize<JsonElement>(manga.ToString());
+                        // Chuyển đổi JsonElement thành Dictionary
+                        var mangaDict = ConvertJsonElementToDict(mangaElement);
+                        
+                        if (!mangaDict.ContainsKey("id") || mangaDict["id"] == null)
+                        {
+                            _logger.LogWarning("Manga không có ID");
+                            continue;
+                        }
+                        
+                        var id = mangaDict["id"].ToString();
+                        
+                        // Kiểm tra attributes tồn tại
+                        if (!mangaDict.ContainsKey("attributes") || mangaDict["attributes"] == null)
+                        {
+                            _logger.LogWarning($"Manga ID {id} thiếu thông tin attributes");
+                            continue;
+                        }
+                        
+                        // Chuyển đổi attributes thành Dictionary
+                        var attributesDict = (Dictionary<string, object>)mangaDict["attributes"];
+                        
+                        // Kiểm tra title tồn tại
+                        if (!attributesDict.ContainsKey("title") || attributesDict["title"] == null)
+                        {
+                            _logger.LogWarning($"Manga ID {id} thiếu thông tin title");
+                            continue;
+                        }
+                        
+                        // Lấy title từ attributesDict
+                        var titleObj = attributesDict["title"];
+                        string mangaTitle = "Không có tiêu đề";
+                        
+                        // Phương pháp xử lý đúng cách title
+                        if (titleObj is Dictionary<string, object> titleDict)
+                        {
+                            // Ưu tiên tiếng Việt
+                            if (titleDict.ContainsKey("vi"))
+                                mangaTitle = titleDict["vi"].ToString();
+                            // Nếu không có tiếng Việt, lấy tiếng Anh
+                            else if (titleDict.ContainsKey("en"))
+                                mangaTitle = titleDict["en"].ToString();
+                            // Hoặc lấy giá trị đầu tiên nếu không có các ngôn ngữ ưu tiên
+                            else if (titleDict.Count > 0)
+                                mangaTitle = titleDict.FirstOrDefault().Value?.ToString() ?? "Không có tiêu đề";
+                        }
+                        else
+                        {
+                            // Thử phương pháp khác nếu title không phải là Dictionary
+                            mangaTitle = GetLocalizedTitle(JsonSerializer.Serialize(titleObj)) ?? "Không có tiêu đề";
+                        }
+                        
+                        var description = "";
+                        if (attributesDict.ContainsKey("description") && attributesDict["description"] != null)
+                        {
+                            description = GetLocalizedDescription(attributesDict["description"].ToString()) ?? "";
+                        }
+                        
+                        // Tải ảnh bìa
+                        string coverUrl = "";
+                        try
+                        {
+                            coverUrl = await _mangaDexService.FetchCoverUrlAsync(id);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError($"Không tải được ảnh bìa cho manga {id}: {ex.Message}");
+                        }
+
+                        mangaViewModels.Add(new MangaViewModel
+                        {
+                            Id = id,
+                            Title = mangaTitle,
+                            Description = description,
+                            CoverUrl = coverUrl,
+                            Status = attributesDict.ContainsKey("status") ? attributesDict["status"].ToString() : "unknown"
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Lỗi khi xử lý manga: {ex.Message}");
+                        // Ghi log nhưng vẫn tiếp tục với manga tiếp theo
+                    }
+                }
+
+                var viewModel = new MangaListViewModel
+                {
+                    Mangas = mangaViewModels,
+                    CurrentPage = page,
+                    PageSize = pageSize,
+                    TotalCount = totalCount,
+                    SortOptions = sortManga
+                };
+
+                // Nếu là HTMX request, chỉ trả về nội dung một phần
+                if (Request.Headers.ContainsKey("HX-Request"))
+                {
+                    return PartialView(viewModel);
+                }
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Lỗi khi tải danh sách manga: {ex.Message}");
+                ViewBag.ErrorMessage = "Không thể tải danh sách manga. Vui lòng thử lại sau.";
+                return View(new MangaListViewModel());
+            }
+        }
+
+        public async Task<IActionResult> Popular(int page = 1)
+        {
+            try
+            {
+                // Thiết lập page type để chọn CSS phù hợp (trang phổ biến sử dụng CSS như trang chủ)
+                ViewData["PageType"] = "home";
+                
+                var sortManga = new SortManga
+                {
+                    Title = "",
+                    SortBy = "popular"
+                };
+
+                var mangas = await _mangaDexService.FetchMangaAsync(limit: 24, offset: (page - 1) * 24, sortManga: sortManga);
+                var totalCount = 100; // Giả định tổng số manga
+
+                var mangaViewModels = new List<MangaViewModel>();
+                foreach (var manga in mangas)
+                {
+                    try
+                    {
+                        // Sử dụng JsonSerializer để chuyển đổi chính xác
+                        var mangaElement = JsonSerializer.Deserialize<JsonElement>(manga.ToString());
+                        // Chuyển đổi JsonElement thành Dictionary
+                        var mangaDict = ConvertJsonElementToDict(mangaElement);
+                        
+                        if (!mangaDict.ContainsKey("id") || mangaDict["id"] == null)
+                        {
+                            _logger.LogWarning("Manga không có ID");
+                            continue;
+                        }
+                        
+                        var id = mangaDict["id"].ToString();
+                        
+                        // Kiểm tra attributes tồn tại
+                        if (!mangaDict.ContainsKey("attributes") || mangaDict["attributes"] == null)
+                        {
+                            _logger.LogWarning($"Manga ID {id} thiếu thông tin attributes");
+                            continue;
+                        }
+                        
+                        // Chuyển đổi attributes thành Dictionary
+                        var attributesDict = (Dictionary<string, object>)mangaDict["attributes"];
+                        
+                        // Kiểm tra title tồn tại
+                        if (!attributesDict.ContainsKey("title") || attributesDict["title"] == null)
+                        {
+                            _logger.LogWarning($"Manga ID {id} thiếu thông tin title");
+                            continue;
+                        }
+                        
+                        // Lấy title từ attributesDict
+                        var titleObj = attributesDict["title"];
+                        string mangaTitle = "Không có tiêu đề";
+                        
+                        // Phương pháp xử lý đúng cách title
+                        if (titleObj is Dictionary<string, object> titleDict)
+                        {
+                            // Ưu tiên tiếng Việt
+                            if (titleDict.ContainsKey("vi"))
+                                mangaTitle = titleDict["vi"].ToString();
+                            // Nếu không có tiếng Việt, lấy tiếng Anh
+                            else if (titleDict.ContainsKey("en"))
+                                mangaTitle = titleDict["en"].ToString();
+                            // Hoặc lấy giá trị đầu tiên nếu không có các ngôn ngữ ưu tiên
+                            else if (titleDict.Count > 0)
+                                mangaTitle = titleDict.FirstOrDefault().Value?.ToString() ?? "Không có tiêu đề";
+                        }
+                        else
+                        {
+                            // Thử phương pháp khác nếu title không phải là Dictionary
+                            mangaTitle = GetLocalizedTitle(JsonSerializer.Serialize(titleObj)) ?? "Không có tiêu đề";
+                        }
+                        
+                        var description = "";
+                        if (attributesDict.ContainsKey("description") && attributesDict["description"] != null)
+                        {
+                            description = GetLocalizedDescription(attributesDict["description"].ToString()) ?? "";
+                        }
+                        
+                        // Tải ảnh bìa
+                        string coverUrl = "";
+                        try
+                        {
+                            coverUrl = await _mangaDexService.FetchCoverUrlAsync(id);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError($"Không tải được ảnh bìa cho manga {id}: {ex.Message}");
+                        }
+
+                        mangaViewModels.Add(new MangaViewModel
+                        {
+                            Id = id,
+                            Title = mangaTitle,
+                            Description = description,
+                            CoverUrl = coverUrl,
+                            Status = attributesDict.ContainsKey("status") ? attributesDict["status"].ToString() : "unknown"
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Lỗi khi xử lý manga: {ex.Message}");
+                        // Ghi log nhưng vẫn tiếp tục với manga tiếp theo
+                    }
+                }
+
+                var viewModel = new MangaListViewModel
+                {
+                    Mangas = mangaViewModels,
+                    CurrentPage = page,
+                    PageSize = 24,
+                    TotalCount = totalCount,
+                    SortOptions = sortManga
+                };
+
+                // Nếu là HTMX request, chỉ trả về nội dung một phần
+                if (Request.Headers.ContainsKey("HX-Request"))
+                {
+                    return PartialView(viewModel);
+                }
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Lỗi khi tải danh sách manga: {ex.Message}");
+                ViewBag.ErrorMessage = "Không thể tải danh sách manga. Vui lòng thử lại sau.";
+                return View(new MangaListViewModel());
+            }
+        }
+
+        public async Task<IActionResult> Latest(int page = 1)
+        {
+            try
+            {
+                // Thiết lập page type để chọn CSS phù hợp (trang mới cập nhật sử dụng CSS như trang chủ)
+                ViewData["PageType"] = "home";
+                
+                var sortManga = new SortManga
+                {
+                    Title = "",
+                    SortBy = "latest"
+                };
+
+                var mangas = await _mangaDexService.FetchMangaAsync(limit: 24, offset: (page - 1) * 24, sortManga: sortManga);
+                var totalCount = 100; // Giả định tổng số manga
+
+                var mangaViewModels = new List<MangaViewModel>();
+                foreach (var manga in mangas)
+                {
+                    try
+                    {
+                        // Sử dụng JsonSerializer để chuyển đổi chính xác
+                        var mangaElement = JsonSerializer.Deserialize<JsonElement>(manga.ToString());
+                        // Chuyển đổi JsonElement thành Dictionary
+                        var mangaDict = ConvertJsonElementToDict(mangaElement);
+                        
+                        if (!mangaDict.ContainsKey("id") || mangaDict["id"] == null)
+                        {
+                            _logger.LogWarning("Manga không có ID");
+                            continue;
+                        }
+                        
+                        var id = mangaDict["id"].ToString();
+                        
+                        // Kiểm tra attributes tồn tại
+                        if (!mangaDict.ContainsKey("attributes") || mangaDict["attributes"] == null)
+                        {
+                            _logger.LogWarning($"Manga ID {id} thiếu thông tin attributes");
+                            continue;
+                        }
+                        
+                        // Chuyển đổi attributes thành Dictionary
+                        var attributesDict = (Dictionary<string, object>)mangaDict["attributes"];
+                        
+                        // Kiểm tra title tồn tại
+                        if (!attributesDict.ContainsKey("title") || attributesDict["title"] == null)
+                        {
+                            _logger.LogWarning($"Manga ID {id} thiếu thông tin title");
+                            continue;
+                        }
+                        
+                        // Lấy title từ attributesDict
+                        var titleObj = attributesDict["title"];
+                        string mangaTitle = "Không có tiêu đề";
+                        
+                        // Phương pháp xử lý đúng cách title
+                        if (titleObj is Dictionary<string, object> titleDict)
+                        {
+                            // Ưu tiên tiếng Việt
+                            if (titleDict.ContainsKey("vi"))
+                                mangaTitle = titleDict["vi"].ToString();
+                            // Nếu không có tiếng Việt, lấy tiếng Anh
+                            else if (titleDict.ContainsKey("en"))
+                                mangaTitle = titleDict["en"].ToString();
+                            // Hoặc lấy giá trị đầu tiên nếu không có các ngôn ngữ ưu tiên
+                            else if (titleDict.Count > 0)
+                                mangaTitle = titleDict.FirstOrDefault().Value?.ToString() ?? "Không có tiêu đề";
+                        }
+                        else
+                        {
+                            // Thử phương pháp khác nếu title không phải là Dictionary
+                            mangaTitle = GetLocalizedTitle(JsonSerializer.Serialize(titleObj)) ?? "Không có tiêu đề";
+                        }
+                        
+                        var description = "";
+                        if (attributesDict.ContainsKey("description") && attributesDict["description"] != null)
+                        {
+                            description = GetLocalizedDescription(attributesDict["description"].ToString()) ?? "";
+                        }
+                        
+                        // Tải ảnh bìa
+                        string coverUrl = "";
+                        try
+                        {
+                            coverUrl = await _mangaDexService.FetchCoverUrlAsync(id);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError($"Không tải được ảnh bìa cho manga {id}: {ex.Message}");
+                        }
+
+                        mangaViewModels.Add(new MangaViewModel
+                        {
+                            Id = id,
+                            Title = mangaTitle,
+                            Description = description,
+                            CoverUrl = coverUrl,
+                            Status = attributesDict.ContainsKey("status") ? attributesDict["status"].ToString() : "unknown"
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Lỗi khi xử lý manga: {ex.Message}");
+                        // Ghi log nhưng vẫn tiếp tục với manga tiếp theo
+                    }
+                }
+
+                var viewModel = new MangaListViewModel
+                {
+                    Mangas = mangaViewModels,
+                    CurrentPage = page,
+                    PageSize = 24,
+                    TotalCount = totalCount,
+                    SortOptions = sortManga
+                };
+
+                // Nếu là HTMX request, chỉ trả về nội dung một phần
+                if (Request.Headers.ContainsKey("HX-Request"))
+                {
+                    return PartialView(viewModel);
+                }
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Lỗi khi tải danh sách manga: {ex.Message}");
+                ViewBag.ErrorMessage = "Không thể tải danh sách manga. Vui lòng thử lại sau.";
+                return View(new MangaListViewModel());
+            }
         }
     }
 } 

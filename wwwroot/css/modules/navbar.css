@@ -1,0 +1,132 @@
+/* Navbar CSS - Chứa styles cho thanh điều hướng và các thành phần liên quan */
+
+/* Navbar customization */
+.navbar {
+    position: relative;
+    width: 100%;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: var(--z-index-navbar);
+}
+
+.navbar-dark {
+    background-color: var(--navbar-bg) !important;
+}
+
+.navbar-scrolled {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-hidden {
+    transform: translateY(-100%);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.nav-link {
+    font-weight: 500;
+}
+
+/* Additional style for active navigation item */
+.navbar-nav .nav-item .nav-link.active {
+    font-weight: 600;
+    position: relative;
+}
+
+.navbar-nav .nav-item .nav-link.active:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0.5rem;
+    right: 0.5rem;
+    height: 2px;
+    background-color: currentColor;
+}
+
+/* Navbar toggle button */
+.sidebar-toggler {
+    border: none;
+    background: transparent;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Fix for navbar color in dark mode */
+[data-bs-theme="dark"] .navbar-dark {
+    background-color: var(--navbar-bg) !important;
+}
+
+/* Search container */
+.search-container {
+    transition: margin-left 0.3s ease;
+    width: 100%;
+    max-width: 500px;
+}
+
+/* Effect when sidebar is open */
+body.sidebar-open .navbar-toggler.sidebar-toggler,
+body.sidebar-open .navbar-brand {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.navbar-toggler.sidebar-toggler,
+.navbar-brand {
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+body.sidebar-open .search-container {
+    margin-left: -5%;
+    transition: margin-left 0.3s ease;
+    max-width: 100%;
+}
+
+/* Theme switcher */
+#themeSwitcher {
+    cursor: pointer;
+}
+
+#themeSwitch {
+    cursor: pointer;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+    .navbar-collapse {
+        padding: 1rem 0;
+    }
+    
+    .nav-item {
+        margin-bottom: 0.5rem;
+    }
+    
+    .search-container {
+        max-width: 100%;
+    }
+    
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+}
+
+@media (min-width: 992px) {
+    .navbar-toggler.sidebar-toggler {
+        display: inline-block;
+    }
+}
+
+@media (max-width: 767px) {
+    body.sidebar-open .search-container {
+        margin-left: 0;
+    }
+    
+    body.sidebar-open .container.d-block.d-lg-none {
+        margin-left: 0;
+    }
+} 

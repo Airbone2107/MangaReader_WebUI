@@ -1,0 +1,12 @@
+@{
+    var pageType = ViewData["PageType"] as string ?? "default";
+    var cssFile = pageType switch
+    {
+        "home" => "~/css/home.css",
+        "manga-details" => "~/css/manga-details.css",
+        "chapter" => "~/css/chapter.css",
+        _ => "~/css/site.css"
+    };
+}
+
+<link rel="stylesheet" href="@cssFile" asp-append-version="true" /> 

@@ -752,24 +752,4 @@ function initSidebar() {
             closeSidebar();
         }
     });
-    
-    // Đóng sidebar khi click vào một liên kết trong sidebar
-    navLinks.forEach(link => {
-        link.addEventListener('click', function() {
-            // Chỉ đóng sidebar nếu không phải là link dropdown
-            if (!this.classList.contains('dropdown-toggle')) {
-                closeSidebar();
-            }
-        });
-    });
-    
-    // Đóng sidebar khi click vào nội dung chính
-    const mainContent = document.querySelector('.site-content');
-    if (mainContent) {
-        mainContent.addEventListener('click', function(e) {
-            if (document.body.classList.contains('sidebar-open')) {
-                closeSidebar();
-            }
-        });
-    }
 }

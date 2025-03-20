@@ -1,4 +1,4 @@
-/* Main site CSS - Imports all modular CSS files */
+/* Manga Details CSS - Chỉ import các module cần thiết cho trang chi tiết manga */
 
 /* Các biến và thiết lập theme */
 @import './modules/variables.css';
@@ -9,10 +9,10 @@
 /* Layout chính */
 @import './modules/layout.css';
 
-/* Components UI */
+/* Components UI - cần cho accordion, buttons, list */
 @import './modules/components.css';
 
-/* Styles cho manga */
+/* Styles cho manga - rất quan trọng cho trang này */
 @import './modules/manga.css';
 
 /* Navbar */
@@ -26,3 +26,8 @@
 
 /* Responsive media queries */
 @import './modules/responsive.css';
+
+/* Customizations specific to manga details page */
+.manga-details-container {
+    margin-top: -1.5rem;
+} 

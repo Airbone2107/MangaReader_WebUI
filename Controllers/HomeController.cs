@@ -26,6 +26,9 @@ namespace manga_reader_web.Controllers
         {
             try
             {
+                // Thiết lập page type để chọn CSS phù hợp
+                ViewData["PageType"] = "home";
+                
                 // Kiểm tra kết nối API trước
                 bool isConnected = await _mangaDexService.TestConnectionAsync();
                 if (!isConnected)
@@ -96,6 +99,12 @@ namespace manga_reader_web.Controllers
                         ViewBag.ErrorMessage = "Không thể hiển thị dữ liệu manga. Định dạng dữ liệu không hợp lệ.";
                     }
 
+                    // Nếu là HTMX request, chỉ trả về nội dung một phần
+                    if (Request.Headers.ContainsKey("HX-Request"))
+                    {
+                        return PartialView(viewModels);
+                    }
+
                     return View(viewModels);
                 }
                 catch (Exception apiEx)
@@ -123,6 +132,9 @@ namespace manga_reader_web.Controllers
         // Trang test cho việc debug
         public async Task<IActionResult> ApiTest()
         {
+            // Thiết lập page type để chọn CSS phù hợp
+            ViewData["PageType"] = "home";
+            
             var testResults = new Dictionary<string, string>();
             
             try
@@ -141,6 +153,12 @@ namespace manga_reader_web.Controllers
                     testResults.Add("Fetch Manga", $"Failed - {ex.Message}");
                 }
                 
+                // Nếu là HTMX request, chỉ trả về nội dung một phần
+                if (Request.Headers.ContainsKey("HX-Request"))
+                {
+                    return PartialView(testResults);
+                }
+                
                 return View(testResults);
             }
             catch (Exception ex)
@@ -152,13 +170,33 @@ namespace manga_reader_web.Controllers
 
         public IActionResult Privacy()
         {
+            // Thiết lập page type để chọn CSS phù hợp
+            ViewData["PageType"] = "home";
+            
+            // Nếu là HTMX request, chỉ trả về nội dung một phần
+            if (Request.Headers.ContainsKey("HX-Request"))
+            {
+                return PartialView();
+            }
+            
             return View();
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            // Thiết lập page type để chọn CSS phù hợp
+            ViewData["PageType"] = "home";
+            
+            var model = new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier };
+            
+            // Nếu là HTMX request, chỉ trả về nội dung một phần
+            if (Request.Headers.ContainsKey("HX-Request"))
+            {
+                return PartialView(model);
+            }
+            
+            return View(model);
         }
         
         // Hàm utility để xử lý dữ liệu

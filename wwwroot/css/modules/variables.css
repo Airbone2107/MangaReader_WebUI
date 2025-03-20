@@ -1,0 +1,84 @@
+/* Variables CSS - Chứa các biến CSS dùng xuyên suốt ứng dụng */
+
+/* Z-index layers */
+:root {
+    /* Z-index layers */
+    --z-index-dropdown: 1000;
+    --z-index-navbar: 1030;
+    --z-index-fixed: 1040;
+    --z-index-modal-backdrop: 1050;
+    --z-index-modal: 1060;
+    --z-index-tooltip: 1070;
+    --z-index-toast: 1080;
+    --z-index-popover: 1090;
+    
+    /* Theme colors - Light mode */
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --info-color: #0dcaf0;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+    
+    /* Background & Text */
+    --body-bg: #f8f9fa;
+    --body-color: #212529;
+    --card-bg: #ffffff;
+    --card-color: #212529;
+    --navbar-bg: var(--primary-color);
+    --navbar-color: #ffffff;
+    --footer-bg: var(--primary-color);
+    --footer-color: #ffffff;
+    
+    /* Shadows & Effects */
+    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    --hover-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    --transition-speed: 0.3s;
+    
+    /* Borders */
+    --border-color: rgba(0, 0, 0, 0.125);
+
+    /* Light theme specific variables */
+    --card-bg: #ffffff;
+    --hover-bg: rgba(0, 0, 0, 0.05);
+    --active-bg: rgba(13, 110, 253, 0.1);
+    --border-color: #dee2e6;
+}
+
+/* Dark theme */
+[data-bs-theme="dark"] {
+    /* Theme colors - Dark mode */
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --info-color: #0dcaf0;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-color: #212529;
+    --dark-color: #f8f9fa;
+    
+    /* Background & Text */
+    --body-bg: #121212;
+    --body-color: #e1e1e1;
+    --card-bg: #1e1e1e;
+    --card-color: #e1e1e1;
+    --navbar-bg: #1a1a1a;
+    --navbar-color: #ffffff;
+    --footer-bg: #1a1a1a;
+    --footer-color: #ffffff;
+    
+    /* Shadows & Effects */
+    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    --hover-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+    
+    /* Borders */
+    --border-color: rgba(255, 255, 255, 0.125);
+
+    /* Dark theme specific variables */
+    --card-bg: #2b2b2b;
+    --hover-bg: rgba(255, 255, 255, 0.05);
+    --active-bg: rgba(13, 110, 253, 0.15);
+    --border-color: #444;
+} 

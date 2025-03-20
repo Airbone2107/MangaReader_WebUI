@@ -21,8 +21,8 @@
             
             <hr>
             <p class="mb-0">
-                <a href="/Home/ApiTest" class="btn btn-info btn-sm">Kiểm tra API</a>
-                <a href="/" class="btn btn-primary btn-sm ms-2">Thử lại</a>
+                <a href="/Home/ApiTest" class="btn btn-info btn-sm" hx-get="@Url.Action("ApiTest", "Home")" hx-target="#main-content" hx-push-url="true">Kiểm tra API</a>
+                <a href="/" class="btn btn-primary btn-sm ms-2" hx-get="@Url.Action("Index", "Home")" hx-target="#main-content" hx-push-url="true">Thử lại</a>
             </p>
         </div>
     }
@@ -45,13 +45,19 @@
             {
                 <div class="col">
                     <div class="card h-100 manga-card">
-                        <a href="/Manga/Details/@manga.Id" class="manga-cover-link">
+                        <a href="/Manga/Details/@manga.Id" class="manga-cover-link" 
+                           hx-get="@Url.Action("Details", "Manga", new { id = manga.Id })" 
+                           hx-target="#main-content" 
+                           hx-push-url="true">
                             <img src="@manga.CoverUrl" class="card-img-top" alt="@manga.Title" 
                                  onerror="this.onerror=null; this.src='/images/no-cover.png';" loading="lazy">
                         </a>
                         <div class="card-body">
                             <h5 class="card-title text-truncate" title="@manga.Title">
-                                <a href="/Manga/Details/@manga.Id" class="manga-title-link">@manga.Title</a>
+                                <a href="/Manga/Details/@manga.Id" class="manga-title-link" 
+                                   hx-get="@Url.Action("Details", "Manga", new { id = manga.Id })" 
+                                   hx-target="#main-content" 
+                                   hx-push-url="true">@manga.Title</a>
                             </h5>
                         </div>
                     </div>
