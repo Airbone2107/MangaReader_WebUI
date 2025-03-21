@@ -11,140 +11,71 @@
     <link rel="icon" type="image/png" href="~/favicon.png">
     <meta name="theme-color" content="#0d6efd">
     <meta name="description" content="Đọc manga online miễn phí với chất lượng cao">
-    <style>
-        /* Fix cho nút đóng sidebar trong dark mode */
-        [data-bs-theme="dark"] .btn-close {
-            filter: invert(1) grayscale(100%) brightness(200%);
-        }
-        
-        /* Hiển thị sidebar active link */
-        .sidebar-nav-link.active {
-            background-color: rgba(13, 110, 253, 0.15);
-            color: var(--bs-primary) !important;
-            font-weight: 500;
-            border-radius: 0.375rem;
-        }
-        
-        [data-bs-theme="dark"] .sidebar-nav-link.active {
-            background-color: rgba(13, 110, 253, 0.25);
-        }
-        
-        /* Loading spinner */
-        #content-loading-spinner {
-            position: fixed;
-            top: 40%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1050;
-            display: none;
-            background-color: rgba(var(--bs-primary-rgb), 0.15);
-            padding: 2rem;
-            border-radius: 50%;
-        }
-        
-        .spinner-border.spinner-lg {
-            width: 3rem;
-            height: 3rem;
-        }
-    </style>
     @await RenderSectionAsync("Styles", required: false)
 </head>
-<body class="manga-reader-app d-flex flex-column min-vh-100">
-    <header class="site-header">
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-            <div class="container">
-                <!-- Nút menu bên trái -->
-                <button class="navbar-toggler sidebar-toggler me-2" type="button" aria-controls="sidebarMenu" aria-expanded="false">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                
-                <!-- Logo và tên trang web -->
-                <a class="navbar-brand text-transition" asp-area="" asp-controller="Home" asp-action="Index" 
-                   hx-get="@Url.Action("Index", "Home")" hx-target="#main-content" hx-push-url="true">
-                    <i class="bi bi-book-half me-2"></i>Manga Reader
-                </a>
-                
-                <!-- Phần giữa: Thanh tìm kiếm -->
-                <div class="search-container mx-auto d-none d-lg-block position-transition">
-                    <form class="d-flex" id="quickSearchForm" action="/Manga/Search" method="get" 
-                          hx-get="@Url.Action("Search", "Manga")" hx-target="#main-content" hx-push-url="true">
-                        <div class="input-group">
-                            <input class="form-control" id="quickSearchInput" name="title" type="search" placeholder="Tìm truyện..." aria-label="Search">
-                            <button class="btn btn-light" type="submit"><i class="bi bi-search"></i></button>
-                        </div>
-                    </form>
-                </div>
-                
-                <!-- Phần phải: Tài khoản -->
-                <div class="ms-auto d-flex align-items-center">
-                    <div class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle"></i>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-bookmark me-2"></i>Danh sách theo dõi</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-clock-history me-2"></i>Lịch sử đọc</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" id="themeSwitcher">
-                                    <span id="themeText"><i class="bi bi-moon-stars me-2"></i>Chế độ tối</span>
-                                    <div class="form-check form-switch mb-0">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="themeSwitch">
-                                    </div>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </nav>
-        
-        <!-- Mobile Search -->
-        <div class="container d-block d-lg-none py-2 bg-body-tertiary border-bottom">
-            <form class="d-flex" id="mobileSearchForm" action="/Manga/Search" method="get"
-                  hx-get="@Url.Action("Search", "Manga")" hx-target="#main-content" hx-push-url="true">
-                <div class="input-group">
-                    <input class="form-control" name="title" type="search" placeholder="Tìm truyện..." aria-label="Search">
-                    <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
-                </div>
-            </form>
-        </div>
-    </header>
-    
+<body class="manga-reader-app">
     <!-- Sidebar Menu -->
-    <div class="offcanvas-start" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
-        <div class="offcanvas-header border-bottom">
-            <h5 class="offcanvas-title" id="sidebarMenuLabel">
+    <div id="sidebarMenu">
+        <div class="sidebar-header">
+            <h5 class="m-0">
                 <i class="bi bi-book-half me-2"></i>Manga Reader
             </h5>
-            <div class="ms-auto d-flex">
-                <button type="button" class="btn-close" id="closeSidebar" aria-label="Close"></button>
-            </div>
+            <button type="button" class="btn-close" id="closeSidebar" aria-label="Close"></button>
         </div>
-        <div class="offcanvas-body">
-            <ul class="navbar-nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link sidebar-nav-link" asp-area="" asp-controller="Home" asp-action="Index"
+        <div class="sidebar-body">
+            <ul class="navbar-nav flex-column p-3">
+                <li class="nav-item mb-2">
+                    <a class="nav-link sidebar-nav-link p-2" asp-area="" asp-controller="Home" asp-action="Index"
                        hx-get="@Url.Action("Index", "Home")" hx-target="#main-content" hx-push-url="true">
                         <i class="bi bi-house-door me-2"></i>Trang chủ
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link sidebar-nav-link" asp-area="" asp-controller="Manga" asp-action="Search"
+                <li class="nav-item mb-2">
+                    <a class="nav-link sidebar-nav-link p-2" asp-area="" asp-controller="Manga" asp-action="Search"
                        hx-get="@Url.Action("Search", "Manga")" hx-target="#main-content" hx-push-url="true">
                         <i class="bi bi-search me-2"></i>Tìm kiếm nâng cao
                     </a>
                 </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link sidebar-nav-link p-2" asp-area="" asp-controller="Manga" asp-action="Latest" 
+                       hx-get="@Url.Action("Latest", "Manga")" hx-target="#main-content" hx-push-url="true">
+                        <i class="bi bi-calendar-check me-2"></i>Truyện mới cập nhật
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link sidebar-nav-link p-2" asp-area="" asp-controller="Manga" asp-action="Popular" 
+                       hx-get="@Url.Action("Popular", "Manga")" hx-target="#main-content" hx-push-url="true">
+                        <i class="bi bi-graph-up me-2"></i>Truyện phổ biến
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link sidebar-nav-link p-2" asp-controller="Home" asp-action="Privacy"
+                       hx-get="@Url.Action("Privacy", "Home")" hx-target="#main-content" hx-push-url="true">
+                        <i class="bi bi-shield-check me-2"></i>Chính sách bảo mật
+                    </a>
+                </li>
             </ul>
-            <hr>
-            <div class="d-flex justify-content-between align-items-center p-3 rounded theme-switcher-container" id="sidebarThemeSwitcher">
-                <span id="sidebarThemeText"><i class="bi bi-moon-stars me-2"></i>Chế độ tối</span>
-                <div class="form-check form-switch mb-0">
-                    <input class="form-check-input" type="checkbox" role="switch" id="sidebarThemeSwitch">
+            
+            <!-- Phần footer trong sidebar -->
+            <div class="sidebar-footer text-muted">
+                <hr>
+                <h6><i class="bi bi-book-half me-2"></i>Manga Reader</h6>
+                <p class="small">Trang web đọc truyện manga online miễn phí với chất lượng cao.</p>
+                
+                <div class="sidebar-social-icons">
+                    <a href="#"><i class="bi bi-facebook"></i></a>
+                    <a href="#"><i class="bi bi-twitter-x"></i></a>
+                    <a href="#"><i class="bi bi-discord"></i></a>
+                    <a href="#"><i class="bi bi-github"></i></a>
                 </div>
+                
+                <p class="small mb-2">&copy; 2025 - Manga Reader</p>
             </div>
         </div>
     </div>
+    
+    <!-- Backdrop cho mobile -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     
     <!-- Loading spinner -->
     <div id="content-loading-spinner">
@@ -153,50 +84,82 @@
         </div>
     </div>
     
-    <div class="content-wrapper flex-grow-1">
-        <main role="main" class="site-content">
-            <div id="main-content">
-                @RenderBody()
-            </div>
-        </main>
-    </div>
-
-    <footer class="site-footer">
-        <div class="container py-4">
-            <div class="row">
-                <div class="col-lg-6">
-                    <h5><i class="bi bi-book-half me-2"></i>Manga Reader</h5>
-                    <p class="mb-3">Trang web đọc truyện manga online miễn phí với chất lượng cao.</p>
-                    <p>&copy; 2025 - Manga Reader - <a class="text-light" asp-area="" asp-controller="Home" asp-action="Privacy"
-                                                      hx-get="@Url.Action("Privacy", "Home")" hx-target="#main-content" hx-push-url="true">
-                                                      Chính sách bảo mật</a></p>
-                </div>
-                <div class="col-lg-3 mt-4 mt-lg-0">
-                    <h6 class="mb-3">Liên kết</h6>
-                    <ul class="list-unstyled">
-                        <li><a class="text-light" href="/Manga/Search" 
-                               hx-get="@Url.Action("Search", "Manga")" hx-target="#main-content" hx-push-url="true">
-                               Tìm kiếm nâng cao</a></li>
-                        <li><a class="text-light" href="/Manga/Latest" 
-                               hx-get="@Url.Action("Latest", "Manga")" hx-target="#main-content" hx-push-url="true">
-                               Truyện mới cập nhật</a></li>
-                        <li><a class="text-light" href="/Home/About" 
-                               hx-get="@Url.Action("About", "Home")" hx-target="#main-content" hx-push-url="true">
-                               Giới thiệu</a></li>
-                    </ul>
-                </div>
-                <div class="col-lg-3 mt-4 mt-lg-0">
-                    <h6 class="mb-3">Theo dõi chúng tôi</h6>
-                    <div class="d-flex gap-3 fs-4">
-                        <a href="#" class="text-light"><i class="bi bi-facebook"></i></a>
-                        <a href="#" class="text-light"><i class="bi bi-twitter-x"></i></a>
-                        <a href="#" class="text-light"><i class="bi bi-discord"></i></a>
-                        <a href="#" class="text-light"><i class="bi bi-github"></i></a>
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Header -->
+            <div class="site-header">
+                <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+                    <div class="container">
+                        <!-- Nút menu bên trái -->
+                        <button class="navbar-toggler sidebar-toggler me-2 htmx-preserve" type="button" id="sidebarToggler" 
+                                hx-preserve="true">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        
+                        <!-- Logo và tên trang web -->
+                        <a class="navbar-brand text-transition" asp-area="" asp-controller="Home" asp-action="Index" 
+                           hx-get="@Url.Action("Index", "Home")" hx-target="#main-content" hx-push-url="true">
+                            <i class="bi bi-book-half me-2"></i>Manga Reader
+                        </a>
+                        
+                        <!-- Phần phải: Thanh tìm kiếm và tài khoản -->
+                        <div class="ms-auto d-flex align-items-center flex-grow-1 justify-content-end">
+                            <!-- Thanh tìm kiếm -->
+                            <div class="search-container d-none d-lg-block position-transition me-3">
+                                <form class="d-flex" id="quickSearchForm" action="/Manga/Search" method="get" 
+                                      hx-get="@Url.Action("Search", "Manga")" hx-target="#main-content" hx-push-url="true">
+                                    <div class="input-group">
+                                        <input class="form-control" id="quickSearchInput" name="title" type="search" placeholder="Tìm truyện..." aria-label="Search">
+                                        <button class="btn btn-light" type="submit"><i class="bi bi-search"></i></button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <!-- Dropdown tài khoản -->
+                            <div class="nav-item dropdown htmx-preserve" hx-preserve="true">
+                                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person-circle"></i>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="userDropdown">
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-bookmark me-2"></i>Danh sách theo dõi</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-clock-history me-2"></i>Lịch sử đọc</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" id="themeSwitcher">
+                                            <span id="themeText"><i class="bi bi-moon-stars me-2"></i>Chế độ tối</span>
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" role="switch" id="themeSwitch">
+                                            </div>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
+                </nav>
+                
+                <!-- Mobile Search -->
+                <div class="container d-block d-lg-none py-2 mobile-search-container">
+                    <form class="d-flex" id="mobileSearchForm" action="/Manga/Search" method="get"
+                          hx-get="@Url.Action("Search", "Manga")" hx-target="#main-content" hx-push-url="true">
+                        <div class="input-group">
+                            <input class="form-control" name="title" type="search" placeholder="Tìm truyện..." aria-label="Search">
+                            <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+                        </div>
+                    </form>
                 </div>
             </div>
+            
+            <!-- Main Content -->
+            <main role="main" class="site-content">
+                <div id="main-content">
+                    @RenderBody()
+                </div>
+            </main>
         </div>
-    </footer>
+    </div>
 
     <!-- Back to top button -->
     <button id="backToTopBtn" class="btn btn-primary rounded-circle position-fixed bottom-0 end-0 m-4 d-none" title="Về đầu trang">
@@ -209,76 +172,9 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/lib/htmx/htmx.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    <script>
-        // Xử lý active sidebar link dựa trên URL hiện tại
-        function updateActiveSidebarLink() {
-            const currentPath = window.location.pathname;
-            const sidebarLinks = document.querySelectorAll('.sidebar-nav-link');
-            
-            // Xóa active class từ tất cả các liên kết
-            sidebarLinks.forEach(link => link.classList.remove('active'));
-            
-            // Thêm active class cho liên kết tương ứng với trang hiện tại
-            sidebarLinks.forEach(link => {
-                const linkPath = link.getAttribute('href');
-                if (linkPath) {
-                    // Xác định chính xác các điều kiện để đánh dấu link active
-                    const isExactMatch = linkPath === currentPath;
-                    const isIndexAction = (currentPath === '/Home' || currentPath === '/') && 
-                                          (linkPath === '/' || linkPath === '/Home' || linkPath === '/Home/Index');
-                    const isMangaLink = linkPath === '/Manga' && currentPath === '/Manga';
-                    const isSubdirectory = currentPath.startsWith(linkPath + '/') && 
-                                           linkPath !== '/' && linkPath !== '/Home';
-                    
-                    if (isExactMatch || isIndexAction || isMangaLink || isSubdirectory) {
-                        link.classList.add('active');
-                    }
-                }
-            });
-        }
-        
-        // Xử lý hiển thị/ẩn loading spinner
-        document.addEventListener('DOMContentLoaded', function() {
-            // Cập nhật active link khi trang tải xong
-            updateActiveSidebarLink();
-            
-            // Tạo một đối tượng Offcanvas Bootstrap cho sidebar (nếu chưa có)
-            const sidebarElement = document.getElementById('sidebarMenu');
-            if (sidebarElement && !sidebarElement._bsOffcanvas) {
-                const bsOffcanvas = new bootstrap.Offcanvas(sidebarElement);
-                sidebarElement._bsOffcanvas = bsOffcanvas;
-            }
-            
-            // Hiển thị loading spinner khi bắt đầu request HTMX
-            htmx.on('htmx:beforeRequest', function(event) {
-                if (event.detail.target.id === 'main-content') {
-                    document.getElementById('content-loading-spinner').style.display = 'block';
-                }
-            });
-            
-            // Ẩn loading spinner khi request hoàn thành
-            htmx.on('htmx:afterRequest', function() {
-                document.getElementById('content-loading-spinner').style.display = 'none';
-            });
-            
-            // Cập nhật active sidebar link sau khi nội dung được tải bằng HTMX
-            htmx.on('htmx:afterSwap', function() {
-                updateActiveSidebarLink();
-            });
-            
-            // Xử lý lỗi HTMX
-            htmx.on('htmx:responseError', function() {
-                document.getElementById('content-loading-spinner').style.display = 'none';
-                showToast('Đã xảy ra lỗi khi tải nội dung', 'danger');
-            });
-            
-            // Bắt sự kiện popstate (khi người dùng nhấn nút back/forward trình duyệt)
-            window.addEventListener('popstate', function() {
-                updateActiveSidebarLink();
-            });
-        });
-    </script>
+    <!-- Module mới sử dụng ES6 modules -->
+    <script type="module" src="~/js/main.js" asp-append-version="true"></script>
+    
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

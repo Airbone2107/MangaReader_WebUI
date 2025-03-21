@@ -1,144 +1,165 @@
 /* Sidebar CSS - Chứa styles cho sidebar và các thành phần liên quan */
 
-/* Sidebar menu */
-.offcanvas-start {
-    width: 280px;
-    transform: translateX(-280px);
-    transition: transform 0.3s ease;
+/* Push sidebar */
+#sidebarMenu {
+    width: 15rem;
+    height: 100vh;
     position: fixed;
     top: 0;
+    bottom: 0;
     left: 0;
-    height: 100%;
     z-index: 1045;
-    background-color: var(--card-bg);
-    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
-    overflow-y: auto;
-}
-
-body.sidebar-open {
-    overflow-x: hidden;
-}
-
-.sidebar-backdrop {
-    display: none; /* Loại bỏ backdrop để cho phép tương tác với nội dung */
-}
-
-/* Sidebar nav links */
-.offcanvas-body .nav-link {
-    padding: 0.625rem 1rem;
-    border-radius: 0.375rem;
-    margin-bottom: 0.125rem;
-}
-
-.offcanvas-body .nav-link:hover {
-    background-color: var(--hover-bg);
-}
-
-.offcanvas-body .nav-link.active {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-/* Theme switcher trong sidebar */
-#sidebarThemeSwitcher {
-    transition: background-color 0.3s ease;
-}
-
-[data-bs-theme="dark"] #sidebarThemeSwitcher {
-    background-color: var(--card-bg) !important;
+    background-color: var(--body-bg);
     color: var(--body-color);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    border-right: 1px solid var(--border-color);
+    overflow: hidden;
 }
 
-/* Sidebar nav links với theme-aware */
-.sidebar-nav-link {
-    color: var(--bs-body-color);
-    transition: color 0.3s ease, background-color 0.3s ease;
+body.sidebar-open #sidebarMenu {
+    transform: translateX(0);
 }
 
-.sidebar-nav-link:hover {
-    color: var(--bs-primary);
-    background-color: var(--hover-bg);
+/* Sidebar header */
+.sidebar-header {
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--sidebar-header-bg);
+    color: var(--sidebar-header-text);
 }
 
-.sidebar-nav-link.active {
-    color: var(--bs-primary) !important;
-    font-weight: 600;
-    background-color: var(--active-bg);
+.sidebar-header .btn-close {
+    color: var(--sidebar-header-text);
 }
 
-/* Định nghĩa rõ ràng màu chữ cho chế độ tối */
-[data-bs-theme="dark"] .sidebar-nav-link {
-    color: #e1e1e1 !important;
-}
-
-[data-bs-theme="dark"] .sidebar-nav-link.active {
-    color: var(--bs-primary) !important;
-    background-color: rgba(13, 110, 253, 0.15);
-}
-
-[data-bs-theme="light"] .sidebar-nav-link.active {
-    color: var(--bs-primary) !important;
-    background-color: rgba(13, 110, 253, 0.1);
-}
-
-/* Dropdown styling trong sidebar */
-.offcanvas-body .collapse .navbar-nav {
-    padding-left: 1rem;
-    border-left: 1px solid var(--border-color);
-    margin-left: 0.5rem;
-}
-
-.offcanvas-body .nav-link.dropdown-toggle {
-    position: relative;
-}
-
-.offcanvas-body .nav-link.dropdown-toggle[aria-expanded="true"] {
-    color: var(--bs-primary);
-}
-
-/* Hiệu ứng chỉ báo cho dropdown đang mở */
-.offcanvas-body .nav-link.dropdown-toggle[aria-expanded="true"]::after {
-    transform: rotate(180deg);
-}
-
-/* Màu cho dropdown menu trong sidebar */
-[data-bs-theme="dark"] .offcanvas-body .collapse .navbar-nav .nav-link {
-    color: #e1e1e1 !important;
-}
-
-[data-bs-theme="dark"] .offcanvas-body .collapse .navbar-nav .nav-link:hover,
-[data-bs-theme="dark"] .offcanvas-body .collapse .navbar-nav .nav-link.active {
-    color: var(--bs-primary) !important;
-}
-
-/* Đảm bảo chỉ báo dropdown mũi tên hiển thị đúng */
-.offcanvas-body .dropdown-toggle::after {
-    transition: transform 0.25s ease;
-}
-
-/* Nền hover cho các mục trong chế độ tối */
-[data-bs-theme="dark"] .offcanvas-body .nav-link:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-}
-
-/* Dark mode fixes */
-[data-bs-theme="dark"] .offcanvas {
-    background-color: var(--card-bg);
-    color: var(--body-color);
-}
-
-[data-bs-theme="dark"] .offcanvas .btn-close {
+/* Fix cho nút đóng sidebar trong dark mode */
+[data-bs-theme="dark"] .btn-close {
     filter: invert(1) grayscale(100%) brightness(200%);
 }
 
-/* Mobile sidebar adjustments */
-@media (max-width: 767px) {
-    .offcanvas-start {
-        width: 250px;
-        transform: translateX(-250px);
+/* Sidebar body */
+.sidebar-body {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 4rem);
+    overflow-y: auto;
+}
+
+/* Footer trong sidebar */
+.sidebar-footer {
+    margin-top: auto;
+    padding: 1rem;
+    font-size: 0.85rem;
+    opacity: 0.8;
+    border-top: 1px solid var(--border-color);
+    color: var(--sidebar-footer-color);
+    text-align: center;
+}
+
+.sidebar-footer h6 {
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.sidebar-footer .small {
+    text-align: center;
+}
+
+.sidebar-footer a {
+    color: var(--sidebar-footer-color);
+    text-decoration: none;
+}
+
+.sidebar-footer a:hover {
+    text-decoration: underline;
+    color: var(--sidebar-link-hover-color);
+}
+
+.sidebar-social-icons {
+    font-size: 1.25rem;
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    justify-content: center;
+}
+
+/* Hiển thị sidebar active link */
+.sidebar-nav-link.active {
+    background-color: var(--sidebar-active-bg) !important;
+    color: var(--sidebar-active-text) !important;
+    font-weight: 500;
+    border-radius: 0.375rem;
+}
+
+.sidebar-nav-link.active:hover {
+    background-color: var(--active-hover-bg-light) !important;
+}
+
+/* Đảm bảo active link hiển thị đúng trong cả dark mode */
+[data-bs-theme="dark"] .sidebar-nav-link.active {
+    background-color: var(--sidebar-active-bg) !important;
+    color: var(--sidebar-active-text) !important;
+}
+
+[data-bs-theme="dark"] .sidebar-nav-link.active:hover {
+    background-color: var(--active-hover-bg-dark) !important;
+}
+
+/* Sidebar nav styling */
+.sidebar-body .navbar-nav {
+    width: 100%;
+}
+
+.nav-item.mb-2 .nav-link {
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+    color: var(--sidebar-link-color);
+}
+
+.nav-item.mb-2 .nav-link:hover {
+    background-color: var(--sidebar-link-hover-bg);
+    color: var(--sidebar-link-hover-color);
+}
+
+/* Nút toggle sidebar */
+.sidebar-toggler {
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--header-text);
+}
+
+/* Backdrop cho mobile */
+.sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    display: none;
+}
+
+/* CSS cho mobile sidebar */
+body.mobile-sidebar.sidebar-open .main-container {
+    margin-left: 0;
+    width: 100%;
+}
+
+/* Hiển thị backdrop trên mobile */
+@media (max-width: 61.9375rem) { /* 991.98px */
+    body.sidebar-open .sidebar-backdrop {
+        display: block;
     }
     
-    body.sidebar-open .offcanvas-start {
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    #sidebarMenu {
+        width: 14rem;
+        box-shadow: 0 0 0.9375rem rgba(0, 0, 0, 0.2);
     }
 } 

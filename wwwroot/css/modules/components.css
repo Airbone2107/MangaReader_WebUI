@@ -67,13 +67,13 @@
 
 /* Theme-aware accordion */
 .theme-aware-accordion .accordion-button {
-    color: var(--bs-body-color);
+    color: var(--body-color);
     background-color: var(--card-bg);
     border-color: var(--border-color);
 }
 
 .theme-aware-accordion .accordion-button:not(.collapsed) {
-    color: var(--bs-primary);
+    color: var(--primary-color);
     background-color: var(--active-bg);
 }
 
@@ -90,7 +90,7 @@
 /* List group styles */
 .theme-aware-list .list-group-item {
     background-color: var(--card-bg);
-    color: var(--bs-body-color);
+    color: var(--body-color);
     border-color: var(--border-color);
     transition: background-color 0.3s ease;
 }
@@ -100,7 +100,7 @@
 }
 
 .theme-aware-list .list-group-item .text-muted {
-    color: var(--bs-secondary-color) !important;
+    color: var(--secondary-color) !important;
 }
 
 /* Pagination */
@@ -124,7 +124,7 @@
 /* Theme switcher container */
 .theme-switcher-container {
     background-color: var(--card-bg);
-    color: var(--bs-body-color);
+    color: var(--body-color);
     border: 1px solid var(--border-color);
     transition: background-color 0.3s ease, color 0.3s ease;
 }
@@ -152,7 +152,7 @@
 [data-bs-theme="dark"] .card-title,
 [data-bs-theme="dark"] .card-text,
 [data-bs-theme="dark"] .list-group-item {
-    color: var(--bs-body-color);
+    color: var(--body-color);
 }
 
 [data-bs-theme="dark"] .bg-body-tertiary {
@@ -178,7 +178,7 @@ img[src="/images/no-cover.png"] {
 /* Fix for dark mode text color - global */
 [data-bs-theme="dark"] .text-dark,
 [data-bs-theme="dark"] .text-decoration-none.text-dark,
-[data-bs-theme="dark"] a.text-dark,
+[data-bs-theme="dark"] a.text-dark:not(.sidebar-nav-link),
 [data-bs-theme="dark"] .card-title a {
     color: var(--body-color) !important;
 }
@@ -191,4 +191,129 @@ img[src="/images/no-cover.png"] {
 [data-bs-theme="dark"] .manga-title a:hover,
 [data-bs-theme="dark"] .manga-title-link:hover {
     color: var(--primary-color) !important;
-} 
+}
+
+/* Fix cho text-muted trong dark mode */
+[data-bs-theme="dark"] .text-muted {
+    color: #a0a0a0 !important;
+}
+
+/* Fix cho icon trong dark mode */
+[data-bs-theme="dark"] .bi {
+    color: inherit;
+}
+
+/* Fix cho navbar trong dark mode */
+[data-bs-theme="dark"] .navbar-dark .navbar-nav .nav-link {
+    color: var(--header-text);
+}
+
+[data-bs-theme="dark"] .navbar-toggler-icon {
+    filter: brightness(2);
+}
+
+/* Site header styles */
+.site-header {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.site-header .navbar {
+    padding: 0.5rem 1rem;
+}
+
+/* Header dropdown menu */
+.site-header .dropdown-menu {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+.site-header .dropdown-item {
+    color: var(--body-color);
+}
+
+.site-header .dropdown-item:hover {
+    background-color: var(--hover-bg);
+}
+
+.site-header .navbar-nav .nav-link {
+    color: var(--header-text);
+}
+
+/* Search container in header */
+.search-container {
+    transition: all 0.3s ease;
+    flex: 1;
+    max-width: 20rem;
+}
+
+.search-container.search-expanded {
+    max-width: 45rem;
+}
+
+.search-container form,
+.search-container .input-group {
+    width: 100%;
+}
+
+.search-container .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    background-color: var(--card-bg);
+    color: var(--body-color);
+    border-color: var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.search-container .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    transition: all 0.3s ease;
+}
+
+.mobile-search-container {
+    background-color: var(--body-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+}
+
+/* Loading spinner improvements */
+#content-loading-spinner {
+    background-color: rgba(var(--body-bg-rgb), 0.5);
+    border-radius: 50%;
+    backdrop-filter: blur(0.25rem);
+    box-shadow: 0 0 1rem rgba(0, 0, 0, 0.1);
+}
+
+[data-bs-theme="dark"] #content-loading-spinner {
+    background-color: rgba(0, 0, 0, 0.25);
+}
+
+.spinner-border.spinner-lg {
+    border-width: 0.25rem;
+}
+
+/* Mobile Search */
+.mobile-search-container .form-control {
+    background-color: var(--card-bg);
+    color: var(--body-color);
+    border-color: var(--border-color);
+}
+
+/* Fix cho form-control trong dark mode */
+[data-bs-theme="dark"] .form-control {
+    background-color: var(--card-bg);
+    color: var(--body-color);
+    border-color: var(--border-color);
+}
+
+[data-bs-theme="dark"] .form-control:focus {
+    background-color: var(--card-bg);
+    color: var(--body-color);
+    border-color: var(--primary-color);
+}
+
+[data-bs-theme="dark"] .form-select {
+    background-color: var(--card-bg);
+    color: var(--body-color);
+    border-color: var(--border-color);
+}

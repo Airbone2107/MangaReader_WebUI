@@ -264,9 +264,28 @@
             
             // Xử lý nút theo dõi
             $('#followBtn').click(function() {
-                $(this).toggleClass('btn-outline-light btn-light');
-                var isFollowing = $(this).hasClass('btn-light');
+                var isFollowing = $(this).data('following') === 'true';
+                isFollowing = !isFollowing;
+                $(this).data('following', isFollowing.toString());
                 
+                // Cập nhật trạng thái và lưu vào localStorage
+                var mangaId = $(this).data('id');
+                var followedList = JSON.parse(localStorage.getItem('followed_manga') || '[]');
+                
+                if (isFollowing) {
+                    if (!followedList.includes(mangaId)) {
+                        followedList.push(mangaId);
+                    }
+                } else {
+                    var index = followedList.indexOf(mangaId);
+                    if (index !== -1) {
+                        followedList.splice(index, 1);
+                    }
+                }
+                
+                localStorage.setItem('followed_manga', JSON.stringify(followedList));
+                
+                // Cập nhật UI
                 if (isFollowing) {
                     $(this).html('<i class="bi bi-bookmark-check-fill me-2"></i>Đang theo dõi');
                     showToast('Đã thêm vào danh sách theo dõi!', 'success');
@@ -275,36 +294,6 @@
                     showToast('Đã xóa khỏi danh sách theo dõi!', 'info');
                 }
             });
-            
-            // Hiển thị toast thông báo
-            function showToast(message, type) {
-                // Tạo toast container nếu chưa tồn tại
-                if ($('#toastContainer').length === 0) {
-                    $('body').append('<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>');
-                }
-                
-                // Tạo toast
-                var toastId = 'toast-' + Date.now();
-                var toast = `
-                    <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                        <div class="d-flex">
-                            <div class="toast-body">
-                                ${message}
-                            </div>
-                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                        </div>
-                    </div>
-                `;
-                
-                // Thêm toast vào container
-                $('#toastContainer').append(toast);
-                
-                // Hiển thị toast
-                var toastElement = new bootstrap.Toast(document.getElementById(toastId), {
-                    delay: 3000
-                });
-                toastElement.show();
-            }
         });
     </script>
 }

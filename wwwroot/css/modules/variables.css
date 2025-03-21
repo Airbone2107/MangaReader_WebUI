@@ -14,6 +14,7 @@
     
     /* Theme colors - Light mode */
     --primary-color: #0d6efd;
+    --primary-rgb: 13, 110, 253;
     --secondary-color: #6c757d;
     --success-color: #198754;
     --info-color: #0dcaf0;
@@ -24,6 +25,7 @@
     
     /* Background & Text */
     --body-bg: #f8f9fa;
+    --body-bg-rgb: 248, 249, 250;
     --body-color: #212529;
     --card-bg: #ffffff;
     --card-color: #212529;
@@ -32,25 +34,43 @@
     --footer-bg: var(--primary-color);
     --footer-color: #ffffff;
     
+    /* Header Colors */
+    --header-bg: transparent;
+    --header-text: #ffffff;
+    --sidebar-header-bg: var(--body-bg);
+    --sidebar-header-text: var(--body-color);
+    
+    /* Sidebar Colors */
+    --sidebar-link-color: #212529;
+    --sidebar-link-hover-bg: rgba(13, 110, 253, 0.1);
+    --sidebar-link-hover-color: #0d6efd;
+    --sidebar-footer-color: #6c757d;
+    
     /* Shadows & Effects */
     --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     --hover-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     --transition-speed: 0.3s;
     
     /* Borders */
-    --border-color: rgba(0, 0, 0, 0.125);
+    --border-color: #dee2e6;
 
     /* Light theme specific variables */
-    --card-bg: #ffffff;
     --hover-bg: rgba(0, 0, 0, 0.05);
     --active-bg: rgba(13, 110, 253, 0.1);
-    --border-color: #dee2e6;
+    
+    /* Active element colors */
+    --active-text: var(--primary-color);
+    --active-bg-light: rgba(13, 110, 253, 0.15);
+    --active-hover-bg-light: rgba(13, 110, 253, 0.25);
+    --sidebar-active-text: var(--primary-color);
+    --sidebar-active-bg: rgba(13, 110, 253, 0.15);
 }
 
 /* Dark theme */
 [data-bs-theme="dark"] {
     /* Theme colors - Dark mode */
     --primary-color: #0d6efd;
+    --primary-rgb: 13, 110, 253;
     --secondary-color: #6c757d;
     --success-color: #198754;
     --info-color: #0dcaf0;
@@ -61,24 +81,42 @@
     
     /* Background & Text */
     --body-bg: #121212;
+    --body-bg-rgb: 18, 18, 18;
     --body-color: #e1e1e1;
-    --card-bg: #1e1e1e;
+    --card-bg: #2b2b2b;
     --card-color: #e1e1e1;
     --navbar-bg: #1a1a1a;
     --navbar-color: #ffffff;
     --footer-bg: #1a1a1a;
     --footer-color: #ffffff;
     
+    /* Header Colors */
+    --header-bg: transparent;
+    --header-text: #ffffff;
+    --sidebar-header-bg: var(--body-bg);
+    --sidebar-header-text: var(--body-color);
+    
+    /* Sidebar Colors */
+    --sidebar-link-color: #e1e1e1;
+    --sidebar-link-hover-bg: rgba(255, 255, 255, 0.1);
+    --sidebar-link-hover-color: #97c0ff;
+    --sidebar-footer-color: #a0a0a0;
+    
     /* Shadows & Effects */
     --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     --hover-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
     
     /* Borders */
-    --border-color: rgba(255, 255, 255, 0.125);
+    --border-color: #444;
 
     /* Dark theme specific variables */
-    --card-bg: #2b2b2b;
     --hover-bg: rgba(255, 255, 255, 0.05);
     --active-bg: rgba(13, 110, 253, 0.15);
-    --border-color: #444;
+    
+    /* Active element colors */
+    --active-text: #97c0ff;
+    --active-bg-dark: rgba(13, 110, 253, 0.25);
+    --active-hover-bg-dark: rgba(13, 110, 253, 0.35);
+    --sidebar-active-text: #97c0ff;
+    --sidebar-active-bg: rgba(13, 110, 253, 0.25);
 } 
