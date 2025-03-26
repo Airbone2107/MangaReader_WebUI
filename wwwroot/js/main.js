@@ -20,6 +20,7 @@ import { initToasts } from './modules/toast.js';
 import { initQuickSearch } from './modules/search.js';
 import { initReadingState } from './modules/reading-state.js';
 import { initErrorHandling } from './modules/error-handling.js';
+import { initMangaDetailsPage } from './modules/manga-details.js';
 
 /**
  * Khởi tạo tất cả các module
@@ -66,6 +67,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Khởi tạo sidebar menu
     initSidebar();
+    
+    // Khởi tạo chức năng trang chi tiết manga
+    initMangaDetailsPage();
     
     // Khởi tạo xử lý HTMX
     initHtmxHandlers();

@@ -118,6 +118,13 @@ namespace manga_reader_web.Models
         public string Status { get; set; }
         public List<string> Tags { get; set; } = new List<string>();
         public string Author { get; set; }
+        public string Artist { get; set; }
+        public string Publisher { get; set; }
+        public string OriginalLanguage { get; set; }
+        public string PublicationDemographic { get; set; }
+        public string ContentRating { get; set; }
+        public string AlternativeTitles { get; set; }
+        public DateTime? LastUpdated { get; set; }
         public bool IsFollowing { get; set; }
         public string LatestChapter { get; set; }
         public double Rating { get; set; }

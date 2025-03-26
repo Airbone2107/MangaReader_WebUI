@@ -5,12 +5,14 @@
 
 /* Các style cơ bản */
 @import './modules/base.css';
+@import './modules/layout.css';
 
 /* Components UI cơ bản - chỉ cần cho buttons */
 @import './modules/components.css';
 
 /* Utilities */
 @import './modules/utilities.css';
+@import './modules/responsive.css';
 
 /* Chapter-specific styles */
 .chapter-container {
@@ -89,4 +91,115 @@
 .fullscreen-mode .chapter-image {
     max-height: 90vh;
     object-fit: contain;
-} 
+}
+
+/* Body background for reader */
+body {
+    background-color: #222;
+}
+
+/* Chapter page image */
+.manga-page {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Reader controls */
+.reader-controls {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease;
+}
+
+.reader-controls.hidden {
+    transform: translateY(-100%);
+}
+
+/* Sidebar styles */
+.sidebar-menu {
+    position: fixed;
+    top: 0;
+    right: -320px;
+    width: 320px;
+    height: 100vh;
+    background-color: #333;
+    z-index: 1100;
+    transition: right 0.3s ease;
+    color: white;
+    overflow-y: auto;
+}
+
+.sidebar-menu.active {
+    right: 0;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #444;
+}
+
+.sidebar-content {
+    padding: 1rem;
+}
+
+.sidebar-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #444;
+}
+
+.sidebar-section:last-child {
+    border-bottom: none;
+}
+
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1050;
+    display: none;
+}
+
+.chapter-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    /* Phù hợp kích thước điện thoại */
+    .sidebar-menu {
+        width: 280px;
+        right: -280px;
+    }
+}
+
+/* Dark mode adjustments */
+[data-bs-theme="dark"] body {
+    background-color: #121212;
+}
+
+[data-bs-theme="dark"] .reader-controls {
+    background-color: #1a1a1a !important;
+}
+
+[data-bs-theme="dark"] .sidebar-menu {
+    background-color: #1a1a1a;
+}
+
+[data-bs-theme="dark"] .sidebar-header,
+[data-bs-theme="dark"] .sidebar-section {
+    border-color: #333;
+}

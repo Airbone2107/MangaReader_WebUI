@@ -23,6 +23,14 @@
     --light-color: #f8f9fa;
     --dark-color: #212529;
     
+    /* MangaDex specific colors */
+    --mangadex-orange: #fa6e00;
+    --mangadex-orange-dark: #e56500;
+    --mangadex-blue: #2e84c1;
+    --mangadex-blue-dark: #1e6fa8;
+    --text-muted: #6c757d;
+    --heading-color: #333333;
+    
     /* Background & Text */
     --body-bg: #f8f9fa;
     --body-bg-rgb: 248, 249, 250;
@@ -78,6 +86,14 @@
     --danger-color: #dc3545;
     --light-color: #212529;
     --dark-color: #f8f9fa;
+    
+    /* MangaDex specific colors */
+    --mangadex-orange: #fa6e00;
+    --mangadex-orange-dark: #e56500;
+    --mangadex-blue: #3a97d4;
+    --mangadex-blue-dark: #2a87c4;
+    --text-muted: #a0a0a0;
+    --heading-color: #e6e6e6;
     
     /* Background & Text */
     --body-bg: #121212;

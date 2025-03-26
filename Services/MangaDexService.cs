@@ -239,7 +239,7 @@ namespace manga_reader_web.Services
         // Lấy chi tiết một manga
         public async Task<dynamic> FetchMangaDetailsAsync(string mangaId)
         {
-            var response = await _httpClient.GetAsync($"{_baseUrl}/manga/{mangaId}?includes[]=author");
+            var response = await _httpClient.GetAsync($"{_baseUrl}/manga/{mangaId}?includes[]=author&includes[]=artist&includes[]=cover_art");
             var content = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
@@ -487,8 +487,10 @@ namespace manga_reader_web.Services
                 
                 return result;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
+                // Ghi log và trả về null nếu xảy ra lỗi
+                _logger?.LogError($"Không thể lấy thông tin chapter {chapterId}");
                 return null;
             }
         }

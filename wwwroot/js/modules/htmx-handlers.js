@@ -5,6 +5,7 @@
 // Import các hàm từ các module khác (sẽ được sử dụng trong HTMX)
 import { updateActiveSidebarLink } from './sidebar.js';
 import { initTooltips } from './ui.js';
+import { adjustHeaderBackgroundHeight, initMangaDetailsPage } from './manga-details.js';
 
 /**
  * Khởi tạo lại các chức năng cần thiết sau khi HTMX cập nhật nội dung
@@ -30,6 +31,9 @@ function reinitializeAfterHtmxSwap() {
     
     // Khởi tạo lại tooltips
     initTooltips();
+    
+    // Khởi tạo lại trang chi tiết manga nếu đang ở trang đó
+    initMangaDetailsPage();
     
     // Khởi tạo lại sự kiện cho nút sidebar toggle
     const sidebarToggler = document.getElementById('sidebarToggler');
@@ -87,6 +91,112 @@ function reinitializeAfterHtmxSwap() {
             window.showToast(`Đã chuyển sang chế độ ${theme === 'dark' ? 'tối' : 'sáng'}!`, 'info');
         });
     }
+    
+    // Khởi tạo lại sự kiện cho nút lọc ngôn ngữ trong Details.cshtml
+    const languageFilters = document.querySelectorAll('input[name="language"]');
+    if (languageFilters.length > 0) {
+        languageFilters.forEach(filter => {
+            filter.addEventListener('change', function() {
+                const lang = this.value;
+                const chapterItems = document.querySelectorAll('.chapter-lang-item');
+                
+                if (lang === 'all') {
+                    chapterItems.forEach(item => item.style.display = 'block');
+                } else {
+                    chapterItems.forEach(item => {
+                        if (item.getAttribute('data-language') === lang) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                }
+            });
+        });
+        
+        // Kích hoạt lọc mặc định nếu có
+        const activeFilter = document.querySelector('input[name="language"]:checked');
+        if (activeFilter) {
+            activeFilter.dispatchEvent(new Event('change'));
+        }
+    }
+    
+    // Khởi tạo lại sự kiện cho nút theo dõi trong Details.cshtml
+    const followBtn = document.getElementById('followBtn');
+    if (followBtn) {
+        followBtn.addEventListener('click', function() {
+            let isFollowing = this.getAttribute('data-following') === 'true';
+            isFollowing = !isFollowing;
+            this.setAttribute('data-following', isFollowing.toString());
+            
+            // Cập nhật trạng thái và lưu vào localStorage
+            const mangaId = this.getAttribute('data-id');
+            let followedList = JSON.parse(localStorage.getItem('followed_manga') || '[]');
+            
+            if (isFollowing) {
+                if (!followedList.includes(mangaId)) {
+                    followedList.push(mangaId);
+                }
+            } else {
+                const index = followedList.indexOf(mangaId);
+                if (index !== -1) {
+                    followedList.splice(index, 1);
+                }
+            }
+            
+            localStorage.setItem('followed_manga', JSON.stringify(followedList));
+            
+            // Cập nhật UI
+            if (isFollowing) {
+                this.innerHTML = '<i class="bi bi-bookmark-check-fill me-2"></i>Đang theo dõi';
+                window.showToast('Đã thêm vào danh sách theo dõi!', 'success');
+            } else {
+                this.innerHTML = '<i class="bi bi-bookmark-plus me-2"></i>Theo dõi';
+                window.showToast('Đã xóa khỏi danh sách theo dõi!', 'info');
+            }
+        });
+    }
+    
+    // Khởi tạo lại các button Bootstrap như accordion, tabs, v.v.
+    document.querySelectorAll('[data-bs-toggle]').forEach(function(element) {
+        const toggleType = element.getAttribute('data-bs-toggle');
+        
+        if (toggleType === 'collapse' || toggleType === 'tab') {
+            try {
+                // Kiểm tra nếu đã có instance
+                const instance = bootstrap[toggleType.charAt(0).toUpperCase() + toggleType.slice(1)].getInstance(element);
+                if (instance) {
+                    instance.dispose();
+                }
+                // Tạo instance mới
+                new bootstrap[toggleType.charAt(0).toUpperCase() + toggleType.slice(1)](element);
+            } catch (e) {
+                console.error(`Lỗi khi khởi tạo lại ${toggleType}:`, e);
+            }
+        }
+    });
+    
+    // Khởi tạo lại nút reset bộ lọc trong Search.cshtml
+    const resetFiltersBtn = document.getElementById('resetFilters');
+    if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener('click', function() {
+            document.querySelectorAll('input[name="status"]').forEach(input => {
+                input.checked = input.id === 'statusAll';
+            });
+            
+            document.querySelectorAll('input[name="genres"]').forEach(input => {
+                input.checked = false;
+            });
+            
+            const sortBySelect = document.querySelector('select[name="sortBy"]');
+            if (sortBySelect) {
+                sortBySelect.value = 'latest';
+            }
+            
+            // Submit form
+            document.getElementById('searchForm').submit();
+        });
+    }
 }
 
 /**
@@ -109,6 +219,13 @@ function initHtmxHandlers() {
     htmx.on('htmx:afterSwap', function() {
         // Khởi tạo lại tất cả các chức năng cần thiết
         reinitializeAfterHtmxSwap();
+        
+        // Kiểm tra sự tồn tại của manga-header-background một lần duy nhất
+        // và chỉ gọi hàm adjustHeaderBackgroundHeight nếu nó tồn tại
+        if (document.querySelector('.manga-header-background')) {
+            // Đợi một chút để đảm bảo DOM đã được render đầy đủ trước khi điều chỉnh
+            setTimeout(adjustHeaderBackgroundHeight, 100);
+        }
     });
     
     // Xử lý lỗi HTMX
@@ -123,4 +240,4 @@ function initHtmxHandlers() {
     });
 }
 
-export { reinitializeAfterHtmxSwap, initHtmxHandlers }; 
+export { reinitializeAfterHtmxSwap, initHtmxHandlers };

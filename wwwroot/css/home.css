@@ -15,14 +15,80 @@
 /* Styles cho manga card */
 @import './modules/manga.css';
 
-/* Navbar */
-@import './modules/navbar.css';
-
-/* Sidebar */
-@import './modules/sidebar.css';
-
 /* Utilities */
 @import './modules/utilities.css';
 
 /* Responsive media queries */
-@import './modules/responsive.css'; 
+@import './modules/responsive.css';
+
+/* Card cho trang chủ */
+.manga-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    height: 100%;
+    border: 1px solid var(--border-color);
+}
+
+[data-bs-theme="dark"] .manga-card {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+[data-bs-theme="dark"] .card-body {
+    background-color: var(--card-bg);
+    color: var(--body-color);
+}
+
+[data-bs-theme="dark"] .card-title {
+    color: var(--body-color);
+}
+
+[data-bs-theme="dark"] .manga-title-link {
+    color: var(--body-color);
+    text-decoration: none;
+}
+
+[data-bs-theme="dark"] .manga-title-link:hover {
+    color: var(--primary-color);
+}
+
+/* Alert trong chế độ tối */
+[data-bs-theme="dark"] .alert-danger {
+    background-color: #842029;
+    color: #fff;
+    border-color: #842029;
+}
+
+[data-bs-theme="dark"] .alert-danger hr {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-bs-theme="dark"] .alert-danger details {
+    color: #f8d7da;
+}
+
+[data-bs-theme="dark"] .alert-danger pre {
+    background-color: rgba(0, 0, 0, 0.2);
+    color: #f8d7da;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+[data-bs-theme="dark"] .alert-warning {
+    background-color: #664d03;
+    color: #fff;
+    border-color: #664d03;
+}
+
+[data-bs-theme="dark"] .alert-warning code {
+    background-color: rgba(0, 0, 0, 0.2);
+    color: #fff;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+/* Spinner trong chế độ tối */
+[data-bs-theme="dark"] .spinner-border.text-primary {
+    color: var(--primary-color) !important;
+}

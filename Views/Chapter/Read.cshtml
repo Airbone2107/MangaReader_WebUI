@@ -121,90 +121,6 @@
     </div>
 </div>
 
-@section Styles {
-    <style>
-        body {
-            background-color: #222;
-        }
-        
-        .manga-page {
-            max-width: 100%;
-            height: auto;
-            display: block;
-        }
-        
-        .reader-controls {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            transition: transform 0.3s ease;
-        }
-        
-        .reader-controls.hidden {
-            transform: translateY(-100%);
-        }
-        
-        /* Sidebar styles */
-        .sidebar-menu {
-            position: fixed;
-            top: 0;
-            right: -320px;
-            width: 320px;
-            height: 100vh;
-            background-color: #333;
-            z-index: 1100;
-            transition: right 0.3s ease;
-            color: white;
-            overflow-y: auto;
-        }
-        
-        .sidebar-menu.active {
-            right: 0;
-        }
-        
-        .sidebar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            border-bottom: 1px solid #444;
-        }
-        
-        .sidebar-content {
-            padding: 1rem;
-        }
-        
-        .sidebar-section {
-            margin-bottom: 1.5rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid #444;
-        }
-        
-        .sidebar-section:last-child {
-            border-bottom: none;
-        }
-        
-        .sidebar-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1050;
-            display: none;
-        }
-        
-        .chapter-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-    </style>
-}
-
 @section Scripts {
     <script>
         $(document).ready(function() {
@@ -273,6 +189,9 @@
         {
             "vi" => "Tiếng Việt",
             "en" => "Tiếng Anh",
+            "ja" => "Tiếng Nhật",
+            "zh" => "Tiếng Trung",
+            "ko" => "Tiếng Hàn",
             _ => lang?.ToUpper() ?? "Không rõ"
         };
     }
