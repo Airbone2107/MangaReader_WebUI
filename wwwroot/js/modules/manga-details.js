@@ -7,14 +7,14 @@
 import { initTooltips } from './ui.js';
 
 /**
- * Tính toán và điều chỉnh chiều cao cho manga-header-background
+ * Tính toán và điều chỉnh chiều cao cho details-manga-header-background
  * để đảm bảo hiển thị đúng với nội dung
  */
 function adjustHeaderBackgroundHeight() {
     const siteHeader = document.querySelector('.site-header');
-    const headerBackground = document.querySelector('.manga-header-background');
-    const headerContainer = document.querySelector('.manga-header-container');
-    const titleSection = document.querySelector('.manga-info-title');
+    const headerBackground = document.querySelector('.details-manga-header-background');
+    const headerContainer = document.querySelector('.details-manga-header-container');
+    const titleSection = document.querySelector('.details-manga-info-title');
     
     if (headerContainer && titleSection && headerBackground) {
         // Lấy vị trí của header container so với trang
@@ -46,7 +46,7 @@ function adjustHeaderBackgroundHeight() {
         headerBackground.style.height = headerHeight + 'px';
         
         console.log('Chiều cao đến hết title: ' + (titleOffsetTop + titleHeight) + 'px');
-        console.log('Tổng chiều cao manga-header-background: ' + headerHeight + 'px');
+        console.log('Tổng chiều cao details-manga-header-background: ' + headerHeight + 'px');
     }
 }
 
@@ -55,7 +55,7 @@ function adjustHeaderBackgroundHeight() {
  */
 function initMangaDetailsPage() {
     // Kiểm tra xem đang ở trang chi tiết manga không trước khi khởi tạo
-    if (document.querySelector('.manga-header-background')) {
+    if (document.querySelector('.details-manga-header-background')) {
         // Khởi tạo tooltips
         initTooltips();
         

@@ -1,28 +1,9 @@
-/* Home Page CSS - Chỉ import các module cần thiết cho trang chủ */
+/* Home Page CSS - Các style đặc thù cho trang chủ */
 
-/* Các biến và thiết lập theme */
-@import './modules/variables.css';
-
-/* Các style cơ bản */
-@import './modules/base.css';
-
-/* Layout chính */
-@import './modules/layout.css';
-
-/* Components UI */
-@import './modules/components.css';
-
-/* Styles cho manga card */
-@import './modules/manga.css';
-
-/* Utilities */
-@import './modules/utilities.css';
-
-/* Responsive media queries */
-@import './modules/responsive.css';
+/* Các module đã được import trong _GlobalStyles.cshtml */
 
 /* Card cho trang chủ */
-.manga-card {
+.home-manga-card {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     border-radius: 0.5rem;
     overflow: hidden;
@@ -30,7 +11,7 @@
     border: 1px solid var(--border-color);
 }
 
-[data-bs-theme="dark"] .manga-card {
+[data-bs-theme="dark"] .home-manga-card {
     background-color: var(--card-bg);
     border-color: var(--border-color);
 }
@@ -44,12 +25,12 @@
     color: var(--body-color);
 }
 
-[data-bs-theme="dark"] .manga-title-link {
+[data-bs-theme="dark"] .home-manga-title-link {
     color: var(--body-color);
     text-decoration: none;
 }
 
-[data-bs-theme="dark"] .manga-title-link:hover {
+[data-bs-theme="dark"] .home-manga-title-link:hover {
     color: var(--primary-color);
 }
 

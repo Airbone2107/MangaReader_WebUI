@@ -1,17 +1,23 @@
 ﻿<!DOCTYPE html>
-<html lang="vi" data-bs-theme="light">
+<html lang="vi" data-bs-theme="light" id="htmlRoot">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Manga Reader</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <partial name="_CssSelector" />
-    <link rel="stylesheet" href="~/manga_reader_web.styles.css" asp-append-version="true" />
+    <partial name="_GlobalStyles" />
     <link rel="icon" type="image/png" href="~/favicon.png">
     <meta name="theme-color" content="#0d6efd">
     <meta name="description" content="Đọc manga online miễn phí với chất lượng cao">
-    <!-- CSS sections đã được tải trong _CssSelector -->
+    @await RenderSectionAsync("Styles", required: false)
+    
+    <!-- Script thiết lập theme ban đầu từ localStorage -->
+    <script>
+        // Tải theme từ localStorage và áp dụng trước khi trang tải hoàn tất
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        }
+    </script>
 </head>
 <body class="manga-reader-app">
     <!-- Sidebar Menu -->
@@ -169,11 +175,7 @@
     <!-- Toast container -->
     <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
     
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/lib/htmx/htmx.min.js"></script>
-    <!-- Module mới sử dụng ES6 modules -->
-    <script type="module" src="~/js/main.js" asp-append-version="true"></script>
+    <partial name="_GlobalScripts" />
     
     @await RenderSectionAsync("Scripts", required: false)
 </body>

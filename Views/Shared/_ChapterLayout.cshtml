@@ -1,23 +1,30 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-bs-theme="dark" id="htmlRoot">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Manga Reader</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="~/css/chapter.css" asp-append-version="true" />
+    <partial name="_GlobalStyles" />
     @await RenderSectionAsync("Styles", required: false)
+    
+    <!-- Script thiết lập theme ban đầu từ localStorage -->
+    <script>
+        // Tải theme từ localStorage và áp dụng trước khi trang tải hoàn tất
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        } else {
+            // Mặc định là dark mode cho trang chapter nếu không có lưu trữ
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
+        }
+    </script>
 </head>
-<body class="bg-dark text-white">
+<body class="manga-reader-app">
     <main role="main">
         @RenderBody()
     </main>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Module mới sử dụng ES6 modules -->
-    <script type="module" src="~/js/main.js" asp-append-version="true"></script>
+    <partial name="_GlobalScripts" />
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html> 

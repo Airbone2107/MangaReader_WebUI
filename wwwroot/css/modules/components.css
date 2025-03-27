@@ -1,5 +1,18 @@
 /* Components CSS - Chứa styles cho các UI component chung */
 
+/* Thêm class mới để thay thế text-white với khả năng đổi màu theo chế độ sáng/tối */
+.theme-text {
+    color: var(--body-color) !important;
+}
+
+[data-bs-theme="dark"] .theme-text {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .theme-text {
+    color: #212529 !important;
+}
+
 /* Card styles */
 .card {
     border-radius: 0.5rem;
@@ -183,16 +196,6 @@ img[src="/images/no-cover.png"] {
     color: var(--body-color) !important;
 }
 
-[data-bs-theme="dark"] .manga-title a,
-[data-bs-theme="dark"] .manga-title-link {
-    color: var(--body-color) !important;
-}
-
-[data-bs-theme="dark"] .manga-title a:hover,
-[data-bs-theme="dark"] .manga-title-link:hover {
-    color: var(--primary-color) !important;
-}
-
 /* Fix cho text-muted trong dark mode */
 [data-bs-theme="dark"] .text-muted {
     color: #a0a0a0 !important;
@@ -214,7 +217,7 @@ img[src="/images/no-cover.png"] {
 
 /* Site header styles */
 .site-header {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    /* Loại bỏ box-shadow */
 }
 
 .site-header .navbar {
@@ -272,7 +275,6 @@ img[src="/images/no-cover.png"] {
 
 .mobile-search-container {
     background-color: var(--body-bg);
-    border-bottom: 1px solid var(--border-color);
     padding: 0.5rem 1rem;
 }
 
@@ -316,4 +318,28 @@ img[src="/images/no-cover.png"] {
     background-color: var(--card-bg);
     color: var(--body-color);
     border-color: var(--border-color);
+}
+
+/* Thêm class mới để thay thế btn-outline-light với khả năng đổi màu theo chế độ sáng/tối */
+.btn-theme-outline {
+    color: var(--body-color);
+    border-color: var(--body-color);
+    background-color: transparent;
+}
+
+.btn-theme-outline:hover {
+    color: var(--card-bg);
+    background-color: var(--body-color);
+    border-color: var(--body-color);
+}
+
+[data-bs-theme="dark"] .btn-theme-outline {
+    color: #f8f9fa;
+    border-color: #f8f9fa;
+}
+
+[data-bs-theme="dark"] .btn-theme-outline:hover {
+    color: #212529;
+    background-color: #f8f9fa;
+    border-color: #f8f9fa;
 }

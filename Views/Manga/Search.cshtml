@@ -14,7 +14,7 @@
                         <div class="row g-3">
                             <div class="col-md-12">
                                 <div class="input-group mb-3">
-                                    <span class="input-group-text bg-primary text-white"><i class="bi bi-search"></i></span>
+                                    <span class="input-group-text bg-primary theme-text"><i class="bi bi-search"></i></span>
                                     <input type="text" name="title" value="@Model.SortOptions.Title" class="form-control form-control-lg" placeholder="Nhập tên manga cần tìm...">
                                     <button type="submit" class="btn btn-primary">
                                         <i class="bi bi-search me-2"></i>Tìm kiếm
@@ -148,13 +148,13 @@
                 @foreach (var manga in Model.Mangas)
                 {
                     <div class="col-6 col-md-4 col-lg-3 mb-4">
-                        <div class="card h-100 manga-card">
+                        <div class="card h-100">
                             <a asp-action="Details" asp-route-id="@manga.Id" 
                                hx-get="@Url.Action("Details", "Manga", new { id = manga.Id })" 
                                hx-target="#main-content" 
                                hx-push-url="true" 
-                               class="manga-cover-link">
-                                <img src="@manga.CoverUrl" class="card-img-top manga-cover" alt="@manga.Title" loading="lazy">
+                               class="card-manga-cover-link">
+                                <img src="@manga.CoverUrl" class="card-manga-cover" alt="@manga.Title" loading="lazy">
                                 @if (!string.IsNullOrEmpty(manga.Status))
                                 {
                                     <span class="manga-status badge @(manga.Status == "ongoing" ? "bg-success" : "bg-secondary")">
@@ -163,7 +163,7 @@
                                 }
                             </a>
                             <div class="card-body">
-                                <h5 class="card-title manga-title">
+                                <h5 class="card-title text-truncate" title="@manga.Title">
                                     <a asp-action="Details" asp-route-id="@manga.Id" 
                                        hx-get="@Url.Action("Details", "Manga", new { id = manga.Id })" 
                                        hx-target="#main-content" 
@@ -289,23 +289,7 @@
             box-shadow: var(--hover-shadow);
         }
         
-        .manga-cover-link {
-            position: relative;
-            display: block;
-            height: 250px;
-            overflow: hidden;
-        }
-        
-        .manga-cover {
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.5s ease;
-        }
-        
-        .manga-cover-link:hover .manga-cover {
-            transform: scale(1.05);
-        }
-        
+        /* Manga tag status */
         .manga-status {
             position: absolute;
             bottom: 10px;

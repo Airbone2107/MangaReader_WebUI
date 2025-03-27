@@ -3,8 +3,8 @@
     ViewData["Title"] = Model.Manga?.Title ?? "Chi tiết manga";
 }
 <!-- Background div riêng biệt -->
-<div class="manga-header-background" style="background-image: url('@Model.Manga.CoverUrl')"></div>
-<div class="manga-details-container">
+<div class="details-manga-header-background" style="background-image: url('@Model.Manga.CoverUrl')"></div>
+<div class="details-manga-details-container">
     @if (ViewBag.ErrorMessage != null)
     {
         <div class="alert alert-danger mb-4">@ViewBag.ErrorMessage</div>
@@ -14,22 +14,22 @@
     {
 
         
-        <div class="manga-header-container">
+        <div class="details-manga-header-container">
             <!-- Row 1: Ảnh bìa và thông tin cơ bản -->
-            <div class="manga-header">
+            <div class="details-manga-header">
                 <div class="container py-4">
                     <div class="row">
                         <!-- Column 1: Ảnh bìa -->
                         <div class="col-md-3">
-                            <div class="manga-cover-container">
-                                <img src="@Model.Manga.CoverUrl" class="manga-cover" alt="@Model.Manga.Title" data-bs-toggle="modal" data-bs-target="#coverModal">
+                            <div class="detail-manga-cover-container">
+                                <img src="@Model.Manga.CoverUrl" class="detail-manga-cover" alt="@Model.Manga.Title" data-bs-toggle="modal" data-bs-target="#coverModal">
                             </div>
                         </div>
                         <!-- Column 2: Thông tin manga -->
-                        <div class="col-md-9 text-white ps-md-0">
+                        <div class="col-md-9 theme-text ps-md-0">
                             <!-- Row 2.1: Tên manga, tác giả, họa sĩ -->
-                            <div class="manga-info-row manga-info-title">
-                                <h1 class="manga-title mb-3">@Model.Manga.Title</h1>
+                            <div class="details-manga-info-row details-manga-info-title">
+                                <h1 class="details-manga-title mb-3">@Model.Manga.Title</h1>
                                 
                                 <div class="mb-3">
                                     <p><strong><i class="bi bi-person-fill me-2"></i>Tác giả:</strong> @Model.Manga.Author</p>
@@ -45,7 +45,7 @@
                             </div>
                             
                             <!-- Row 2.2: Các thành phần còn lại -->
-                            <div class="manga-info-row manga-info-meta">
+                            <div class="details-manga-info-row details-manga-info-meta">
                                 <div class="d-flex gap-2 mb-3">
                                     @if (Model.Chapters.Any())
                                     {
@@ -75,7 +75,7 @@
                                         </a>
                                     }
                                     
-                                    <button class="btn btn-outline-light" id="followBtn" data-id="@Model.Manga.Id" data-following="@Model.Manga.IsFollowing.ToString().ToLower()">
+                                    <button class="btn btn-theme-outline" id="followBtn" data-id="@Model.Manga.Id" data-following="@Model.Manga.IsFollowing.ToString().ToLower()">
                                         @if (Model.Manga.IsFollowing)
                                         {
                                             <i class="bi bi-bookmark-check-fill me-2"></i><span>Đang theo dõi</span>
@@ -90,7 +90,7 @@
                                     <span class="badge bg-primary me-2">@TranslateStatus(Model.Manga.Status)</span>
                                     @foreach (var tag in Model.Manga.Tags)
                                     {
-                                        <span class="badge manga-tag me-2 mb-1">@tag</span>
+                                        <span class="badge details-manga-tag me-2 mb-1">@tag</span>
                                     }
                                 </div>
                             </div>
@@ -102,12 +102,12 @@
             <!-- Row 2: Mô tả -->
             @if (!string.IsNullOrEmpty(Model.Manga.Description))
             {
-                <div class="manga-description-section">
+                <div class="details-manga-description-section">
                     <div class="container py-3">
                         <div class="row">
                             <div class="col-12">
-                                <div class="manga-description-container">
-                                    <p class="manga-short-description">
+                                <div class="details-manga-description-container">
+                                    <p class="details-manga-short-description">
                                         @Model.Manga.Description
                                     </p>
                                 </div>
@@ -259,10 +259,10 @@
                 </div>
                 
                 <div class="tab-pane fade" id="info" role="tabpanel" aria-labelledby="info-tab">
-                    <div class="card manga-details-card">
+                    <div class="card details-manga-details-card">
                         <div class="card-body">
                             <h5 class="card-title mb-3">Mô tả đầy đủ</h5>
-                            <p class="card-text manga-description">@Model.Manga.Description</p>
+                            <p class="card-text details-manga-description">@Model.Manga.Description</p>
                             
                             <h5 class="card-title mt-4 mb-3">Thông tin chi tiết</h5>
                             <ul class="list-group list-group-flush theme-aware-list">
@@ -328,17 +328,17 @@
                             </ul>
                             
                             <h5 class="card-title mt-4 mb-3">Thể loại</h5>
-                            <div class="manga-tags">
+                            <div class="details-manga-tags">
                                 @foreach (var tag in Model.Manga.Tags)
                                 {
-                                    <span class="badge manga-tag me-2 mb-2">@tag</span>
+                                    <span class="badge details-manga-tag me-2 mb-2">@tag</span>
                                 }
                             </div>
                             
                             @if (!string.IsNullOrEmpty(Model.Manga.AlternativeTitles))
                             {
                                 <h5 class="card-title mt-4 mb-3">Tên khác</h5>
-                                <p class="card-text manga-alt-titles">@Model.Manga.AlternativeTitles</p>
+                                <p class="card-text details-manga-alt-titles">@Model.Manga.AlternativeTitles</p>
                             }
                         </div>
                     </div>

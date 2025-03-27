@@ -52,7 +52,7 @@
 /* Đảm bảo dropdown trong navbar hiển thị đúng trong dark mode */
 [data-bs-theme="dark"] .site-header .dropdown-menu {
     background-color: var(--card-bg);
-    border-color: var(--border-color);
+    border: none;
 }
 
 [data-bs-theme="dark"] .site-header .dropdown-item {
@@ -171,6 +171,5 @@
 /* Mobile Search */
 .mobile-search-container {
     background-color: var(--card-bg);
-    border-bottom: 1px solid var(--border-color);
     padding: 0.5rem 1rem;
 } 

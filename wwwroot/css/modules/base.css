@@ -7,6 +7,7 @@ html {
   height: 100%;
   scroll-padding-top: 70px; /* Add padding to account for fixed navbar */
   scroll-behavior: smooth;
+  transition: color-scheme 0.3s ease;
 }
 
 @media (min-width: 768px) {
@@ -27,6 +28,22 @@ body {
     overflow-x: hidden; /* Prevent horizontal scroll */
     padding: 0;
     margin: 0;
+}
+
+/* Class chính của ứng dụng với các thiết lập chế độ sáng/tối */
+.manga-reader-app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--body-bg);
+    color: var(--body-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Chế độ tối cho app */
+[data-bs-theme="dark"] .manga-reader-app {
+    background-color: var(--body-bg);
+    color: var(--body-color);
 }
 
 /* Scrollbar */

@@ -1,18 +1,6 @@
-/* Chapter View CSS - Chỉ import các module thực sự cần thiết cho trang đọc chapter */
+/* Chapter View CSS - Các style đặc thù cho trang đọc chapter */
 
-/* Các biến và thiết lập theme */
-@import './modules/variables.css';
-
-/* Các style cơ bản */
-@import './modules/base.css';
-@import './modules/layout.css';
-
-/* Components UI cơ bản - chỉ cần cho buttons */
-@import './modules/components.css';
-
-/* Utilities */
-@import './modules/utilities.css';
-@import './modules/responsive.css';
+/* Các module đã được import trong _GlobalStyles.cshtml */
 
 /* Chapter-specific styles */
 .chapter-container {
@@ -99,7 +87,7 @@ body {
 }
 
 /* Chapter page image */
-.manga-page {
+.chapter-manga-page {
     max-width: 100%;
     height: auto;
     display: block;

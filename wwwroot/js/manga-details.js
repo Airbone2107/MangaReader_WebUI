@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Đăng ký xử lý sau khi HTMX tải nội dung
         htmx.on('htmx:afterSwap', function(event) {
-            if (document.querySelector('.manga-header-background')) {
+            if (document.querySelector('.details-manga-header-background')) {
                 console.log('HTMX đã tải lại trang chi tiết manga');
                 setTimeout(adjustHeaderBackgroundHeight, 100);
             }

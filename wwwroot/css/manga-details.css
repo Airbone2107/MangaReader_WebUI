@@ -1,286 +1,264 @@
-/* Manga Details CSS - Chỉ import các module cần thiết cho trang chi tiết manga */
+/* Manga Details CSS - Styles đặc thù cho trang chi tiết manga */
 
-/* Các biến và thiết lập theme */
-@import './modules/variables.css';
-
-/* Các style cơ bản */
-@import './modules/base.css';
-
-/* Layout chính */
-@import './modules/layout.css';
-
-/* Components UI - cần cho accordion, buttons, list */
-@import './modules/components.css';
-
-/* Styles cho manga - rất quan trọng cho trang này */
-@import './modules/manga.css';
-
-/* Navbar */
-@import './modules/navbar.css';
-
-/* Sidebar */
-@import './modules/sidebar.css';
-
-/* Utilities */
-@import './modules/utilities.css';
-
-/* Responsive media queries */
-@import './modules/responsive.css';
-
-/* MangaDex style layout */
-.manga-details-container {
-    margin-top: -1.5rem;
+/* Container chính */
+.details-manga-details-container {
+    position: relative;
 }
 
-/* MangaDex support banner */
-.mangadex-support-banner {
-    background-color: #e75e22;
-    color: white;
-    padding: 8px 0;
-    font-weight: 500;
+/* Phần tiêu đề manga */
+.details-manga-title-section {
+    margin-bottom: 1.5rem;
 }
 
-/* Manga title section */
-.manga-title-section {
-    background-color: var(--body-bg);
-    padding: 20px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-/* Manga cover styles */
-.manga-cover-wrapper {
+/* Wrapper bao ảnh bìa manga */
+.details-manga-cover-wrapper {
     position: relative;
     overflow: hidden;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.2);
     border-radius: 0.5rem;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    max-width: 100%;
-    aspect-ratio: 2/3;
 }
 
-.manga-cover-img {
+/* Ảnh bìa manga */
+.details-manga-cover-img {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
+    height: auto;
+    transition: transform 0.3s ease;
+    cursor: pointer;
 }
 
-/* MangaDex style rating */
-.manga-rating {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: #FFD700;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-weight: bold;
+/* Hiển thị đánh giá */
+.details-manga-rating {
     display: flex;
     align-items: center;
+    margin-bottom: 1rem;
+    color: #FFD700;
 }
 
-/* Manga title styles */
-.manga-title {
+.details-manga-rating .bi-star-fill,
+.details-manga-rating .bi-star-half,
+.details-manga-rating .bi-star {
+    color: #FFD700;
+    margin-right: 0.25rem;
+}
+
+/* Tiêu đề manga */
+.details-manga-title {
     font-size: 2rem;
     font-weight: 700;
-    color: var(--heading-color);
 }
 
-.manga-alt-title {
+/* Tiêu đề phụ */
+.details-manga-alt-title {
     font-size: 1.25rem;
-    font-weight: 400;
-    color: var(--text-muted);
+    color: var(--secondary-color);
 }
 
-.manga-creators {
-    color: var(--text-muted);
-    font-style: italic;
+/* Phần thông tin tác giả */
+.details-manga-creators {
+    margin-bottom: 1rem;
+    color: var(--secondary-color);
 }
 
-/* Manga actions buttons */
-.manga-actions .btn {
-    font-weight: 500;
+/* Nút hành động */
+.details-manga-actions .btn {
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
     padding: 0.5rem 1rem;
-    border-radius: 4px;
-    transition: all 0.2s ease;
+    border-radius: 2rem;
 }
 
+/* Nút bắt đầu đọc */
 .btn-reading {
-    background-color: var(--mangadex-orange);
+    background-color: var(--primary-color);
     color: white;
     border: none;
 }
 
 .btn-reading:hover {
-    background-color: var(--mangadex-orange-dark);
-    color: white;
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
 }
 
+/* Nút tiếp tục đọc */
 .btn-continue-reading {
-    background-color: var(--mangadex-blue);
+    background-color: var(--success-color);
     color: white;
     border: none;
 }
 
 .btn-continue-reading:hover {
-    background-color: var(--mangadex-blue-dark);
-    color: white;
+    background-color: var(--success-dark);
+    transform: translateY(-2px);
 }
 
+/* Nút thêm vào danh sách */
 .btn-add-list {
     background-color: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--body-color);
+    color: var(--dark-color);
+    border: 1px solid var(--dark-color);
 }
 
 .btn-add-list:hover, .btn-add-list.active {
-    background-color: #e6f0ff;
-    color: #0a58ca;
-    border-color: #0a58ca;
+    background-color: var(--dark-color);
+    color: white;
+    transform: translateY(-2px);
 }
 
 [data-bs-theme="dark"] .btn-add-list:hover,
 [data-bs-theme="dark"] .btn-add-list.active {
-    background-color: rgba(13, 110, 253, 0.15);
-    color: #6ea8fe;
-    border-color: #6ea8fe;
+    background-color: #f8f9fa;
+    color: #212529;
+    border-color: #f8f9fa;
 }
 
-/* Manga stats */
-.manga-stats {
-    font-size: 0.95rem;
-}
-
-.manga-stat {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-/* Manga tags */
-.manga-tags {
+/* Thống kê manga */
+.details-manga-stats {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
 }
 
-.manga-tag {
-    transition: all 0.2s ease;
-    font-weight: 500;
-    padding: 0.5em 0.8em;
-    font-size: 0.85rem;
+.details-manga-stat {
+    margin-right: 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
 }
 
-.manga-tag:hover {
+/* Tags manga */
+.details-manga-tags {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.details-manga-tag {
+    background-color: var(--tag-bg);
+    color: var(--tag-color);
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.details-manga-tag:hover {
+    background-color: var(--tag-hover-bg);
+    color: var(--tag-hover-color);
     transform: translateY(-2px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-    cursor: pointer;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
 }
 
-/* Section titles */
+/* Tiêu đề các phần */
 .section-title {
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: 1.5rem;
+    font-weight: 700;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--border-color);
-    color: var(--heading-color);
+    border-bottom: 2px solid var(--primary-color);
+    color: var(--title-color);
 }
 
-/* Manga description */
-.manga-description-card, 
-.manga-info-card, 
-.manga-alt-titles-card {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
+/* Cards */
+.details-manga-description-card, 
+.details-manga-info-card, 
+.details-manga-alt-titles-card {
+    border: none;
     border-radius: 0.5rem;
-    padding: 1.25rem;
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
     margin-bottom: 1.5rem;
 }
 
-.manga-description-content p {
-    color: var(--body-color);
-    line-height: 1.6;
-    margin-bottom: 0;
+/* Nội dung mô tả manga */
+.details-manga-description-content p {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
 }
 
-/* Chapters section */
+/* Phần danh sách chương */
 .chapters-section {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
-    padding: 1.25rem;
+    margin-top: 2rem;
 }
 
-/* Các màu badge tùy chỉnh */
+/* Badges cho trạng thái chapter */
 .badge.bg-pink {
-    background-color: #e83e8c !important;
+    background-color: #e83e8c;
+    color: white;
 }
 
 .badge.bg-purple {
-    background-color: #6f42c1 !important;
+    background-color: #6f42c1;
+    color: white;
 }
 
 [data-bs-theme="dark"] .badge.bg-pink {
-    background-color: #d63384 !important;
+    background-color: #e83e8c;
+    color: white;
 }
 
 [data-bs-theme="dark"] .badge.bg-purple {
-    background-color: #7952b3 !important;
+    background-color: #6f42c1;
+    color: white;
 }
 
 [data-bs-theme="dark"] .badge.bg-danger {
-    background-color: #dc3545 !important;
+    background-color: #dc3545;
+    color: white;
 }
 
 [data-bs-theme="dark"] .badge.bg-warning {
-    background-color: #ffc107 !important;
+    background-color: #ffc107;
     color: #212529;
 }
 
 [data-bs-theme="dark"] .badge.bg-success {
-    background-color: #28a745 !important;
+    background-color: #28a745;
+    color: white;
 }
 
 [data-bs-theme="dark"] .badge.bg-dark {
-    background-color: #343a40 !important;
-    border: 1px solid #666;
+    background-color: #343a40;
+    color: white;
 }
 
-/* Thêm các màu của thẻ cho chế độ sáng */
+/* Băng thông báo trạng thái */
 .badge.bg-secondary {
-    background-color: #6c757d !important;
+    background-color: #6c757d;
+    color: white;
 }
 
 .badge.bg-info {
-    background-color: #0dcaf0 !important;
-    color: #000;
+    background-color: #17a2b8;
+    color: white;
 }
 
+/* Badge riêng */
 .badge.bg-primary {
-    background-color: #0d6efd !important;
+    background-color: var(--primary-color);
+    color: white;
 }
 
-/* Theme aware list */
+/* Cải thiện cho list group trong dark mode */
 .theme-aware-list .list-group-item {
     background-color: var(--card-bg);
     color: var(--body-color);
     border-color: var(--border-color);
-    transition: background-color 0.2s ease;
+    transition: background-color 0.3s ease;
 }
 
 .theme-aware-list .list-group-item:hover {
     background-color: var(--hover-bg);
 }
 
-/* Theme aware accordion */
+/* Accordion trong dark mode */
 .theme-aware-accordion .accordion-button {
-    transition: all 0.2s ease;
     background-color: var(--card-bg);
     color: var(--body-color);
+    border-color: var(--border-color);
 }
 
 .theme-aware-accordion .accordion-button:hover:not(.collapsed) {
-    background-color: rgba(13, 110, 253, 0.15);
+    color: var(--primary-color);
 }
 
 .theme-aware-accordion .accordion-item {
@@ -289,49 +267,50 @@
 }
 
 .theme-aware-accordion .accordion-button:not(.collapsed) {
-    background-color: rgba(13, 110, 253, 0.1);
+    background-color: var(--active-bg);
     color: var(--primary-color);
 }
 
-/* Alternative titles section */
+/* Tên thay thế manga */
 .alt-titles-content {
-    color: var(--body-color);
+    white-space: pre-line;
+    line-height: 1.5;
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
-    .manga-title {
-        font-size: 1.75rem;
+    .details-manga-title {
+        font-size: 1.5rem;
     }
     
-    .manga-alt-title {
-        font-size: 1.1rem;
+    .details-manga-alt-title {
+        font-size: 1rem;
     }
     
-    .manga-cover-wrapper {
-        max-width: 250px;
-        margin: 0 auto 1rem;
+    .details-manga-cover-wrapper {
+        margin-bottom: 1rem;
     }
     
-    .manga-actions {
+    .details-manga-actions {
+        display: flex;
+        flex-wrap: wrap;
         justify-content: center;
     }
 }
 
-/* CSS từ Details.cshtml */
-/* Manga details card */
-.manga-details-card {
+/* Card cho thông tin chi tiết */
+.details-manga-details-card {
+    background-color: var(--card-bg);
     border-radius: 0.5rem;
-    box-shadow: var(--card-shadow);
-    border: 1px solid var(--border-color);
     overflow: hidden;
+    border: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
 }
 
-/* Thêm màu cho các phần tử trong chế độ tối */
+/* Fixes cho card trong dark mode */
 [data-bs-theme="dark"] .card {
     background-color: var(--card-bg);
-    color: var(--card-color);
     border-color: var(--border-color);
+    color: var(--body-color);
 }
 
 [data-bs-theme="dark"] .card-body {
@@ -339,58 +318,59 @@
 }
 
 [data-bs-theme="dark"] .card-title {
-    color: var(--card-color);
+    color: var(--body-color);
 }
 
 [data-bs-theme="dark"] .card-text {
-    color: var(--card-color);
+    color: var(--body-color);
 }
 
-/* List group trong chế độ tối */
+/* Danh sách trong dark mode */
 [data-bs-theme="dark"] .list-group-item {
     background-color: var(--card-bg);
-    color: var(--card-color);
     border-color: var(--border-color);
+    color: var(--body-color);
 }
 
 [data-bs-theme="dark"] .list-group-item-action:hover {
     background-color: var(--hover-bg);
 }
 
-/* Badge trong chế độ tối */
+/* Badge trong dark mode */
 [data-bs-theme="dark"] .badge.bg-secondary {
-    background-color: #505a68 !important;
+    background-color: #6c757d;
 }
 
 [data-bs-theme="dark"] .badge.bg-info {
-    background-color: #0a7f8f !important;
+    background-color: #17a2b8;
 }
 
-/* Manga tag styling */
-.manga-tag {
-    background-color: var(--secondary-color, #6c757d);
-    color: #fff;
+/* Tag manga */
+.details-manga-tag {
+    background-color: #f0f0f0;
+    color: #333;
 }
 
-[data-bs-theme="dark"] .manga-tag {
-    background-color: #505a68;
+[data-bs-theme="dark"] .details-manga-tag {
+    background-color: #333;
+    color: #f0f0f0;
 }
 
-/* Manga description */
-.manga-description {
+/* Mô tả manga */
+.details-manga-description {
+    white-space: pre-line;
     line-height: 1.6;
-    text-align: justify;
 }
 
-/* Manga header container */
-.manga-header-container {
+/* Container phần header */
+.details-manga-header-container {
     width: 100%;
     position: relative;
     background: transparent;
 }
 
 /* Background image div */
-.manga-header-background {
+.details-manga-header-background {
     position: absolute;
     top: 0;
     left: 0;
@@ -400,92 +380,81 @@
     background-position: center;
     z-index: -1;
     transition: height 0.3s ease;
-    box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.8);
-    filter: blur(4px);
     opacity: 0.85;
 }
 
 /* Manga header */
-.manga-header {
+.details-manga-header {
     position: relative;
     z-index: 1;
-    background-color: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(3px);
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-[data-bs-theme="dark"] .manga-header {
     background-color: transparent;
 }
 
-[data-bs-theme="light"] .manga-header {
+[data-bs-theme="dark"] .details-manga-header {
+    background-color: transparent;
+}
+
+[data-bs-theme="light"] .details-manga-header {
     background-color: transparent;
 }
 
 /* Manga description section */
-.manga-description-section {
-    background-color: var(--body-bg, #f8f9fa);
-    border-bottom: 1px solid var(--border-color, #dee2e6);
-    position: relative;
-    z-index: 1;
+.details-manga-description-section {
+    background-color: transparent;
 }
 
-[data-bs-theme="dark"] .manga-description-section {
+[data-bs-theme="dark"] .details-manga-description-section {
     background-color: transparent;
 }
 
 /* Manga short description */
-.manga-short-description {
-    line-height: 1.5;
+.details-manga-short-description {
+    font-size: 1.1rem;
+    line-height: 1.6;
     text-align: justify;
     color: var(--body-color);
-    padding: 16px;
-    border-radius: 8px;
-    margin-bottom: 0;
-    width: 100%;
 }
 
-[data-bs-theme="dark"] .manga-short-description {
-    background-color: rgba(255, 255, 255, 0.03);
+[data-bs-theme="dark"] .details-manga-short-description {
+    color: var(--body-color);
 }
 
-.manga-description-container {
-    width: 100%;
+.details-manga-description-container {
+    padding: 1.5rem;
 }
 
-/* Manga info rows */
-.manga-info-row {
-    margin-bottom: 10px;
+/* Info row */
+.details-manga-info-row {
+    margin-bottom: 1.5rem;
 }
 
-/* Thêm margin-bottom cho manga-info-title để tăng khoảng cách với row 2.2 */
-.manga-info-meta {
-    margin-top: 5rem;
+/* Manga metadata */
+.details-manga-info-meta {
+    margin-top: 1rem;
 }
 
 /* Manga cover container */
-.manga-cover-container {
+.details-manga-cover-container {
     position: relative;
     max-width: 200px;
     margin: 0 auto;
 }
 
-.manga-cover {
+/* Manga cover */
+.details-manga-cover {
     width: 100%;
     height: auto;
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     cursor: pointer;
     transition: transform 0.2s;
 }
 
-.manga-cover:hover {
+.details-manga-cover:hover {
     transform: scale(1.02);
 }
 
 /* Manga rating display */
-.manga-rating {
+.details-manga-rating {
     position: absolute;
     top: 10px;
     right: 10px;
@@ -497,7 +466,7 @@
 }
 
 /* Manga alt titles */
-.manga-alt-titles {
+.details-manga-alt-titles {
     color: var(--body-color);
     font-style: italic;
 }

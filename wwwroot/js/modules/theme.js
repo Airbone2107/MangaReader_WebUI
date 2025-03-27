@@ -17,6 +17,12 @@ function saveTheme(theme) {
 function applyTheme(theme) {
     document.documentElement.setAttribute('data-bs-theme', theme);
     
+    // Cập nhật meta tag theme-color để phù hợp với theme
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+        metaThemeColor.setAttribute('content', theme === 'dark' ? '#121212' : '#0d6efd');
+    }
+    
     // Cập nhật trạng thái nút chuyển đổi
     const themeSwitch = document.getElementById('themeSwitch');
     const themeText = document.getElementById('themeText');
@@ -82,25 +88,35 @@ function initThemeSwitcher() {
         htmlElement.setAttribute('data-bs-theme', theme);
         localStorage.setItem('theme', theme);
         
+        // Cập nhật meta tag theme-color
+        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        if (metaThemeColor) {
+            metaThemeColor.setAttribute('content', theme === 'dark' ? '#121212' : '#0d6efd');
+        }
+        
         // Cập nhật UI
         updateSwitches(isDark);
         
         // Hiển thị thông báo nếu cần
-        if (showNotification) {
+        if (showNotification && window.showToast) {
             window.showToast(`Đã chuyển sang chế độ ${theme === 'dark' ? 'tối' : 'sáng'}!`, 'info');
         }
     }
 
     // Đăng ký sự kiện cho theme switch chính
     if (themeSwitch) {
-        themeSwitch.addEventListener('change', function() {
+        // Thêm sự kiện click thay vì change
+        themeSwitch.addEventListener('click', function(e) {
+            e.stopPropagation(); // Ngăn sự kiện lan ra container
             changeTheme(this.checked);
         });
     }
     
     // Đăng ký sự kiện cho sidebar theme switch
     if (sidebarThemeSwitch) {
-        sidebarThemeSwitch.addEventListener('change', function() {
+        // Thêm sự kiện click thay vì change
+        sidebarThemeSwitch.addEventListener('click', function(e) {
+            e.stopPropagation(); // Ngăn sự kiện lan ra container
             changeTheme(this.checked);
         });
     }
@@ -117,6 +133,19 @@ function initThemeSwitcher() {
         themeSwitcherContainer.addEventListener('mouseleave', function() {
             this.classList.remove('active');
         });
+        
+        // Thêm sự kiện click để đổi theme khi nhấp vào container
+        themeSwitcherContainer.addEventListener('click', function(e) {
+            // Ngăn chặn hành vi mặc định của <a>
+            e.preventDefault();
+            
+            // Nếu click vào switch thì bỏ qua để sự kiện click của switch xử lý
+            if (e.target !== themeSwitch && !themeSwitch.contains(e.target)) {
+                // Đảo ngược trạng thái hiện tại
+                themeSwitch.checked = !themeSwitch.checked;
+                changeTheme(themeSwitch.checked);
+            }
+        });
     }
     
     if (sidebarThemeSwitcherContainer) {
@@ -126,6 +155,19 @@ function initThemeSwitcher() {
         
         sidebarThemeSwitcherContainer.addEventListener('mouseleave', function() {
             this.classList.remove('active');
+        });
+        
+        // Thêm sự kiện click để đổi theme khi nhấp vào container
+        sidebarThemeSwitcherContainer.addEventListener('click', function(e) {
+            // Ngăn chặn hành vi mặc định của <a>
+            e.preventDefault();
+            
+            // Nếu click vào switch thì bỏ qua để sự kiện click của switch xử lý
+            if (e.target !== sidebarThemeSwitch && !sidebarThemeSwitch.contains(e.target)) {
+                // Đảo ngược trạng thái hiện tại
+                sidebarThemeSwitch.checked = !sidebarThemeSwitch.checked;
+                changeTheme(sidebarThemeSwitch.checked);
+            }
         });
     }
     

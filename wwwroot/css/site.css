@@ -1,28 +1,5 @@
-/* Main site CSS - Imports all modular CSS files */
+/* Main site CSS - Chỉ chứa các style đặc thù của toàn trang web, không import các module */
 
-/* Các biến và thiết lập theme */
-@import './modules/variables.css';
+/* Các module đã được import trong _GlobalStyles.cshtml */
 
-/* Các style cơ bản */
-@import './modules/base.css';
-
-/* Layout chính */
-@import './modules/layout.css';
-
-/* Components UI */
-@import './modules/components.css';
-
-/* Styles cho manga */
-@import './modules/manga.css';
-
-/* Navbar */
-@import './modules/navbar.css';
-
-/* Sidebar */
-@import './modules/sidebar.css';
-
-/* Utilities */
-@import './modules/utilities.css';
-
-/* Responsive media queries */
-@import './modules/responsive.css';
+/* Đặt các style toàn trang web ở đây (nếu có) */
