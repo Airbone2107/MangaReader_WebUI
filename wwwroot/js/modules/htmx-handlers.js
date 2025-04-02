@@ -222,7 +222,7 @@ function initHtmxHandlers() {
         
         // Kiểm tra sự tồn tại của manga-header-background một lần duy nhất
         // và chỉ gọi hàm adjustHeaderBackgroundHeight nếu nó tồn tại
-        if (document.querySelector('.manga-header-background')) {
+        if (document.querySelector('.details-manga-header-background')) {
             // Đợi một chút để đảm bảo DOM đã được render đầy đủ trước khi điều chỉnh
             setTimeout(adjustHeaderBackgroundHeight, 100);
         }

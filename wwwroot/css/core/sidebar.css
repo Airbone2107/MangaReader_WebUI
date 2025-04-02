@@ -1,0 +1,224 @@
+/**
+ * SIDEBAR.CSS
+ * -----------
+ * Chứa styles cho sidebar và các thành phần liên quan
+ * Điều khiển cách hiển thị và hoạt động của menu trượt
+ */
+
+/* ===== SIDEBAR CONTAINER - Container của sidebar ===== */
+/* Sidebar chính */
+#sidebarMenu {
+    width: 15rem;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: var(--z-index-modal-backdrop); /* Tăng z-index để hiển thị đè lên các phần tử khác */
+    background-color: var(--body-bg);
+    color: var(--body-color);
+    transform: translateX(-100%); /* Ẩn ban đầu (ngoài màn hình) */
+    transition: transform 0.3s ease;
+    border-right: 1px solid var(--border-color);
+    overflow: hidden;
+    box-shadow: 0 0 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Hiển thị sidebar khi active */
+body.sidebar-open #sidebarMenu {
+    transform: translateX(0); /* Hiển thị sidebar */
+}
+
+/* ===== SIDEBAR HEADER - Phần đầu sidebar ===== */
+/* Header của sidebar */
+.sidebar-header {
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--sidebar-header-bg);
+    color: var(--sidebar-header-text);
+}
+
+/* Nút đóng sidebar */
+.sidebar-header .btn-close {
+    color: var(--sidebar-header-text);
+}
+
+/* ===== DARK MODE FIXES - Sửa trong chế độ tối ===== */
+/* Sửa nút đóng trong dark mode */
+[data-bs-theme="dark"] .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%); /* Đảo màu nút close */
+}
+
+/* ===== SIDEBAR CONTENT - Nội dung sidebar ===== */
+/* Phần thân của sidebar */
+.sidebar-body {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 4rem); /* Chiều cao = 100vh - chiều cao header */
+    overflow-y: auto; /* Cho phép cuộn khi nội dung dài */
+}
+
+/* Navigation trong sidebar */
+.sidebar-body .navbar-nav {
+    width: 100%;
+}
+
+/* ===== NAVIGATION LINKS - Các liên kết điều hướng ===== */
+/* Style cho các link trong sidebar */
+.nav-item.mb-2 .nav-link {
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+    color: var(--sidebar-link-color);
+}
+
+/* Hover effect cho link */
+.nav-item.mb-2 .nav-link:hover {
+    background-color: var(--sidebar-link-hover-bg);
+    color: var(--sidebar-link-hover-color);
+}
+
+/* ===== ACTIVE STATES - Trạng thái active ===== */
+/* Link đang active */
+.sidebar-nav-link.active {
+    background-color: var(--sidebar-active-bg) !important;
+    color: var(--sidebar-active-text) !important;
+    font-weight: 500;
+    border-radius: 0.375rem;
+}
+
+/* Hover trên link active */
+.sidebar-nav-link.active:hover {
+    background-color: var(--active-hover-bg-light) !important;
+}
+
+/* ===== DARK MODE ACTIVE STATES - Trạng thái active trong dark mode ===== */
+/* Link active trong dark mode */
+[data-bs-theme="dark"] .sidebar-nav-link.active {
+    background-color: var(--sidebar-active-bg) !important;
+    color: var(--sidebar-active-text) !important;
+}
+
+/* Hover trên link active trong dark mode */
+[data-bs-theme="dark"] .sidebar-nav-link.active:hover {
+    background-color: var(--active-hover-bg-dark) !important;
+}
+
+/* ===== SIDEBAR FOOTER - Chân trang sidebar ===== */
+/* Footer trong sidebar */
+.sidebar-footer {
+    margin-top: auto; /* Đẩy xuống cuối sidebar */
+    padding: 1rem;
+    font-size: 0.85rem;
+    opacity: 0.8;
+    border-top: 1px solid var(--border-color);
+    color: var(--sidebar-footer-color);
+    text-align: center;
+}
+
+/* Tiêu đề footer */
+.sidebar-footer h6 {
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+/* Text nhỏ trong footer */
+.sidebar-footer .small {
+    text-align: center;
+}
+
+/* Link trong footer */
+.sidebar-footer a {
+    color: var(--sidebar-footer-color);
+    text-decoration: none;
+}
+
+/* Hover trên link footer */
+.sidebar-footer a:hover {
+    text-decoration: underline;
+    color: var(--sidebar-link-hover-color);
+}
+
+/* ===== SOCIAL ICONS - Icon mạng xã hội ===== */
+/* Container icon mạng xã hội */
+.sidebar-social-icons {
+    font-size: 1.25rem;
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    justify-content: center;
+}
+
+/* ===== TOGGLE BUTTON - Nút đóng/mở sidebar ===== */
+/* Nút toggle sidebar */
+.sidebar-toggler {
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--header-text);
+}
+
+/* ===== BACKDROP - Nền mờ khi mở sidebar ===== */
+/* Backdrop (ẩn mặc định) */
+.sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: var(--z-index-modal-backdrop) - 10;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* Hiển thị backdrop khi sidebar mở */
+body.sidebar-open .sidebar-backdrop {
+    display: block;
+}
+
+/* Class visible thêm vào backdrop bằng JavaScript */
+.sidebar-backdrop.visible {
+    opacity: 1;
+}
+
+/* ===== MOBILE SIDEBAR - Sidebar trên thiết bị di động ===== */
+/* Đảm bảo container không bị đẩy trên mobile */
+body.mobile-sidebar.sidebar-open .main-container {
+    margin-left: 0;
+    width: 100%;
+}
+
+/* ===== RESPONSIVE - Điều chỉnh theo kích thước màn hình ===== */
+/* Thay đổi hiển thị trên màn hình nhỏ */
+@media (max-width: 61.9375rem) { /* 991.98px */
+    /* Thu nhỏ sidebar */
+    #sidebarMenu {
+        width: 14rem;
+        box-shadow: 0 0 0.9375rem rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Đảm bảo không có margin cho main container trên màn hình nhỏ khi sidebar mở */
+    body.sidebar-open .main-container {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+}
+
+/* Màn hình lớn (desktop) */
+@media (min-width: 62rem) { /* 992px */
+    /* Điều chỉnh main container khi sidebar mở */
+    body.sidebar-open .main-container {
+        width: calc(100% - 15rem); /* Chiều rộng = 100% - chiều rộng sidebar */
+        margin-left: 15rem; /* Margin trái = chiều rộng sidebar */
+    }
+    
+    /* Ẩn backdrop trên màn hình lớn khi sidebar mở */
+    body.sidebar-open .sidebar-backdrop {
+        display: none !important;
+    }
+} 

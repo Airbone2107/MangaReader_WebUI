@@ -62,7 +62,13 @@ function initSidebar() {
         // Xử lý responsive
         if (window.innerWidth < 992) {
             document.body.classList.add('mobile-sidebar');
-            if (sidebarBackdrop) sidebarBackdrop.style.display = 'block';
+            if (sidebarBackdrop) {
+                sidebarBackdrop.style.display = 'block';
+                // Thêm một chút delay trước khi hiển thị backdrop để tạo hiệu ứng mượt mà
+                setTimeout(() => {
+                    sidebarBackdrop.classList.add('visible');
+                }, 10);
+            }
         } else {
             // Khi mở sidebar trên desktop, thêm hiệu ứng mở rộng cho thanh tìm kiếm ngay lập tức
             const searchContainer = document.querySelector('.search-container');
@@ -78,7 +84,13 @@ function initSidebar() {
         document.body.classList.remove('mobile-sidebar');
         saveSidebarState('closed');
         
-        if (sidebarBackdrop) sidebarBackdrop.style.display = 'none';
+        if (sidebarBackdrop) {
+            sidebarBackdrop.classList.remove('visible');
+            // Đợi hiệu ứng fade out hoàn tất trước khi ẩn hoàn toàn
+            setTimeout(() => {
+                sidebarBackdrop.style.display = 'none';
+            }, 300);
+        }
         
         // Khi đóng sidebar, loại bỏ class mở rộng của thanh tìm kiếm
         const searchContainer = document.querySelector('.search-container');
@@ -143,12 +155,20 @@ function initSidebar() {
     
     // Xử lý responsive sidebar
     function handleResize() {
-        if (window.innerWidth < 992 && document.body.classList.contains('sidebar-open')) {
+        const isMobileScreen = window.innerWidth < 992;
+        
+        if (isMobileScreen && document.body.classList.contains('sidebar-open')) {
             document.body.classList.add('mobile-sidebar');
             if (sidebarBackdrop) sidebarBackdrop.style.display = 'block';
-        } else {
+        } else if (!isMobileScreen) {
             document.body.classList.remove('mobile-sidebar');
             if (sidebarBackdrop) sidebarBackdrop.style.display = 'none';
+            
+            // Khôi phục trạng thái sidebar dựa trên localStorage nếu ở desktop
+            const savedState = getSidebarState();
+            if (savedState === 'open' && !document.body.classList.contains('sidebar-open')) {
+                document.body.classList.add('sidebar-open');
+            }
         }
     }
     

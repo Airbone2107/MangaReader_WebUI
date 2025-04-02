@@ -1,35 +1,43 @@
-/* Base CSS - Chứa các style cơ bản cho HTML, body và các animations */
+/**
+ * BASE.CSS
+ * --------
+ * Chứa các style cơ bản cho HTML, body và các animations
+ * Thiết lập nền tảng cho toàn bộ ứng dụng
+ */
 
-/* Main structure */
+/* ===== MAIN STRUCTURE - Cấu trúc HTML/Body chính ===== */
 html {
   font-size: 14px;
   position: relative;
   height: 100%;
-  scroll-padding-top: 70px; /* Add padding to account for fixed navbar */
-  scroll-behavior: smooth;
-  transition: color-scheme 0.3s ease;
+  scroll-padding-top: 70px; /* Thêm padding phía trên để tính cả navbar cố định */
+  scroll-behavior: smooth;  /* Cuộn mượt khi click vào anchor links */
+  transition: color-scheme 0.3s ease; /* Chuyển đổi mượt khi đổi theme */
 }
 
+/* Tăng font size khi màn hình lớn hơn */
 @media (min-width: 768px) {
   html {
     font-size: 16px;
   }
 }
 
+/* Body styles */
 body {
-    min-height: 100vh;
+    min-height: 100vh; /* Chiều cao tối thiểu = 100% viewport */
     display: flex;
     flex-direction: column;
     background-color: var(--body-bg);
     color: var(--body-color);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    transition: background-color 0.3s ease, color 0.3s ease;
-    animation: fadeIn 0.3s ease-in-out;
-    overflow-x: hidden; /* Prevent horizontal scroll */
+    transition: background-color 0.3s ease, color 0.3s ease; /* Chuyển đổi mượt khi thay đổi theme */
+    animation: fadeIn 0.3s ease-in-out; /* Animation khi tải trang */
+    overflow-x: hidden; /* Ngăn scroll ngang */
     padding: 0;
     margin: 0;
 }
 
+/* ===== APP CONTAINER - Container chính của ứng dụng ===== */
 /* Class chính của ứng dụng với các thiết lập chế độ sáng/tối */
 .manga-reader-app {
     min-height: 100vh;
@@ -46,31 +54,37 @@ body {
     color: var(--body-color);
 }
 
-/* Scrollbar */
+/* ===== SCROLLBAR STYLES - Tùy chỉnh thanh cuộn ===== */
+/* Thanh cuộn */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 8px;  /* Chiều rộng thanh cuộn dọc */
+    height: 8px; /* Chiều cao thanh cuộn ngang */
 }
 
+/* Track (phần nền) của thanh cuộn */
 ::-webkit-scrollbar-track {
     background: var(--body-bg);
 }
 
+/* Thumb (phần có thể kéo) của thanh cuộn */
 ::-webkit-scrollbar-thumb {
     background: var(--secondary-color);
     border-radius: 4px;
 }
 
+/* Hover state cho thumb */
 ::-webkit-scrollbar-thumb:hover {
     background: var(--dark-color);
 }
 
-/* Animations */
+/* ===== ANIMATIONS - Các hiệu ứng động ===== */
+/* Hiệu ứng hiển thị mờ dần */
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
 }
 
+/* Hiệu ứng gợn sóng (dùng cho các nút) */
 @keyframes ripple {
     0% {
         transform: scale(0, 0);
@@ -82,7 +96,8 @@ body {
     }
 }
 
-/* Fix for focus styles */
+/* ===== FOCUS STYLES - Tùy chỉnh hiệu ứng focus ===== */
+/* Sửa styles khi focus cho các elements */
 .btn:focus, 
 .btn:active:focus, 
 .btn-link.nav-link:focus, 
@@ -91,13 +106,15 @@ body {
     box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--primary-color);
 }
 
-/* Fix for dark mode inputs */
+/* ===== DARK MODE FIXES - Sửa các issues trong chế độ tối ===== */
+/* Sửa màu input trong dark mode */
 [data-bs-theme="dark"] .form-control {
     background-color: #2c2c2c;
     border-color: #444;
     color: #e1e1e1;
 }
 
+/* Sửa màu input khi focus trong dark mode */
 [data-bs-theme="dark"] .form-control:focus {
     background-color: #333;
     border-color: var(--primary-color);

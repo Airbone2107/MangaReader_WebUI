@@ -43,14 +43,38 @@
 
 /* Tiêu đề manga */
 .details-manga-title {
-    font-size: 2rem;
+    font-size: 4rem;
     font-weight: 700;
+    color: #ffffff !important;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
 }
 
 /* Tiêu đề phụ */
 .details-manga-alt-title {
-    font-size: 1.25rem;
-    color: var(--secondary-color);
+    font-size: 1.5rem;
+    color: #ffffff !important;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+    opacity: 0.9;
+    margin-top: -0.5rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+    font-weight: 500;
+}
+
+/* Dòng hiển thị tác giả và họa sĩ */
+.author-artist-row {
+    margin-bottom: 0.5rem;
+}
+
+.author-artist-row p, .publisher-info {
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 /* Phần thông tin tác giả */
@@ -380,7 +404,7 @@
     background-position: center;
     z-index: -1;
     transition: height 0.3s ease;
-    opacity: 0.85;
+    opacity: 0.35;
 }
 
 /* Manga header */
@@ -430,7 +454,8 @@
 
 /* Manga metadata */
 .details-manga-info-meta {
-    margin-top: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
 }
 
 /* Manga cover container */
@@ -467,8 +492,47 @@
 
 /* Manga alt titles */
 .details-manga-alt-titles {
-    color: var(--body-color);
-    font-style: italic;
+    margin-bottom: 1.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+/* Mỗi mục tiêu đề phụ */
+.alt-title-item {
+    background-color: var(--card-bg);
+    border-radius: 0.5rem;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: flex-start;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    flex-wrap: wrap;
+}
+
+.alt-title-item:hover {
+    background-color: var(--hover-bg);
+    transform: translateX(3px);
+}
+
+/* Icon trong mục tiêu đề phụ */
+.alt-title-item .bi {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+
+[data-bs-theme="dark"] .alt-title-item {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .alt-title-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-bs-theme="dark"] .alt-title-item .bi {
+    color: var(--primary-light);
 }
 
 /* Nav tabs trong chế độ tối */
@@ -518,4 +582,273 @@
     background-color: #842029;
     color: #fff;
     border-color: #842029;
-} 
+}
+
+/* Phần ngôn ngữ trong tiêu đề phụ */
+.alt-title-lang {
+    min-width: 140px;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+}
+
+.alt-title-lang .bi {
+    color: var(--primary-color);
+}
+
+/* CSS cho dropdown tùy chỉnh */
+.custom-language-filter {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.language-filter-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--bs-primary);
+    background-color: transparent;
+    color: var(--bs-primary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.language-filter-btn.active {
+    background-color: var(--bs-primary);
+    color: white;
+}
+
+.language-filter-btn:hover:not(.active) {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+/* CSS cho các thành phần không có background */
+.custom-chapters-container {
+    width: 100%;
+    background-color: transparent;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.custom-language-section {
+    margin-bottom: 0;
+    border-radius: 0;
+    overflow: hidden;
+    background-color: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.custom-language-section:last-child {
+    border-bottom: none;
+}
+
+[data-bs-theme="light"] .custom-language-section {
+    border-bottom-color: rgba(0, 0, 0, 0.05);
+    background-color: transparent;
+}
+
+/* CSS cho language header */
+.custom-language-header {
+    background-color: transparent;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    z-index: 2;
+    position: relative;
+    border-radius: 0;
+    color: #ffffff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="light"] .custom-language-header {
+    background-color: transparent;
+    color: #212529;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.custom-language-header.active {
+    border-bottom: none;
+}
+
+.custom-language-info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.custom-language-info .fw-bold {
+    font-size: 1.1rem;
+    color: #ffffff;
+}
+
+[data-bs-theme="light"] .custom-language-info .fw-bold {
+    color: #212529;
+}
+
+.language-toggle-icon {
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+    font-size: 1.2rem;
+}
+
+.custom-language-header.active .language-toggle-icon {
+    transform: rotate(180deg);
+}
+
+/* Đảm bảo content của language không có background */
+.custom-language-content {
+    display: none;
+    background-color: transparent;
+}
+
+.custom-language-header.active + .custom-language-content {
+    display: block !important;
+}
+
+[data-bs-theme="light"] .custom-language-content {
+    background-color: transparent;
+}
+
+.custom-volumes-container {
+    padding: 0;
+    background-color: transparent;
+}
+
+.custom-volume-dropdown {
+    margin-bottom: 0;
+    background-color: transparent;
+    border-bottom: none;
+}
+
+.custom-volume-dropdown:last-child {
+    border-bottom: none;
+}
+
+[data-bs-theme="light"] .custom-volume-dropdown {
+    background-color: transparent;
+    border-bottom: none;
+}
+
+/* CSS cho volume header */
+.custom-volume-header {
+    padding: 12px 16px;
+    background-color: transparent;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    z-index: 1;
+    position: relative;
+    color: #ffffff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+[data-bs-theme="light"] .custom-volume-header {
+    background-color: transparent;
+    color: #212529;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.custom-volume-header.active {
+    border-bottom: none;
+}
+
+.custom-volume-title {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    font-weight: 500;
+    color: #e9ecef;
+}
+
+[data-bs-theme="light"] .custom-volume-title {
+    color: #343a40;
+}
+
+/* Style cho thông tin chương */
+.custom-volume-chapters-info {
+    flex: 0 1 auto;
+    text-align: center;
+    color: #adb5bd;
+    font-size: 0.9rem;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    pointer-events: none; /* Cho phép click xuyên qua để không cản trở việc click vào header */
+}
+
+[data-bs-theme="light"] .custom-volume-chapters-info {
+    color: #6c757d;
+}
+
+.volume-toggle-icon {
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+    font-size: 1.2rem;
+}
+
+.custom-volume-header.active .volume-toggle-icon {
+    transform: rotate(180deg);
+}
+
+/* Đảm bảo volume chapters không có background */
+.custom-volume-chapters {
+    display: none;
+    background-color: transparent;
+    padding-bottom: 8px; /* Thêm padding dưới để tạo khoảng cách thay vì border */
+}
+
+.custom-volume-header.active + .custom-volume-chapters {
+    display: block !important;
+}
+
+[data-bs-theme="light"] .custom-volume-chapters {
+    background-color: transparent;
+}
+
+/* Chỉ custom-chapter-item có background */
+.custom-chapter-item {
+    padding: 12px 16px 12px 24px;
+    border: none; /* Loại bỏ border-bottom */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(26, 29, 32, 0.6);
+    margin: 4px 0;
+    border-radius: 4px;
+    cursor: pointer; /* Thêm cursor pointer để hiển thị item có thể click */
+    transition: all 0.2s ease;
+}
+
+[data-bs-theme="light"] .custom-chapter-item {
+    background-color: rgba(248, 249, 250, 0.6);
+}
+
+.custom-chapter-item:last-child {
+    border-bottom: none;
+}
+
+.custom-chapter-info {
+    flex: 1;
+}
+
+.custom-chapter-item:hover {
+    background-color: rgba(44, 48, 52, 0.8);
+    transform: translateY(-2px); /* Thêm hiệu ứng nâng lên khi hover */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Thêm đổ bóng khi hover */
+}
+
+[data-bs-theme="light"] .custom-chapter-item:hover {
+    background-color: rgba(241, 243, 245, 0.8);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Thêm style cho custom-chapter-item khi là liên kết */
+.custom-chapter-item.chapter-link {
+    text-decoration: none; /* Loại bỏ gạch chân mặc định của link */
+    color: inherit; /* Giữ màu chữ như ban đầu */
+    display: flex;
+    width: 100%;
+}

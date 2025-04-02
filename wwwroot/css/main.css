@@ -1,0 +1,48 @@
+/**
+ * MANGA READER - MAIN CSS FILE
+ * ----------------------------
+ * File CSS chính tổng hợp tất cả các styles của ứng dụng
+ * Thứ tự import rất quan trọng để đảm bảo CSS hoạt động đúng cách
+ */
+
+/**
+ * 1. VARIABLES
+ * ------------
+ * Biến CSS được import đầu tiên vì được sử dụng bởi tất cả các phần khác
+ */
+@import url("./core/variables.css");
+
+/**
+ * 2. BASE STYLES
+ * --------------
+ * Style cơ bản và reset CSS
+ */
+@import url("./core/base.css");
+@import url("./core/utilities.css");
+
+/**
+ * 3. LAYOUT STYLES
+ * ----------------
+ * Style cho cấu trúc và bố cục của trang
+ */
+@import url("./core/layout.css");
+@import url("./core/responsive.css");
+
+/**
+ * 4. COMPONENTS
+ * -------------
+ * Style cho các thành phần giao diện
+ */
+@import url("./core/components.css");
+@import url("./core/navbar.css");
+@import url("./core/sidebar.css");
+@import url("./core/manga.css");
+
+/**
+ * 5. PAGE-SPECIFIC STYLES
+ * -----------------------
+ * Style đặc thù cho từng trang
+ */
+@import url("./pages/home.css");
+@import url("./pages/manga-details.css");
+@import url("./pages/chapter.css"); 

@@ -1,5 +1,11 @@
-/* Layout CSS - Chứa styles cho cấu trúc trang website */
+/**
+ * LAYOUT.CSS
+ * ----------
+ * Chứa styles cho cấu trúc và bố cục của trang web
+ * Điều khiển cách các thành phần chính được sắp xếp và thể hiện
+ */
 
+/* ===== APP CONTAINER - Container ứng dụng ===== */
 /* Layout chính cho trang web */
 .manga-reader-app {
     display: flex;
@@ -8,22 +14,24 @@
     overflow-x: hidden; /* Ngăn thanh cuộn ngang khi sidebar mở */
 }
 
+/* ===== MAIN CONTAINER - Container chính ===== */
 /* Container chính chứa nội dung */
 .main-container {
     display: flex;
     flex: 1;
     width: 100%;
     position: relative;
-    transition: all 0.3s ease;
+    transition: all 0.3s ease; /* Chuyển đổi mượt khi sidebar mở/đóng */
 }
 
+/* ===== CONTENT AREA - Khu vực nội dung ===== */
 /* Nội dung bên phải */
 .content-area {
     display: flex;
     flex-direction: column;
     flex: 1;
     width: 100%;
-    transition: width 0.3s ease;
+    transition: width 0.3s ease; /* Chuyển đổi mượt khi thay đổi kích thước */
 }
 
 /* Nội dung chính */
@@ -32,10 +40,11 @@
     padding: 1rem;
 }
 
+/* ===== HEADER - Phần đầu trang ===== */
 /* Header */
 .site-header {
     width: 100%;
-    z-index: 1030;
+    z-index: var(--z-index-navbar); /* Sử dụng biến z-index */
     transition: transform 0.3s ease;
     position: sticky;
     top: 0;
@@ -49,6 +58,12 @@
     color: var(--header-text) !important;
 }
 
+/* Header ẩn khi cuộn xuống */
+.site-header.header-hidden {
+    transform: translateY(-100%);
+}
+
+/* ===== DARK MODE HEADER - Điều chỉnh header trong chế độ tối ===== */
 /* Đảm bảo dropdown trong navbar hiển thị đúng trong dark mode */
 [data-bs-theme="dark"] .site-header .dropdown-menu {
     background-color: var(--card-bg);
@@ -63,30 +78,28 @@
     background-color: var(--hover-bg);
 }
 
-/* Header ẩn khi cuộn xuống */
-.header-hidden {
-    transform: translateY(-100%);
-}
-
+/* ===== LOADING INDICATOR - Chỉ báo đang tải ===== */
 /* Loading spinner */
 #content-loading-spinner {
     position: fixed;
     top: 40%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 1050;
+    z-index: var(--z-index-fixed);
     display: none;
     background-color: rgba(var(--primary-rgb), 0.15);
     padding: 2rem;
     border-radius: 50%;
 }
 
+/* Kích thước lớn cho spinner */
 .spinner-border.spinner-lg {
     width: 3rem;
     height: 3rem;
 }
 
-/* Back to top button */
+/* ===== UI HELPERS - Các thành phần UI hỗ trợ ===== */
+/* Back to top button - Nút trở về đầu trang */
 #backToTopBtn {
     width: 3rem;
     height: 3rem;
@@ -95,28 +108,31 @@
     bottom: 1.5rem;
     right: 1.5rem;
     display: none;
-    z-index: 1025;
+    z-index: var(--z-index-fixed) - 15;
     box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
 }
 
-/* Toast container */
+/* Toast container - Khung chứa thông báo dạng toast */
 #toastContainer {
     position: fixed;
     bottom: 1rem;
     right: 1rem;
-    z-index: 1060;
+    z-index: var(--z-index-toast);
 }
 
-/* Các transition */
+/* ===== TRANSITIONS - Các hiệu ứng chuyển đổi ===== */
+/* Chuyển đổi màu chữ */
 .text-transition {
     transition: color 0.3s ease;
 }
 
+/* Chuyển đổi vị trí */
 .position-transition {
     transition: all 0.3s ease;
 }
 
-/* Thanh tìm kiếm mở rộng khi sidebar đang mở */
+/* ===== RESPONSIVE LAYOUT - Bố cục đáp ứng ===== */
+/* Màn hình lớn (desktop) */
 @media (min-width: 62rem) { /* 992px */
     /* Ẩn navbar-brand khi sidebar mở để dành chỗ cho search */
     body.sidebar-open .navbar-brand {
@@ -130,8 +146,8 @@
     
     /* Điều chỉnh main container khi sidebar mở */
     body.sidebar-open .main-container {
-        width: calc(100% - 15rem);
-        margin-left: 15rem;
+        width: calc(100% - 15rem); /* Chiều rộng = 100% - chiều rộng sidebar */
+        margin-left: 15rem; /* Margin trái = chiều rộng sidebar */
     }
     
     /* Đảm bảo nội dung không bị tràn khi sidebar mở */
@@ -140,20 +156,25 @@
     }
 }
 
-/* Responsive - điều chỉnh cho màn hình nhỏ */
+/* Màn hình trung bình (tablet) trở xuống */
 @media (max-width: 61.9375rem) { /* 991.98px */
+    /* Không đẩy content khi sidebar mở trên màn hình nhỏ */
     body.sidebar-open .main-container {
         margin-left: 0;
+        width: 100%;
+        overflow-x: hidden; /* Ngăn cuộn ngang khi sidebar hiển thị đè lên */
     }
     
+    /* Thu nhỏ padding navbar trên màn hình nhỏ */
     .site-header .navbar {
         padding-left: 0.5rem;
         padding-right: 0.5rem;
     }
 }
 
-/* Đảm bảo tên trang web vẫn hiển thị đúng trên điện thoại */
+/* Màn hình nhỏ (mobile) */
 @media (max-width: 36rem) { /* 576px */
+    /* Giới hạn kích thước navbar-brand trên mobile */
     .navbar-brand {
         max-width: 11.25rem;
         overflow: hidden;
@@ -162,13 +183,14 @@
     }
 }
 
-/* Mobile search */
+/* ===== MOBILE SEARCH - Thanh tìm kiếm trên mobile ===== */
+/* Container thanh tìm kiếm mobile */
 .container.d-block.d-lg-none.py-2.bg-body-tertiary {
     background-color: var(--card-bg) !important;
     border-bottom: 1px solid var(--border-color);
 }
 
-/* Mobile Search */
+/* Mobile Search Container */
 .mobile-search-container {
     background-color: var(--card-bg);
     padding: 0.5rem 1rem;

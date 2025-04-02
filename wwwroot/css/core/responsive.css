@@ -1,0 +1,163 @@
+/**
+ * RESPONSIVE.CSS
+ * -------------
+ * Chứa các media queries và điều chỉnh responsive cho trang web
+ * Tất cả media queries nên được tập trung ở đây để dễ quản lý
+ */
+
+/**
+ * BREAKPOINTS:
+ * - Extra small: < 576px (mobile phones)
+ * - Small: 576px - 767px (landscape phones)
+ * - Medium: 768px - 991px (tablets)
+ * - Large: 992px - 1199px (desktops)
+ * - X-Large: 1200px - 1399px (large desktops)
+ * - XX-Large: >= 1400px (larger desktops)
+ */
+
+/* ===== DESKTOP LARGE (XX-Large) - >= 1400px ===== */
+/* Điều chỉnh grid khi sidebar mở */
+@media (max-width: 1400px) {
+    /* Giảm số cột mỗi hàng từ 4 xuống 3 */
+    body.sidebar-open .manga-card-grid > .col {
+        width: 33.333%;
+    }
+}
+
+/* ===== DESKTOP MEDIUM (X-Large) - 1200px - 1399px ===== */
+@media (max-width: 1200px) {
+    /* Giảm số cột mỗi hàng từ 3 xuống 2 */
+    body.sidebar-open .manga-card-grid > .col {
+        width: 50%;
+    }
+}
+
+/* ===== DESKTOP (Large) - 992px - 1199px ===== */
+@media (min-width: 992px) {
+    /* Hiển thị nút toggle sidebar */
+    .navbar-toggler.sidebar-toggler {
+        display: inline-block;
+    }
+}
+
+/* ===== TABLET (Medium) - 768px - 991px ===== */
+@media (max-width: 991.98px) {
+    /* Điều chỉnh menu khi collapse */
+    .navbar-collapse {
+        padding: 1rem 0;
+    }
+    
+    /* Thêm khoảng cách giữa các mục menu */
+    .nav-item {
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Mở rộng thanh tìm kiếm */
+    .search-container {
+        max-width: 100%;
+    }
+    
+    /* Thu nhỏ font logo */
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+}
+
+/* ===== MOBILE LANDSCAPE (Small) - 576px - 767px ===== */
+@media (max-width: 767.98px) {
+    /* Điều chỉnh kích thước ảnh bìa manga */
+    .manga-cover-link {
+        height: 200px;
+    }
+    
+    /* Thu nhỏ tiêu đề phần */
+    .section-title {
+        font-size: 1.25rem;
+    }
+    
+    /* Thu nhỏ logo */
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+    
+    /* Điều chỉnh kích thước banner nổi bật */
+    .featured-manga {
+        height: 250px;
+    }
+    
+    /* Thu nhỏ tiêu đề trong banner */
+    .featured-overlay h2 {
+        font-size: 1.5rem;
+    }
+    
+    /* Đặt header không cố định trên mobile */
+    .site-header {
+        position: relative; /* Không sticky */
+    }
+    
+    /* Điều chỉnh chiều cao nội dung */
+    .content-wrapper {
+        min-height: calc(100vh - 200px); /* Điều chỉnh cho mobile */
+    }
+    
+    /* Đảm bảo sidebar mở không ảnh hưởng layout */
+    body.sidebar-open .site-content,
+    body.sidebar-open .site-footer,
+    body.sidebar-open .site-header,
+    body.sidebar-open .content-wrapper {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    /* Không dịch chuyển thanh tìm kiếm */
+    body.sidebar-open .search-container {
+        margin-left: 0;
+    }
+    
+    /* Điều chỉnh kích thước offcanvas */
+    .offcanvas-start {
+        width: 250px;
+        transform: translateX(-250px);
+    }
+    
+    /* Thêm đổ bóng cho offcanvas */
+    body.sidebar-open .offcanvas-start {
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Không dịch chuyển container */
+    body.sidebar-open .container.d-block.d-lg-none {
+        margin-left: 0;
+    }
+    
+    /* Giảm số cột mỗi hàng xuống 2 */
+    body.sidebar-open .manga-card-grid > .col {
+        width: 50%;
+    }
+}
+
+/* ===== MOBILE PORTRAIT (Extra small) - < 576px ===== */
+@media (max-width: 576px) {
+    /* Hiển thị 1 manga mỗi hàng */
+    body.sidebar-open .manga-card-grid > .col {
+        width: 100%;
+    }
+    
+    /* Thu nhỏ banner nổi bật */
+    .featured-manga {
+        height: 200px;
+    }
+    
+    /* Thu nhỏ tiêu đề */
+    h1, .h1 {
+        font-size: 1.75rem;
+    }
+    
+    h2, .h2 {
+        font-size: 1.5rem;
+    }
+    
+    h3, .h3 {
+        font-size: 1.25rem;
+    }
+} 

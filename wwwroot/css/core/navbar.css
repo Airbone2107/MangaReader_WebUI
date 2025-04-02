@@ -1,6 +1,12 @@
-/* Navbar CSS - Chứa styles cho thanh điều hướng và các thành phần liên quan */
+/**
+ * NAVBAR.CSS
+ * ----------
+ * Chứa styles cho thanh điều hướng và các thành phần liên quan
+ * Điều khiển cách hiển thị và hoạt động của navbar trên tất cả thiết bị
+ */
 
-/* Navbar customization */
+/* ===== NAVBAR BASIC - Thiết lập cơ bản cho navbar ===== */
+/* Thiết lập cơ bản cho navbar */
 .navbar {
     position: relative;
     width: 100%;
@@ -8,33 +14,35 @@
     z-index: var(--z-index-navbar);
 }
 
+/* Navbar chế độ tối */
 .navbar-dark {
     background-color: var(--navbar-bg) !important;
 }
 
-.navbar-scrolled {
-    /* Loại bỏ box-shadow */
-}
-
+/* Ẩn navbar khi scroll xuống */
 .navbar-hidden {
     transform: translateY(-100%);
 }
 
+/* Logo và tên trang web */
 .navbar-brand {
     font-weight: 700;
     font-size: 1.5rem;
 }
 
+/* Các liên kết trong navbar */
 .nav-link {
     font-weight: 500;
 }
 
-/* Additional style for active navigation item */
+/* ===== ACTIVE STATES - Trạng thái active của menu ===== */
+/* Style đặc biệt cho mục đang active */
 .navbar-nav .nav-item .nav-link.active {
     font-weight: 600;
     position: relative;
 }
 
+/* Gạch chân cho mục active */
 .navbar-nav .nav-item .nav-link.active:after {
     content: '';
     position: absolute;
@@ -45,7 +53,8 @@
     background-color: currentColor;
 }
 
-/* Navbar toggle button */
+/* ===== SIDEBAR TOGGLE - Nút mở/đóng sidebar ===== */
+/* Nút toggle sidebar */
 .sidebar-toggler {
     border: none;
     background: transparent;
@@ -53,21 +62,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
 }
 
-/* Fix for navbar color in dark mode */
+/* ===== DARK MODE - Điều chỉnh cho chế độ tối ===== */
+/* Sửa màu navbar trong chế độ tối */
 [data-bs-theme="dark"] .navbar-dark {
     background-color: var(--navbar-bg) !important;
 }
 
-/* Search container */
+/* ===== SEARCH - Khung tìm kiếm ===== */
+/* Container tìm kiếm */
 .search-container {
     transition: margin-left 0.3s ease;
     width: 100%;
     max-width: 500px;
 }
 
-/* Effect when sidebar is open */
+/* ===== SIDEBAR OPEN EFFECTS - Hiệu ứng khi sidebar mở ===== */
+/* Ẩn nút toggle và brand khi sidebar mở */
 body.sidebar-open .navbar-toggler.sidebar-toggler,
 body.sidebar-open .navbar-brand {
     opacity: 0;
@@ -75,56 +88,70 @@ body.sidebar-open .navbar-brand {
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
+/* Transition cho nút toggle và brand */
 .navbar-toggler.sidebar-toggler,
 .navbar-brand {
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
+/* Điều chỉnh thanh tìm kiếm khi sidebar mở */
 body.sidebar-open .search-container {
     margin-left: -5%;
     transition: margin-left 0.3s ease;
     max-width: 100%;
 }
 
-/* Theme switcher */
+/* ===== THEME SWITCHER - Chuyển đổi chế độ tối/sáng ===== */
+/* Nút chuyển đổi theme */
 #themeSwitcher {
     cursor: pointer;
 }
 
+/* Switch toggle cho theme */
 #themeSwitch {
     cursor: pointer;
 }
 
-/* Responsive adjustments */
+/* ===== RESPONSIVE - Điều chỉnh theo kích thước màn hình ===== */
+/* Điều chỉnh cho màn hình tablet và mobile */
 @media (max-width: 991.98px) {
+    /* Điều chỉnh dropdown menu khi collapse */
     .navbar-collapse {
         padding: 1rem 0;
     }
     
+    /* Điều chỉnh khoảng cách giữa các mục menu */
     .nav-item {
         margin-bottom: 0.5rem;
     }
     
+    /* Mở rộng thanh tìm kiếm khi màn hình nhỏ */
     .search-container {
         max-width: 100%;
     }
     
+    /* Thu nhỏ font chữ logo */
     .navbar-brand {
         font-size: 1.25rem;
     }
 }
 
+/* Điều chỉnh cho màn hình desktop */
 @media (min-width: 992px) {
+    /* Luôn hiển thị nút toggle sidebar */
     .navbar-toggler.sidebar-toggler {
         display: inline-block;
     }
 }
 
+/* Điều chỉnh cho màn hình mobile */
 @media (max-width: 767px) {
+    /* Không dịch chuyển thanh tìm kiếm khi sidebar mở */
     body.sidebar-open .search-container {
         margin-left: 0;
     }
     
+    /* Không dịch chuyển container khi sidebar mở */
     body.sidebar-open .container.d-block.d-lg-none {
         margin-left: 0;
     }

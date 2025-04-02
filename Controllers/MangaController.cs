@@ -255,31 +255,101 @@ namespace manga_reader_web.Controllers
                 
                 // Xử lý tiêu đề thay thế
                 string alternativeTitles = "";
+                var altTitlesDictionary = new Dictionary<string, string>();
+
                 if (attributesDict.ContainsKey("altTitles") && attributesDict["altTitles"] != null)
                 {
                     try
                     {
-                        // Chuyển đổi danh sách tiêu đề thay thế thành một chuỗi (ưu tiên tiếng Việt và tiếng Anh)
-                        var altTitlesJson = attributesDict["altTitles"].ToString();
-                        var altTitlesList = JsonSerializer.Deserialize<List<Dictionary<string, string>>>(altTitlesJson);
+                        // Xử lý cấu trúc altTitles mới trong API
+                        var altTitlesObj = attributesDict["altTitles"];
                         
-                        var altTitlesStrings = new List<string>();
-                        foreach (var altTitleDict in altTitlesList)
+                        // Trường hợp 1: altTitles là một mảng các đối tượng có additionalProp
+                        if (altTitlesObj is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
                         {
-                            // Ưu tiên lấy tiêu đề tiếng Việt hoặc tiếng Anh
-                            if (altTitleDict.ContainsKey("vi"))
-                                altTitlesStrings.Add(altTitleDict["vi"]);
-                            else if (altTitleDict.ContainsKey("en"))
-                                altTitlesStrings.Add(altTitleDict["en"]);
-                            else if (altTitleDict.Count > 0)
-                                altTitlesStrings.Add(altTitleDict.FirstOrDefault().Value);
+                            foreach (var altTitleElement in jsonElement.EnumerateArray())
+                            {
+                                // Chuyển đổi từng đối tượng trong mảng thành Dictionary
+                                var altTitleDict = ConvertJsonElementToDict(altTitleElement);
+                                
+                                // Lấy tất cả các giá trị của additionalProp và lưu cả key và value
+                                foreach (var prop in altTitleDict.Keys)
+                                {
+                                    if (altTitleDict[prop] != null && !string.IsNullOrWhiteSpace(altTitleDict[prop].ToString()))
+                                    {
+                                        // Nếu đã có ngôn ngữ này, thêm giá trị mới vào cuối với dấu ngăn cách
+                                        string langKey = prop;
+                                        string titleText = altTitleDict[prop].ToString();
+                                        
+                                        if (altTitlesDictionary.ContainsKey(langKey))
+                                        {
+                                            altTitlesDictionary[langKey] += " | " + titleText;
+                                        }
+                                        else
+                                        {
+                                            altTitlesDictionary[langKey] = titleText;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // Trường hợp 2: altTitles là một mảng đối tượng
+                        else if (altTitlesObj is List<object> altTitlesList)
+                        {
+                            foreach (var altTitle in altTitlesList)
+                            {
+                                // Nếu đối tượng là Dictionary
+                                if (altTitle is Dictionary<string, object> altTitleDict)
+                                {
+                                    // Lấy tất cả các giá trị của additionalProp và lưu cả key và value
+                                    foreach (var prop in altTitleDict.Keys)
+                                    {
+                                        if (altTitleDict[prop] != null && !string.IsNullOrWhiteSpace(altTitleDict[prop].ToString()))
+                                        {
+                                            string langKey = prop;
+                                            string titleText = altTitleDict[prop].ToString();
+                                            
+                                            if (altTitlesDictionary.ContainsKey(langKey))
+                                            {
+                                                altTitlesDictionary[langKey] += " | " + titleText;
+                                            }
+                                            else
+                                            {
+                                                altTitlesDictionary[langKey] = titleText;
+                                            }
+                                        }
+                                    }
+                                }
+                                // Nếu đối tượng là chuỗi hoặc kiểu nguyên thủy khác
+                                else if (altTitle != null && !string.IsNullOrWhiteSpace(altTitle.ToString()))
+                                {
+                                    // Nếu không có thông tin ngôn ngữ, lưu vào key "unknown"
+                                    string titleText = altTitle.ToString();
+                                    if (altTitlesDictionary.ContainsKey("unknown"))
+                                    {
+                                        altTitlesDictionary["unknown"] += " | " + titleText;
+                                    }
+                                    else
+                                    {
+                                        altTitlesDictionary["unknown"] = titleText;
+                                    }
+                                }
+                            }
                         }
                         
-                        // Loại bỏ các tiêu đề trùng lặp
-                        altTitlesStrings = altTitlesStrings.Distinct().ToList();
+                        // Ưu tiên tiêu đề tiếng Anh cho hiển thị bên cạnh tiêu đề chính
+                        if (altTitlesDictionary.ContainsKey("en"))
+                        {
+                            alternativeTitles = altTitlesDictionary["en"];
+                        }
+                        else if (altTitlesDictionary.Count > 0)
+                        {
+                            // Lấy tiêu đề đầu tiên từ bất kỳ ngôn ngữ nào
+                            alternativeTitles = altTitlesDictionary.Values.FirstOrDefault() ?? "";
+                        }
                         
-                        if (altTitlesStrings.Count > 0)
-                            alternativeTitles = string.Join(", ", altTitlesStrings);
+                        // Lưu từ điển tiêu đề phụ vào ViewData để sử dụng trong View
+                        ViewData["AlternativeTitlesByLanguage"] = altTitlesDictionary;
                     }
                     catch (Exception ex)
                     {

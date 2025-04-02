@@ -1,0 +1,143 @@
+/**
+ * VARIABLES.CSS
+ * ---------------
+ * Chứa tất cả các biến CSS được sử dụng xuyên suốt ứng dụng
+ * File này được import đầu tiên để các file CSS khác có thể sử dụng các biến
+ */
+
+/* Root Variables - Chế độ sáng (Light Mode) */
+:root {
+    /* ===== Z-index layers - Quản lý thứ tự hiển thị các thành phần ===== */
+    --z-index-dropdown: 1000;    /* Dropdown menus */
+    --z-index-navbar: 1030;      /* Navbar cố định */
+    --z-index-fixed: 1040;       /* Các thành phần fixed khác */
+    --z-index-modal-backdrop: 1050; /* Nền mờ khi hiển thị modal */
+    --z-index-modal: 1060;       /* Modal dialog */
+    --z-index-tooltip: 1070;     /* Tooltips */
+    --z-index-toast: 1080;       /* Toast notifications */
+    --z-index-popover: 1090;     /* Popovers */
+    
+    /* ===== Theme colors - Màu sắc chính cho chế độ sáng ===== */
+    --primary-color: #0d6efd;    /* Màu chính của ứng dụng */
+    --primary-rgb: 13, 110, 253; /* Màu chính dạng RGB để dùng với rgba() */
+    --secondary-color: #6c757d;  /* Màu phụ */
+    --success-color: #198754;    /* Màu thành công */
+    --info-color: #0dcaf0;       /* Màu thông tin */
+    --warning-color: #ffc107;    /* Màu cảnh báo */
+    --danger-color: #dc3545;     /* Màu nguy hiểm/lỗi */
+    --light-color: #f8f9fa;      /* Màu sáng */
+    --dark-color: #212529;       /* Màu tối */
+    
+    /* ===== MangaDex specific colors - Màu đặc trưng của MangaDex ===== */
+    --mangadex-orange: #fa6e00;        /* Màu cam MangaDex */
+    --mangadex-orange-dark: #e56500;   /* Màu cam đậm MangaDex */
+    --mangadex-blue: #2e84c1;          /* Màu xanh MangaDex */
+    --mangadex-blue-dark: #1e6fa8;     /* Màu xanh đậm MangaDex */
+    --text-muted: #6c757d;             /* Văn bản mờ */
+    --heading-color: #333333;          /* Màu tiêu đề */
+    
+    /* ===== Background & Text - Màu nền và văn bản ===== */
+    --body-bg: #f8f9fa;                /* Màu nền body */
+    --body-bg-rgb: 248, 249, 250;      /* Màu nền body dạng RGB */
+    --body-color: #212529;             /* Màu văn bản chính */
+    --card-bg: #ffffff;                /* Màu nền card */
+    --card-color: #212529;             /* Màu văn bản trong card */
+    --navbar-bg: var(--primary-color); /* Màu nền navbar */
+    --navbar-color: #ffffff;           /* Màu văn bản navbar */
+    --footer-bg: var(--primary-color); /* Màu nền footer */
+    --footer-color: #ffffff;           /* Màu văn bản footer */
+    
+    /* ===== Header Colors - Màu cho phần header ===== */
+    --header-bg: transparent;                   /* Màu nền header */
+    --header-text: #ffffff;                     /* Màu văn bản header */
+    --sidebar-header-bg: var(--body-bg);        /* Màu nền header sidebar */
+    --sidebar-header-text: var(--body-color);   /* Màu văn bản header sidebar */
+    
+    /* ===== Sidebar Colors - Màu cho sidebar ===== */
+    --sidebar-link-color: #212529;              /* Màu link trong sidebar */
+    --sidebar-link-hover-bg: rgba(13, 110, 253, 0.1);    /* Màu nền khi hover link sidebar */
+    --sidebar-link-hover-color: #0d6efd;        /* Màu link khi hover trong sidebar */
+    --sidebar-footer-color: #6c757d;            /* Màu văn bản footer sidebar */
+    
+    /* ===== Shadows & Effects - Bóng và hiệu ứng ===== */
+    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);     /* Bóng đổ cho card */
+    --hover-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);   /* Bóng đổ khi hover */
+    --transition-speed: 0.3s;                         /* Tốc độ chuyển đổi mặc định */
+    
+    /* ===== Borders - Viền ===== */
+    --border-color: #dee2e6;                          /* Màu viền mặc định */
+
+    /* ===== Light theme specific - Đặc thù cho theme sáng ===== */
+    --hover-bg: rgba(0, 0, 0, 0.05);                  /* Màu nền khi hover */
+    --active-bg: rgba(13, 110, 253, 0.1);             /* Màu nền khi active */
+    
+    /* ===== Active element colors - Màu cho thành phần đang active ===== */
+    --active-text: var(--primary-color);              /* Màu chữ khi active */
+    --active-bg-light: rgba(13, 110, 253, 0.15);      /* Màu nền khi active (nhạt) */
+    --active-hover-bg-light: rgba(13, 110, 253, 0.25);/* Màu nền khi hover active (nhạt) */
+    --sidebar-active-text: var(--primary-color);      /* Màu chữ khi active trong sidebar */
+    --sidebar-active-bg: rgba(13, 110, 253, 0.15);    /* Màu nền khi active trong sidebar */
+}
+
+/* Dark theme - Biến cho chế độ tối */
+[data-bs-theme="dark"] {
+    /* ===== Theme colors - Màu sắc chính cho chế độ tối ===== */
+    --primary-color: #0d6efd;    /* Màu chính vẫn giữ nguyên */
+    --primary-rgb: 13, 110, 253;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --info-color: #0dcaf0;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-color: #212529;      /* Đảo ngược light/dark */
+    --dark-color: #f8f9fa;       /* Đảo ngược light/dark */
+    
+    /* ===== MangaDex specific colors - Màu đặc trưng của MangaDex trong dark mode ===== */
+    --mangadex-orange: #fa6e00;
+    --mangadex-orange-dark: #e56500;
+    --mangadex-blue: #3a97d4;         /* Màu xanh sáng hơn trong dark mode */
+    --mangadex-blue-dark: #2a87c4;
+    --text-muted: #a0a0a0;            /* Màu text mờ sáng hơn trong dark mode */
+    --heading-color: #e6e6e6;         /* Màu tiêu đề sáng hơn trong dark mode */
+    
+    /* ===== Background & Text - Màu nền và văn bản trong dark mode ===== */
+    --body-bg: #121318;              /* Màu nền tối - đã thay đổi từ #121212 */
+    --body-bg-rgb: 18, 19, 24;       /* Đã thay đổi từ 18, 18, 18 */
+    --body-color: #e1e1e1;           /* Màu văn bản sáng */
+    --card-bg: #1e1f26;              /* Màu nền card tối - đã điều chỉnh cho phù hợp */
+    --card-color: #e1e1e1;           /* Màu văn bản trong card sáng */
+    --navbar-bg: #17181f;            /* Màu nền navbar tối - đã điều chỉnh */
+    --navbar-color: #ffffff;
+    --footer-bg: #17181f;            /* Màu nền footer tối - đã điều chỉnh */
+    --footer-color: #ffffff;
+    
+    /* ===== Header Colors - Màu cho phần header trong dark mode ===== */
+    --header-bg: transparent;
+    --header-text: #ffffff;
+    --sidebar-header-bg: var(--body-bg);
+    --sidebar-header-text: var(--body-color);
+    
+    /* ===== Sidebar Colors - Màu cho sidebar trong dark mode ===== */
+    --sidebar-link-color: #e1e1e1;               /* Màu link sáng hơn */
+    --sidebar-link-hover-bg: rgba(255, 255, 255, 0.1);   /* Màu hover sáng hơn */
+    --sidebar-link-hover-color: #97c0ff;         /* Màu link hover xanh sáng */
+    --sidebar-footer-color: #a0a0a0;             /* Màu footer sáng hơn */
+    
+    /* ===== Shadows & Effects - Bóng và hiệu ứng trong dark mode ===== */
+    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);     /* Bóng đậm hơn */
+    --hover-shadow: 0 10px 20px rgba(0, 0, 0, 0.25); /* Bóng hover đậm hơn */
+    
+    /* ===== Borders - Viền trong dark mode ===== */
+    --border-color: #444;                         /* Viền sáng hơn */
+
+    /* ===== Dark theme specific - Đặc thù cho theme tối ===== */
+    --hover-bg: rgba(255, 255, 255, 0.05);         /* Màu hover trắng mờ */
+    --active-bg: rgba(13, 110, 253, 0.15);         /* Màu active */
+    
+    /* ===== Active element colors - Màu cho thành phần đang active trong dark mode ===== */
+    --active-text: #97c0ff;                         /* Màu chữ active xanh sáng */
+    --active-bg-dark: rgba(13, 110, 253, 0.25);     /* Màu nền active đậm hơn */
+    --active-hover-bg-dark: rgba(13, 110, 253, 0.35);/* Màu nền hover active đậm hơn */
+    --sidebar-active-text: #97c0ff;                 /* Màu chữ active sidebar xanh sáng */
+    --sidebar-active-bg: rgba(13, 110, 253, 0.25);  /* Màu nền active sidebar */
+} 

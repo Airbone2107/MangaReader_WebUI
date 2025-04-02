@@ -1,0 +1,116 @@
+/**
+ * UTILITIES.CSS
+ * ------------
+ * Chứa các lớp tiện ích và helper classes
+ * Cung cấp các style ngắn và tái sử dụng được ở nhiều nơi
+ */
+
+/* ===== SECTION HEADERS - Tiêu đề của phần ===== */
+/* Tiêu đề phần nội dung */
+.section-title {
+    font-weight: 700;
+    font-size: 1.5rem;
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+/* Gạch chân tiêu đề phần */
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -0.5rem;
+    left: 0;
+    width: 50px;
+    height: 3px;
+    background-color: var(--primary-color);
+}
+
+/* ===== ACTIVE STATES - Trạng thái active ===== */
+/* Nav link active styling không thuộc sidebar */
+.nav-link.active:not(.sidebar-nav-link) {
+    color: var(--active-text);
+    font-weight: 600;
+}
+
+/* Đảm bảo hiển thị tốt trong chế độ tối */
+[data-bs-theme="dark"] .nav-link.active:not(.sidebar-nav-link) {
+    color: var(--active-text);
+}
+
+/* Đảm bảo hiển thị tốt trong chế độ sáng */
+[data-bs-theme="light"] .nav-link.active:not(.sidebar-nav-link) {
+    color: var(--active-text);
+}
+
+/* ===== ACCORDION STYLING - Style cho accordion ===== */
+/* Style cho phần text đậm trong accordion */
+.accordion-button .fw-bold {
+    display: inline-block;
+    transition: color 0.3s ease;
+}
+
+/* Style cho text đậm trong chế độ tối */
+[data-bs-theme="dark"] .accordion-button .fw-bold {
+    color: var(--body-color);
+}
+
+/* Style cho phần span đậm trong chế độ tối */
+[data-bs-theme="dark"] .accordion-button span.fw-bold {
+    color: var(--body-color);
+}
+
+/* Style cho phần span đậm trong chế độ sáng */
+[data-bs-theme="light"] .accordion-button span.fw-bold {
+    color: var(--body-color);
+}
+
+/* ===== TRANSITIONS - Các hiệu ứng chuyển đổi ===== */
+/* Hiệu ứng hover cho các liên kết */
+a {
+    transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+/* ===== RESPONSIVE UTILITIES - Tiện ích đáp ứng ===== */
+/* Điều chỉnh cho màn hình tablet và mobile */
+@media (max-width: 767.98px) {
+    /* Thu nhỏ tiêu đề phần */
+    .section-title {
+        font-size: 1.25rem;
+    }
+}
+
+/* ===== TEXT UTILITIES - Tiện ích văn bản ===== */
+/* Văn bản cắt bớt cho phần mô tả dài */
+.text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Văn bản cắt bớt cho phần mô tả 3 dòng */
+.text-truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ===== SPACING UTILITIES - Tiện ích khoảng cách ===== */
+/* Margin và padding nhỏ */
+.my-6 {
+    margin-top: 4rem;
+    margin-bottom: 4rem;
+}
+
+.my-7 {
+    margin-top: 5rem;
+    margin-bottom: 5rem;
+}
+
+.my-8 {
+    margin-top: 6rem;
+    margin-bottom: 6rem;
+} 
