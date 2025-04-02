@@ -21,6 +21,7 @@ import { initQuickSearch } from './modules/search.js';
 import { initReadingState } from './modules/reading-state.js';
 import { initErrorHandling } from './modules/error-handling.js';
 import { initMangaDetailsPage } from './modules/manga-details.js';
+import { initTagsInSearchForm } from './modules/manga-tags.js';
 
 /**
  * Khởi tạo tất cả các module
@@ -70,6 +71,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Khởi tạo chức năng trang chi tiết manga
     initMangaDetailsPage();
+    
+    // Khởi tạo danh sách tags trong form tìm kiếm
+    initTagsInSearchForm();
     
     // Khởi tạo xử lý HTMX
     initHtmxHandlers();

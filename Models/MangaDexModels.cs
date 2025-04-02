@@ -47,15 +47,26 @@ namespace manga_reader_web.Models
         public string SortBy { get; set; }
         public string TimeFrame { get; set; }
         public List<string> Genres { get; set; } = new List<string>();
+        public string IncludedTagsMode { get; set; } = "AND";
+        public string ExcludedTagsMode { get; set; } = "OR";
+        public string AuthorOrArtist { get; set; }
+        public int? Year { get; set; }
+        public List<string> ContentRating { get; set; } = new List<string>();
 
         public SortManga()
         {
             // Giá trị mặc định
             Title = "";
-            Status = "Tất cả";
-            Safety = "Tất cả";
-            Demographic = "Tất cả";
-            SortBy = "Mới cập nhật";
+            Status = "";
+            Safety = "";
+            Demographic = "";
+            SortBy = "latest";
+            AuthorOrArtist = "";
+            IncludedTags = new List<string>();
+            ExcludedTags = new List<string>();
+            Languages = new List<string>();
+            Genres = new List<string>();
+            ContentRating = new List<string>() { "safe", "suggestive" };
         }
 
         // Chuyển đổi thành Dictionary để tạo query parameters
@@ -66,21 +77,32 @@ namespace manga_reader_web.Models
             // Chỉ thêm tham số nếu có dữ liệu
             if (!string.IsNullOrEmpty(Title))
                 parameters["title"] = Title;
+                
+            // Tác giả hoặc họa sĩ
+            if (!string.IsNullOrEmpty(AuthorOrArtist))
+                parameters["authorOrArtist"] = AuthorOrArtist;
+                
+            // Năm phát hành
+            if (Year.HasValue && Year > 0)
+                parameters["year"] = Year.Value;
 
-            if (Status != "Tất cả")
-                parameters["status[]"] = new[] { Status.ToLower() };
+            // Tham số trạng thái - đảm bảo dùng status[] 
+            if (!string.IsNullOrEmpty(Status) && Status != "Tất cả")
+                parameters["status[]"] = Status.ToLower();
 
-            if (Safety != "Tất cả")
-                parameters["contentRating[]"] = new[] { Safety.ToLower() };
-
-            if (Demographic != "Tất cả")
-                parameters["publicationDemographic[]"] = new[] { Demographic.ToLower() };
-
-            if (IncludedTags.Count > 0)
+            // Xử lý tham số includedTags[] - đúng định dạng API yêu cầu
+            if (IncludedTags != null && IncludedTags.Count > 0)
+            {
                 parameters["includedTags[]"] = IncludedTags;
+                parameters["includedTagsMode"] = IncludedTagsMode;
+            }
 
-            if (ExcludedTags.Count > 0)
+            // Xử lý tham số excludedTags[] - đúng định dạng API yêu cầu
+            if (ExcludedTags != null && ExcludedTags.Count > 0)
+            {
                 parameters["excludedTags[]"] = ExcludedTags;
+                parameters["excludedTagsMode"] = ExcludedTagsMode;
+            }
 
             // Chỉ thêm tham số ngôn ngữ nếu danh sách không rỗng
             if (Languages != null && Languages.Count > 0)
@@ -95,13 +117,59 @@ namespace manga_reader_web.Models
                     parameters["availableTranslatedLanguage[]"] = validLanguages;
             }
 
-            // Sắp xếp theo cập nhật mới nhất hoặc cũ nhất
-            parameters["order[updatedAt]"] = SortBy == "Mới cập nhật" ? "desc" : "asc";
-
-            // Sắp xếp theo lượt xem nếu cần
-            if (SortBy == "Lượt xem")
+            // Chuyển đổi các giá trị sortBy sang các tham số order tương ứng
+            if (SortBy == "latest")
+            {
+                parameters["order[updatedAt]"] = "desc";
+            }
+            else if (SortBy == "title")
+            {
+                parameters["order[title]"] = "asc";
+            }
+            else if (SortBy == "popular")
             {
                 parameters["order[followedCount]"] = "desc";
+            }
+            else if (SortBy == "relevance")
+            {
+                parameters["order[relevance]"] = "desc";
+            }
+            else if (SortBy == "rating")
+            {
+                parameters["order[rating]"] = "desc";
+            }
+            else if (SortBy == "createdAt")
+            {
+                parameters["order[createdAt]"] = "desc";
+            }
+            else if (SortBy == "year")
+            {
+                parameters["order[year]"] = "desc";
+            }
+            else
+            {
+                // Mặc định sắp xếp theo chương mới nhất nếu không có giá trị sortBy hợp lệ
+                parameters["order[latestUploadedChapter]"] = "desc";
+            }
+
+            // Thêm tham số contentRating[] để lọc nội dung an toàn
+            if (ContentRating != null && ContentRating.Count > 0)
+            {
+                parameters["contentRating[]"] = ContentRating;
+            }
+            else if (string.IsNullOrEmpty(Safety) || Safety == "Tất cả")
+            {
+                parameters["contentRating[]"] = new[] { "safe", "suggestive" };
+            }
+            else
+            {
+                parameters["contentRating[]"] = new[] { Safety.ToLower() };
+            }
+
+            // Thêm tham số demographyic nếu có chỉ định
+            if (!string.IsNullOrEmpty(Demographic) && Demographic != "Tất cả")
+            {
+                parameters["publicationDemographic[]"] = Demographic.ToLower();
             }
 
             return parameters;

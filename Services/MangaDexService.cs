@@ -10,6 +10,7 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 using System.Dynamic;
+using System.Linq;
 
 namespace manga_reader_web.Services
 {
@@ -118,21 +119,57 @@ namespace manga_reader_web.Services
 
                 if (sortManga != null)
                 {
-                    foreach (var param in sortManga.ToParams())
+                    // Ghi log thông tin tìm kiếm
+                    var logMessage = $"Tìm kiếm manga với: Title={sortManga.Title}, Status={sortManga.Status}, SortBy={sortManga.SortBy}";
+                    if (sortManga.IncludedTags != null && sortManga.IncludedTags.Any())
+                        logMessage += $", IncludedTags={string.Join(",", sortManga.IncludedTags)}";
+                    
+                    Console.WriteLine(logMessage);
+                    _logger?.LogInformation(logMessage);
+                    
+                    // Lấy các tham số từ SortManga
+                    var parameters = sortManga.ToParams();
+                    foreach (var param in parameters)
                     {
-                        // Xử lý đúng tham số dạng mảng
-                        if (param.Value is IEnumerable<string> values)
+                        // Kiểm tra và xử lý đúng kiểu dữ liệu tham số
+                        if (param.Key.EndsWith("[]") && param.Value is IEnumerable<string> values)
                         {
+                            // Xử lý tham số dạng mảng
                             foreach (var value in values)
                             {
-                                AddOrUpdateParam(queryParams, param.Key, value);
+                                if (!string.IsNullOrEmpty(value))
+                                    AddOrUpdateParam(queryParams, param.Key, value);
                             }
                         }
-                        else
+                        else if (param.Value is string[] strArray)
                         {
+                            // Xử lý tham số dạng mảng string[]
+                            foreach (var value in strArray)
+                            {
+                                if (!string.IsNullOrEmpty(value))
+                                    AddOrUpdateParam(queryParams, param.Key, value);
+                            }
+                        }
+                        else if (param.Value is string strValue && !string.IsNullOrEmpty(strValue))
+                        {
+                            // Xử lý tham số dạng chuỗi đơn
+                            AddOrUpdateParam(queryParams, param.Key, strValue);
+                        }
+                        else if (param.Value != null)
+                        {
+                            // Xử lý các trường hợp khác
                             AddOrUpdateParam(queryParams, param.Key, param.Value.ToString());
                         }
                     }
+                }
+                else
+                {
+                    // Mặc định thêm tham số contentRating để lọc nội dung an toàn
+                    AddOrUpdateParam(queryParams, "contentRating[]", "safe");
+                    AddOrUpdateParam(queryParams, "contentRating[]", "suggestive");
+                    
+                    // Mặc định sắp xếp theo chương mới nhất
+                    AddOrUpdateParam(queryParams, "order[latestUploadedChapter]", "desc");
                 }
 
                 var url = BuildUrl($"{_baseUrl}/manga", queryParams);

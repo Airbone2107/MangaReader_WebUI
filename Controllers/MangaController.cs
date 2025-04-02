@@ -8,6 +8,7 @@ using manga_reader_web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
+using System.Linq;
 
 namespace manga_reader_web.Controllers
 {
@@ -20,6 +21,26 @@ namespace manga_reader_web.Controllers
         {
             _mangaDexService = mangaDexService;
             _logger = logger;
+        }
+
+        /// <summary>
+        /// API endpoint để lấy danh sách thẻ (tags) từ MangaDex
+        /// </summary>
+        [HttpGet]
+        [Route("api/manga/tags")]
+        public async Task<IActionResult> GetTags()
+        {
+            try
+            {
+                _logger.LogInformation("Đang lấy danh sách tags từ MangaDex");
+                var tags = await _mangaDexService.FetchTagsAsync();
+                return Json(new { success = true, data = tags });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Lỗi khi lấy danh sách tags: {ex.Message}", ex);
+                return Json(new { success = false, error = "Không thể tải danh sách tags từ MangaDex" });
+            }
         }
 
         // GET: Manga
@@ -996,9 +1017,20 @@ namespace manga_reader_web.Controllers
         }
 
         // Các action khác liên quan đến danh sách, search, filter
-        public async Task<IActionResult> Search(string title = "", string tags = "", string artists = "", string authors = "",
-            int year = 0, string status = "", string publicationDemographic = "", string contentRating = "",
-            int page = 1, int pageSize = 24)
+        public async Task<IActionResult> Search(
+            string title = "", 
+            string status = "", 
+            string sortBy = "latest",
+            string authorOrArtist = "",
+            int? year = null,
+            List<string> availableTranslatedLanguage = null,
+            string publicationDemographic = "",
+            List<string> contentRating = null,
+            string includedTagsMode = "AND",
+            List<string> genres = null,
+            string includedTagsStr = "", 
+            int page = 1, 
+            int pageSize = 24)
         {
             try
             {
@@ -1008,8 +1040,49 @@ namespace manga_reader_web.Controllers
                 var sortManga = new SortManga
                 {
                     Title = title,
-                    SortBy = "latest"
+                    Status = status,
+                    SortBy = sortBy ?? "latest",
+                    AuthorOrArtist = authorOrArtist,
+                    Year = year,
+                    Demographic = publicationDemographic,
+                    IncludedTagsMode = includedTagsMode ?? "AND",
+                    Genres = genres
                 };
+                
+                // Xử lý danh sách ngôn ngữ
+                if (availableTranslatedLanguage != null && availableTranslatedLanguage.Any())
+                {
+                    sortManga.Languages = availableTranslatedLanguage;
+                    _logger.LogInformation($"Tìm kiếm với ngôn ngữ: {string.Join(", ", sortManga.Languages)}");
+                }
+                
+                // Xử lý danh sách đánh giá nội dung
+                if (contentRating != null && contentRating.Any())
+                {
+                    sortManga.ContentRating = contentRating;
+                    _logger.LogInformation($"Tìm kiếm với mức độ nội dung: {string.Join(", ", sortManga.ContentRating)}");
+                }
+                else
+                {
+                    // Mặc định: nội dung an toàn
+                    sortManga.ContentRating = new List<string> { "safe", "suggestive" };
+                }
+                
+                // Xử lý danh sách thẻ đã chọn
+                if (!string.IsNullOrWhiteSpace(includedTagsStr))
+                {
+                    // Lấy danh sách ID từ chuỗi phân tách bởi dấu phẩy
+                    sortManga.IncludedTags = includedTagsStr
+                        .Split(',')
+                        .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                        .ToList();
+                    
+                    _logger.LogInformation($"Tìm kiếm với tags: {string.Join(", ", sortManga.IncludedTags)}");
+                    _logger.LogInformation($"Chế độ tags: {sortManga.IncludedTagsMode}");
+                }
+
+                // Đặt giá trị mặc định đảm bảo có nội dung an toàn
+                sortManga.Safety = "safe"; 
 
                 var mangas = await _mangaDexService.FetchMangaAsync(limit: pageSize, offset: (page - 1) * pageSize, sortManga: sortManga);
                 var totalCount = 100; // Giả định tổng số manga
@@ -1124,9 +1197,30 @@ namespace manga_reader_web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi tải danh sách manga: {ex.Message}");
-                ViewBag.ErrorMessage = "Không thể tải danh sách manga. Vui lòng thử lại sau.";
-                return View(new MangaListViewModel());
+                _logger.LogError($"Lỗi khi tải danh sách manga: {ex.Message}\nStack trace: {ex.StackTrace}");
+                
+                // Hiển thị thông báo lỗi chi tiết hơn cho người dùng
+                string errorMessage = "Không thể tải danh sách manga. ";
+                if (ex.InnerException != null)
+                {
+                    errorMessage += $"Chi tiết: {ex.Message} - {ex.InnerException.Message}";
+                }
+                else
+                {
+                    errorMessage += $"Chi tiết: {ex.Message}";
+                }
+                
+                ViewBag.ErrorMessage = errorMessage;
+                
+                // Tạo một viewModel trống để tránh null reference exception
+                return View(new MangaListViewModel
+                {
+                    Mangas = new List<MangaViewModel>(),
+                    CurrentPage = 1,
+                    PageSize = pageSize,
+                    TotalCount = 0,
+                    SortOptions = new SortManga { Title = title, Status = status, SortBy = sortBy }
+                });
             }
         }
 
