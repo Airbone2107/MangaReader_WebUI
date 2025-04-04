@@ -1027,8 +1027,10 @@ namespace manga_reader_web.Controllers
             string publicationDemographic = "",
             List<string> contentRating = null,
             string includedTagsMode = "AND",
+            string excludedTagsMode = "OR",
             List<string> genres = null,
-            string includedTagsStr = "", 
+            string includedTagsStr = "",
+            string excludedTagsStr = "",
             int page = 1, 
             int pageSize = 24)
         {
@@ -1046,6 +1048,7 @@ namespace manga_reader_web.Controllers
                     Year = year,
                     Demographic = publicationDemographic,
                     IncludedTagsMode = includedTagsMode ?? "AND",
+                    ExcludedTagsMode = excludedTagsMode ?? "OR",
                     Genres = genres
                 };
                 
@@ -1068,17 +1071,18 @@ namespace manga_reader_web.Controllers
                     sortManga.ContentRating = new List<string> { "safe", "suggestive" };
                 }
                 
-                // Xử lý danh sách thẻ đã chọn
-                if (!string.IsNullOrWhiteSpace(includedTagsStr))
+                // Xử lý danh sách includedTags từ chuỗi
+                if (!string.IsNullOrEmpty(includedTagsStr))
                 {
-                    // Lấy danh sách ID từ chuỗi phân tách bởi dấu phẩy
-                    sortManga.IncludedTags = includedTagsStr
-                        .Split(',')
-                        .Where(tag => !string.IsNullOrWhiteSpace(tag))
-                        .ToList();
-                    
-                    _logger.LogInformation($"Tìm kiếm với tags: {string.Join(", ", sortManga.IncludedTags)}");
-                    _logger.LogInformation($"Chế độ tags: {sortManga.IncludedTagsMode}");
+                    sortManga.IncludedTags = includedTagsStr.Split(',').Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
+                    _logger.LogInformation($"Tìm kiếm với includedTags: {string.Join(", ", sortManga.IncludedTags)}");
+                }
+                
+                // Xử lý danh sách excludedTags từ chuỗi
+                if (!string.IsNullOrEmpty(excludedTagsStr))
+                {
+                    sortManga.ExcludedTags = excludedTagsStr.Split(',').Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
+                    _logger.LogInformation($"Tìm kiếm với excludedTags: {string.Join(", ", sortManga.ExcludedTags)}");
                 }
 
                 // Đặt giá trị mặc định đảm bảo có nội dung an toàn
@@ -1168,8 +1172,7 @@ namespace manga_reader_web.Controllers
                             Title = mangaTitle,
                             Description = description,
                             CoverUrl = coverUrl,
-                            Status = attributesDict.ContainsKey("status") ? attributesDict["status"].ToString() : "unknown"
-                        });
+                            Status = attributesDict.ContainsKey("status") ? attributesDict["status"].ToString() : "unknown"                        });
                     }
                     catch (Exception ex)
                     {

@@ -5,6 +5,21 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="wwwroot\js\modules\common\**" />
+    <Compile Remove="wwwroot\js\modules\components\**" />
+    <Compile Remove="wwwroot\js\modules\pages\**" />
+    <Content Remove="wwwroot\js\modules\common\**" />
+    <Content Remove="wwwroot\js\modules\components\**" />
+    <Content Remove="wwwroot\js\modules\pages\**" />
+    <EmbeddedResource Remove="wwwroot\js\modules\common\**" />
+    <EmbeddedResource Remove="wwwroot\js\modules\components\**" />
+    <EmbeddedResource Remove="wwwroot\js\modules\pages\**" />
+    <None Remove="wwwroot\js\modules\common\**" />
+    <None Remove="wwwroot\js\modules\components\**" />
+    <None Remove="wwwroot\js\modules\pages\**" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="9.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.TagHelpers" Version="2.3.0" />

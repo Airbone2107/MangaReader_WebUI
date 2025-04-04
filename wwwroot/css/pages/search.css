@@ -1,0 +1,1048 @@
+/* Search card */
+.search-card {
+    border-radius: 0.5rem;
+    box-shadow: var(--card-shadow);
+    border: none;
+    margin-bottom: 2rem;
+    overflow: visible;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Card body cho search card */
+.search-card .card-body {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    padding-bottom: 0;
+}
+
+/* Manga Cards */
+.manga-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.manga-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--hover-shadow);
+}
+
+/* Manga tag status */
+.manga-status {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    font-size: 0.75rem;
+}
+
+.manga-title {
+    font-size: 1rem;
+    height: 40px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    margin-bottom: 0.5rem;
+}
+
+/* Tags styling */
+.tag-group h6 {
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.25rem;
+}
+
+.tag-list {
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.tag-item {
+    margin-right: 0 !important;
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+    border-radius: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    transition: background-color 0.2s ease;
+}
+
+.tag-item:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.tag-item .form-check-input {
+    margin-top: 0.15rem;
+}
+
+.tag-remove {
+    cursor: pointer;
+    margin-left: 0.25rem;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.tag-remove:hover {
+    opacity: 1;
+}
+
+/* CSS cho thẻ đã chọn */
+#selectedTagsBadges .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    font-weight: normal;
+}
+
+/* Fix for dark mode text color */
+[data-bs-theme="dark"] .manga-title a {
+    color: var(--body-color) !important;
+}
+
+[data-bs-theme="dark"] .text-dark,
+[data-bs-theme="dark"] .text-decoration-none.text-dark,
+[data-bs-theme="dark"] .card-title a {
+    color: var(--body-color) !important;
+}
+
+[data-bs-theme="dark"] .accordion-button {
+    color: var(--body-color);
+    background-color: var(--card-bg);
+}
+
+[data-bs-theme="dark"] .accordion-item {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+[data-bs-theme="dark"] .accordion-button:not(.collapsed) {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: var(--primary-color);
+}
+
+[data-bs-theme="dark"] .accordion-button:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+[data-bs-theme="dark"] .accordion-button::after {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Form controls trong chế độ tối */
+[data-bs-theme="dark"] .form-control {
+    background-color: #2d2d2d;
+    border-color: var(--border-color);
+    color: var(--body-color);
+}
+
+[data-bs-theme="dark"] .form-control:focus {
+    background-color: #363636;
+    color: var(--body-color);
+}
+
+[data-bs-theme="dark"] .input-group-text {
+    background-color: #363636;
+    border-color: var(--border-color);
+    color: var(--body-color);
+}
+
+/* Search input group */
+.input-group-text.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+/* Pagination */
+.pagination .page-link {
+    border-radius: 0.25rem;
+    margin: 0 2px;
+    color: var(--primary-color);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* Form elements */
+.form-check-inline {
+    margin-right: 0.75rem;
+}
+
+/* Badge adjustments for dark mode */
+[data-bs-theme="dark"] .badge.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+[data-bs-theme="dark"] .badge.bg-secondary {
+    background-color: #505a68 !important;
+}
+
+[data-bs-theme="dark"] .badge.bg-info {
+    background-color: #0a7f8f !important;
+}
+
+/* Form check trong chế độ tối */
+[data-bs-theme="dark"] .form-check-input {
+    background-color: #363636;
+    border-color: #666;
+}
+
+[data-bs-theme="dark"] .form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+[data-bs-theme="dark"] .form-check-label {
+    color: var(--body-color);
+}
+
+/* Form select trong chế độ tối */
+[data-bs-theme="dark"] .form-select {
+    background-color: #2d2d2d;
+    border-color: var(--border-color);
+    color: var(--body-color);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+}
+
+[data-bs-theme="dark"] .form-select:focus {
+    background-color: #363636;
+    color: var(--body-color);
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Cải thiện card body trong chế độ tối */
+[data-bs-theme="dark"] .card-body {
+    background-color: var(--card-bg);
+    color: var(--body-color);
+}
+
+/* Button outline trong chế độ tối */
+[data-bs-theme="dark"] .btn-outline-secondary {
+    color: #ccc;
+    border-color: #666;
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary:hover {
+    background-color: #444;
+    color: #fff;
+}
+
+/* Reset filters button */
+[data-bs-theme="dark"] #resetFilters:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+/* Tags trong chế độ tối */
+[data-bs-theme="dark"] .tag-item {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-bs-theme="dark"] .tag-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] #tagsContainer {
+    background-color: #222;
+    border-color: #444 !important;
+}
+
+[data-bs-theme="dark"] .tag-group h6 {
+    color: #fff;
+    border-color: #444;
+}
+
+/* Custom Dropdown Styles */
+.custom-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+/* Search Filter Dropdown Styling */
+.search-filter-dropdown {
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+.filter-toggle {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    background-color: var(--card-bg);
+    border-radius: 0.375rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid var(--border-color);
+}
+
+.filter-toggle:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+
+.filter-menu {
+    position: static;
+    width: 100%;
+    margin-top: 0.5rem;
+    display: none;
+}
+
+.custom-dropdown.show .filter-menu {
+    display: block;
+}
+
+.filter-content {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+/* Tùy chỉnh dark mode */
+[data-bs-theme="dark"] .filter-content {
+    background-color: #2d2d2d;
+    border-color: #444;
+}
+
+/* Dark mode adjustment for filter toggle */
+[data-bs-theme="dark"] .filter-toggle {
+    background-color: #2d2d2d;
+    border-color: #444;
+}
+
+[data-bs-theme="dark"] .filter-toggle:hover {
+    background-color: #3d3d3d;
+}
+
+/* Custom Dropdown Toggle General Styles */
+.custom-dropdown-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    background-color: var(--form-control-bg, #fff);
+    border: 1px solid var(--border-color, #ced4da);
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.custom-dropdown-toggle:hover {
+    border-color: var(--form-control-hover-border, #b9bec3);
+}
+
+.custom-dropdown-toggle:focus {
+    outline: 0;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.custom-dropdown-toggle:after {
+    content: '';
+    width: 0.8em;
+    height: 0.5em;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    transition: transform 0.2s ease;
+}
+
+.custom-dropdown.show .custom-dropdown-toggle:after {
+    transform: rotate(180deg);
+}
+
+.custom-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    display: none;
+    width: 100%;
+    min-width: 10rem;
+    max-height: 16rem;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+    margin: 0.125rem 0 0;
+    font-size: 1rem;
+    color: var(--body-color, #212529);
+    text-align: left;
+    list-style: none;
+    background-color: var(--card-bg, #fff);
+    background-clip: padding-box;
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
+    border-radius: 0.25rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.custom-dropdown.show .custom-dropdown-menu {
+    display: block;
+}
+
+.custom-dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    clear: both;
+    font-weight: 400;
+    color: var(--body-color, #212529);
+    text-align: inherit;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+    cursor: pointer;
+}
+
+.custom-dropdown-item:hover,
+.custom-dropdown-item:focus {
+    color: var(--primary-color);
+    text-decoration: none;
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+
+.custom-dropdown-item.active,
+.custom-dropdown-item:active {
+    color: #fff;
+    text-decoration: none;
+    background-color: var(--primary-color);
+}
+
+.custom-dropdown-item.disabled,
+.custom-dropdown-item:disabled {
+    color: #6c757d;
+    pointer-events: none;
+    background-color: transparent;
+}
+
+/* Custom dropdown styles cho dark mode */
+[data-bs-theme="dark"] .custom-dropdown-toggle {
+    background-color: #2d2d2d;
+    border-color: #444;
+    color: var(--body-color);
+}
+
+[data-bs-theme="dark"] .custom-dropdown-toggle:hover {
+    border-color: #666;
+}
+
+[data-bs-theme="dark"] .custom-dropdown-toggle:after {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+}
+
+[data-bs-theme="dark"] .custom-dropdown-menu {
+    background-color: #222;
+    border-color: #444;
+    color: var(--body-color);
+}
+
+[data-bs-theme="dark"] .custom-dropdown-item {
+    color: var(--body-color);
+}
+
+[data-bs-theme="dark"] .custom-dropdown-item:hover,
+[data-bs-theme="dark"] .custom-dropdown-item:focus {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-bs-theme="dark"] .custom-dropdown-item.active,
+[data-bs-theme="dark"] .custom-dropdown-item:active {
+    background-color: var(--primary-color);
+}
+
+[data-bs-theme="dark"] .custom-dropdown-item.disabled,
+[data-bs-theme="dark"] .custom-dropdown-item:disabled {
+    color: #adb5bd;
+}
+
+/* Thêm một chút padding cho nội dung dropdown khi có thanh cuộn */
+.custom-dropdown-menu::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-dropdown-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-dropdown-menu::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 4px;
+}
+
+[data-bs-theme="dark"] .custom-dropdown-menu::-webkit-scrollbar-thumb {
+    background-color: #555;
+}
+
+.custom-dropdown-menu::-webkit-scrollbar-thumb:hover {
+    background-color: var(--primary-color);
+}
+
+/* Đảm bảo các dropdown thông thường vẫn dùng absolute */
+.custom-dropdown:not(.search-filter-dropdown) .custom-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    max-height: 16rem;
+    overflow-y: auto;
+    z-index: 1050;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Tùy chỉnh kiểu hiển thị của dropdown menu khi được mở */
+.custom-dropdown:not(.search-filter-dropdown).show .custom-dropdown-menu {
+    display: block;
+}
+
+/* Animation khi hiển thị filter-menu */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive cho filter dropdown trên màn hình nhỏ */
+@media (max-width: 767.98px) {
+    .filter-content {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .filter-menu {
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
+
+/* Chỉnh sửa z-index cho container form */
+#searchForm {
+    position: relative;
+    z-index: 1;
+    padding-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+/* Style đặc biệt khi filter dropdown đang mở */
+.custom-dropdown.search-filter-dropdown.show {
+    margin-bottom: 0;
+}
+
+/* Style cho filter menu */
+.search-filter-dropdown .filter-menu {
+    margin-bottom: 0;
+}
+
+/* Container row cho form */
+.search-card .row {
+    position: relative;
+}
+
+/* Chỉnh sửa quan trọng để đảm bảo dropdown đẩy card border xuống */
+.search-card, 
+.search-card .card-body,
+#searchForm, 
+.search-card .row,
+.search-card .col-md-12 {
+    overflow: visible !important;
+}
+
+/* Filter Styling */
+#filterToggle {
+    transition: all 0.3s ease;
+    border-color: var(--border-color);
+}
+
+#filterToggle:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+
+#filterToggle .bi-chevron-down {
+    transition: transform 0.3s ease;
+}
+
+#filterToggle.active .bi-chevron-down {
+    transform: rotate(180deg);
+}
+
+.filter-content {
+    transition: all 0.3s ease;
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+/* Filter dropdown styling */
+.filter-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.filter-dropdown .dropdown-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    border-color: var(--border-color);
+    font-weight: normal;
+}
+
+.filter-dropdown .dropdown-toggle:after {
+    margin-left: auto;
+}
+
+.filter-dropdown .dropdown-menu {
+    min-width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 0;
+    margin: 0;
+    border-color: var(--border-color);
+}
+
+.filter-dropdown .dropdown-menu .form-check {
+    padding: 0.5rem 1rem;
+    margin: 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.filter-dropdown .dropdown-menu .form-check:last-child {
+    border-bottom: none;
+}
+
+.filter-dropdown .dropdown-menu .form-check:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+
+.filter-dropdown .form-check-input:checked + .form-check-label {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+/* Dark mode adjustments */
+[data-bs-theme="dark"] #filterToggle {
+    border-color: #444;
+    color: var(--body-color);
+}
+
+[data-bs-theme="dark"] .filter-content {
+    background-color: #2d2d2d;
+    border-color: #444;
+}
+
+[data-bs-theme="dark"] .filter-dropdown .dropdown-toggle {
+    background-color: #2d2d2d;
+    border-color: #444;
+    color: var(--body-color);
+}
+
+[data-bs-theme="dark"] .filter-dropdown .dropdown-menu {
+    background-color: #222;
+    border-color: #444;
+}
+
+[data-bs-theme="dark"] .filter-dropdown .dropdown-menu .form-check {
+    border-color: #444;
+}
+
+[data-bs-theme="dark"] .filter-dropdown .dropdown-menu .form-check:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Tags Dropdown Styles */
+.tags-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.tags-selection {
+    cursor: pointer;
+    min-height: 38px;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.tags-selection:hover {
+    border-color: var(--primary-color);
+}
+
+.tags-dropdown-menu {
+    transition: all 0.3s ease;
+}
+
+.tag-badge {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    color: var(--primary-color);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.tag-badge .tag-remove {
+    cursor: pointer;
+    margin-left: 0.5rem;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.tag-badge .tag-remove:hover {
+    opacity: 1;
+}
+
+.empty-tag-message {
+    color: #6c757d;
+    padding: 0.25rem 0;
+}
+
+/* Nhóm thẻ */
+.tag-group {
+    margin-bottom: 1rem;
+}
+
+.tag-group-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tag-item {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+    margin-bottom: 0.25rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    display: flex;
+    align-items: center;
+}
+
+.tag-item:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+
+.tag-item.active {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    font-weight: 500;
+}
+
+.tag-item input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+/* Dark mode adjustments */
+[data-bs-theme="dark"] .tags-selection {
+    background-color: #2d2d2d;
+    border-color: #444;
+}
+
+[data-bs-theme="dark"] .tags-selection:hover {
+    border-color: #666;
+}
+
+[data-bs-theme="dark"] .tags-dropdown-menu {
+    background-color: #2d2d2d !important;
+    border-color: #444;
+}
+
+[data-bs-theme="dark"] .tag-badge {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .tag-group-title {
+    color: #fff;
+    border-color: #444;
+}
+
+[data-bs-theme="dark"] .tag-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-bs-theme="dark"] .tag-item.active {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Manga tag item với trạng thái loại trừ (excluded) */
+.manga-tag-item.excluded {
+    background-color: rgba(var(--bs-danger-rgb), 0.1);
+    font-weight: 500;
+}
+
+.manga-tag-item.excluded .form-check-input:checked {
+    background-color: var(--bs-danger);
+    border-color: var(--bs-danger);
+}
+
+.manga-tag-item.excluded:hover {
+    background-color: rgba(var(--bs-danger-rgb), 0.15);
+}
+
+/* Tag badge cho trạng thái loại trừ */
+.manga-tag-badge.excluded {
+    background-color: rgba(var(--bs-danger-rgb), 0.1);
+    color: var(--bs-danger);
+    border: 1px solid rgba(var(--bs-danger-rgb), 0.2);
+}
+
+.manga-tag-badge.excluded:hover {
+    background-color: rgba(var(--bs-danger-rgb), 0.15);
+}
+
+/* Dark mode cho trạng thái loại trừ */
+[data-bs-theme="dark"] .manga-tag-item.excluded {
+    background-color: rgba(220, 53, 69, 0.2);
+}
+
+[data-bs-theme="dark"] .manga-tag-item.excluded:hover {
+    background-color: rgba(220, 53, 69, 0.25);
+}
+
+[data-bs-theme="dark"] .manga-tag-badge.excluded {
+    background-color: rgba(220, 53, 69, 0.2);
+    border-color: rgba(220, 53, 69, 0.3);
+    color: #ff8a8a;
+}
+
+/* Thêm CSS mới cho tags ở đây */
+/* ------ CSS mới cho tags sẽ được thêm vào sau ------ */
+
+/* Manga Tags Container */
+.manga-tags-container {
+    position: relative;
+    width: 100%;
+}
+
+/* Selection Box */
+.manga-tags-selection {
+    min-height: 45px;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    cursor: pointer;
+    background-color: var(--card-bg);
+    transition: all 0.2s ease;
+}
+
+.manga-tags-selection:hover {
+    border-color: var(--primary-color);
+}
+
+.manga-tags-selection:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+    outline: none;
+}
+
+/* Selected Tags */
+.manga-selected-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* Message khi chưa có tag nào */
+.manga-tags-empty {
+    color: #6c757d;
+    font-style: italic;
+    margin: 0.25rem 0;
+}
+
+/* Tag Badge Style */
+.manga-tag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    color: var(--primary-color);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+    transition: all 0.2s ease;
+}
+
+.manga-tag-badge:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
+}
+
+/* Nút xóa tag */
+.manga-tag-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+
+.manga-tag-remove:hover {
+    opacity: 1;
+    background-color: rgba(var(--bs-primary-rgb), 0.3);
+}
+
+/* Tags Dropdown Menu */
+.manga-tags-dropdown {
+    position: absolute;
+    width: 100%;
+    top: 100%;
+    left: 0;
+    margin-top: 0.375rem;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+    z-index: 1060;
+    max-height: 350px;
+    overflow-y: auto;
+    display: none;
+    animation: fadeIn 0.2s ease;
+}
+
+/* Tag Groups */
+.manga-tag-group {
+    margin-bottom: 1rem;
+}
+
+.manga-tag-group-title {
+    padding: 0.5rem 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Tag Items */
+.manga-tag-list {
+    padding: 0 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.manga-tag-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.5rem;
+    margin-bottom: 0.25rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.manga-tag-item:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+
+.manga-tag-item.selected {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    font-weight: 500;
+}
+
+.manga-tag-item input[type="checkbox"] {
+    margin: 0;
+}
+
+/* Tag mode toggle */
+.manga-tag-mode {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 0.75rem;
+}
+
+.manga-tag-mode-label {
+    font-weight: 500;
+    margin-bottom: 0.375rem;
+}
+
+.manga-tag-mode-desc {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+/* Tag search input */
+.manga-tag-search {
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+}
+
+/* Footer buttons */
+.manga-tags-footer {
+    padding: 0.75rem 1rem;
+    text-align: right;
+    border-top: 1px solid var(--border-color);
+    background-color: rgba(0,0,0,0.02);
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Dark mode adjustments */
+[data-bs-theme="dark"] .manga-tags-selection {
+    background-color: #2d2d2d;
+    border-color: #444;
+}
+
+[data-bs-theme="dark"] .manga-tags-selection:hover {
+    border-color: #666;
+}
+
+[data-bs-theme="dark"] .manga-tag-badge {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .manga-tags-dropdown {
+    background-color: #222;
+    border-color: #444;
+}
+
+[data-bs-theme="dark"] .manga-tag-group-title {
+    color: #fff;
+    border-color: #444;
+}
+
+[data-bs-theme="dark"] .manga-tag-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-bs-theme="dark"] .manga-tag-item.selected {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .manga-tags-footer {
+    background-color: rgba(255, 255, 255, 0.02);
+    border-color: #444;
+}

@@ -17,7 +17,7 @@ import {
 } from './modules/ui.js';
 import { initThemeSwitcher } from './modules/theme.js';
 import { initToasts } from './modules/toast.js';
-import { initQuickSearch } from './modules/search.js';
+import SearchModule from './modules/search.js';
 import { initReadingState } from './modules/reading-state.js';
 import { initErrorHandling } from './modules/error-handling.js';
 import { initMangaDetailsPage } from './modules/manga-details.js';
@@ -36,8 +36,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Khởi tạo lazy loading cho hình ảnh
     initLazyLoading();
     
-    // Khởi tạo chức năng tìm kiếm nhanh
-    initQuickSearch();
+    // Khởi tạo module tìm kiếm
+    // Luôn khởi tạo module để đăng ký các hàm và sự kiện cần thiết
+    SearchModule.init();
+    console.log('Search module registered');
+    
+    // Khởi tạo module quản lý thẻ manga
+    initTagsInSearchForm();
+    console.log('Manga tags module registered');
     
     // Tạo ảnh mặc định nếu chưa có
     createDefaultImage();
@@ -72,12 +78,31 @@ document.addEventListener('DOMContentLoaded', function() {
     // Khởi tạo chức năng trang chi tiết manga
     initMangaDetailsPage();
     
-    // Khởi tạo danh sách tags trong form tìm kiếm
-    initTagsInSearchForm();
-    
     // Khởi tạo xử lý HTMX
     initHtmxHandlers();
     
     // Đánh dấu việc khởi tạo hoàn tất
     console.log('Manga Reader Web: Tất cả các module đã được khởi tạo thành công.');
-}); 
+});
+
+// Đảm bảo JavaScript được tải lại sau khi HTMX thực hiện các thao tác
+document.addEventListener('htmx:afterSwap', function(event) {
+    if (event.detail.target.id === 'main-content') {
+        // Khởi tạo lại các module cần thiết cho nội dung mới
+        if (document.getElementById('searchForm')) {
+            // Tải lại CSS nếu cần
+            if (!document.querySelector('link[href*="search.css"]')) {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = '/css/pages/search.css';
+                document.head.appendChild(link);
+            }
+            
+            // Khởi tạo lại module tìm kiếm
+            SearchModule.initSearchPage();
+            
+            // Khởi tạo lại module quản lý thẻ
+            initTagsInSearchForm();
+        }
+    }
+});

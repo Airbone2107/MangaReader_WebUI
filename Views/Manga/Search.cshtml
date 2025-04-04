@@ -23,203 +23,276 @@
                             </div>
                             
                             <div class="col-md-12">
-                                <div class="accordion" id="searchFilters">
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header" id="headingFilters">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters">
-                                                <i class="bi bi-funnel me-2"></i>Bộ lọc nâng cao
-                                            </button>
-                                        </h2>
-                                        <div id="collapseFilters" class="accordion-collapse collapse" aria-labelledby="headingFilters" data-bs-parent="#searchFilters">
-                                            <div class="accordion-body">
-                                                <div class="row g-3">
-                                                    <!-- Tác giả / Họa sĩ -->
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Tác giả / Họa sĩ</label>
-                                                        <input type="text" name="authorOrArtist" class="form-control" placeholder="Nhập tên tác giả hoặc họa sĩ..." value="@Model.SortOptions.AuthorOrArtist">
+                                <button type="button" class="btn btn-outline-secondary w-100 py-2 text-start" id="filterToggle">
+                                    <i class="bi bi-funnel me-2"></i>
+                                    <span>Bộ lọc nâng cao</span>
+                                    <i class="bi bi-chevron-down float-end mt-1"></i>
+                                </button>
+                                
+                                <div class="filter-content p-3 border rounded mt-2" id="filterContainer" style="display: none;">
+                                    <div class="row g-3">
+                                        <!-- Tác giả / Họa sĩ -->
+                                        <div class="col-md-6">
+                                            <label class="form-label">Tác giả / Họa sĩ</label>
+                                            <input type="text" name="authorOrArtist" class="form-control" placeholder="Nhập tên tác giả hoặc họa sĩ..." value="@Model.SortOptions.AuthorOrArtist">
+                                        </div>
+                                        
+                                        <!-- Năm phát hành -->
+                                        <div class="col-md-6">
+                                            <label class="form-label">Năm phát hành</label>
+                                            <input type="number" name="year" class="form-control" placeholder="Nhập năm..." min="1900" max="@DateTime.Now.Year" value="@Model.SortOptions.Year">
+                                        </div>
+                                        
+                                        <!-- Trạng thái -->
+                                        <div class="col-md-6">
+                                            <label class="form-label">Trạng thái</label>
+                                            <div class="filter-dropdown">
+                                                <button type="button" class="btn btn-outline-secondary w-100 text-start dropdown-toggle" data-bs-toggle="dropdown">
+                                                    <span class="selected-text">
+                                                        @(string.IsNullOrEmpty(Model.SortOptions.Status) ? "Any" : TranslateStatus(Model.SortOptions.Status))
+                                                    </span>
+                                                </button>
+                                                <div class="dropdown-menu w-100">
+                                                    <div class="p-2">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="status" id="statusAll" value="" @(string.IsNullOrEmpty(Model.SortOptions.Status) ? "checked" : "")>
+                                                            <label class="form-check-label" for="statusAll">Tất cả</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="status" id="statusOngoing" value="ongoing" @(Model.SortOptions.Status == "ongoing" ? "checked" : "")>
+                                                            <label class="form-check-label" for="statusOngoing">Đang tiến hành</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="status" id="statusCompleted" value="completed" @(Model.SortOptions.Status == "completed" ? "checked" : "")>
+                                                            <label class="form-check-label" for="statusCompleted">Hoàn thành</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="status" id="statusHiatus" value="hiatus" @(Model.SortOptions.Status == "hiatus" ? "checked" : "")>
+                                                            <label class="form-check-label" for="statusHiatus">Tạm ngưng</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="status" id="statusCancelled" value="cancelled" @(Model.SortOptions.Status == "cancelled" ? "checked" : "")>
+                                                            <label class="form-check-label" for="statusCancelled">Đã hủy</label>
+                                                        </div>
                                                     </div>
-                                                    
-                                                    <!-- Năm phát hành -->
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Năm phát hành</label>
-                                                        <input type="number" name="year" class="form-control" placeholder="Nhập năm..." min="1900" max="@DateTime.Now.Year" value="@Model.SortOptions.Year">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Ngôn ngữ có sẵn -->
+                                        <div class="col-md-6">
+                                            <label class="form-label">Ngôn ngữ</label>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langVi" value="vi" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("vi") ? "checked" : "")>
+                                                    <label class="form-check-label" for="langVi">Tiếng Việt</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langEn" value="en" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("en") ? "checked" : "")>
+                                                    <label class="form-check-label" for="langEn">Tiếng Anh</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langJp" value="ja" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("ja") ? "checked" : "")>
+                                                    <label class="form-check-label" for="langJp">Tiếng Nhật</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langKo" value="ko" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("ko") ? "checked" : "")>
+                                                    <label class="form-check-label" for="langKo">Tiếng Hàn</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langZh" value="zh" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("zh") ? "checked" : "")>
+                                                    <label class="form-check-label" for="langZh">Tiếng Trung</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Đối tượng độc giả -->
+                                        <div class="col-md-6">
+                                            <label class="form-label">Đối tượng độc giả</label>
+                                            <div class="filter-dropdown">
+                                                <button type="button" class="btn btn-outline-secondary w-100 text-start dropdown-toggle" data-bs-toggle="dropdown">
+                                                    <span class="selected-text">
+                                                        @(string.IsNullOrEmpty(Model.SortOptions.Demographic) ? "Any" : Model.SortOptions.Demographic)
+                                                    </span>
+                                                </button>
+                                                <div class="dropdown-menu w-100">
+                                                    <div class="p-2">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="publicationDemographic" id="demoAll" value="" @(string.IsNullOrEmpty(Model.SortOptions.Demographic) || Model.SortOptions.Demographic == "Tất cả" ? "checked" : "")>
+                                                            <label class="form-check-label" for="demoAll">Tất cả</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="publicationDemographic" id="demoShounen" value="shounen" @(Model.SortOptions.Demographic == "shounen" ? "checked" : "")>
+                                                            <label class="form-check-label" for="demoShounen">Shounen</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="publicationDemographic" id="demoShoujo" value="shoujo" @(Model.SortOptions.Demographic == "shoujo" ? "checked" : "")>
+                                                            <label class="form-check-label" for="demoShoujo">Shoujo</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="publicationDemographic" id="demoSeinen" value="seinen" @(Model.SortOptions.Demographic == "seinen" ? "checked" : "")>
+                                                            <label class="form-check-label" for="demoSeinen">Seinen</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="publicationDemographic" id="demoJosei" value="josei" @(Model.SortOptions.Demographic == "josei" ? "checked" : "")>
+                                                            <label class="form-check-label" for="demoJosei">Josei</label>
+                                                        </div>
                                                     </div>
-                                                    
-                                                    <!-- Trạng thái -->
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Trạng thái</label>
-                                                        <div class="d-flex flex-wrap gap-2">
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="radio" name="status" id="statusAll" value="" @(string.IsNullOrEmpty(Model.SortOptions.Status) ? "checked" : "")>
-                                                                <label class="form-check-label" for="statusAll">Tất cả</label>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="radio" name="status" id="statusOngoing" value="ongoing" @(Model.SortOptions.Status == "ongoing" ? "checked" : "")>
-                                                                <label class="form-check-label" for="statusOngoing">Đang tiến hành</label>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="radio" name="status" id="statusCompleted" value="completed" @(Model.SortOptions.Status == "completed" ? "checked" : "")>
-                                                                <label class="form-check-label" for="statusCompleted">Hoàn thành</label>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="radio" name="status" id="statusHiatus" value="hiatus" @(Model.SortOptions.Status == "hiatus" ? "checked" : "")>
-                                                                <label class="form-check-label" for="statusHiatus">Tạm ngưng</label>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="radio" name="status" id="statusCancelled" value="cancelled" @(Model.SortOptions.Status == "cancelled" ? "checked" : "")>
-                                                                <label class="form-check-label" for="statusCancelled">Đã hủy</label>
-                                                            </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Đánh giá nội dung -->
+                                        <div class="col-md-6">
+                                            <label class="form-label">Mức độ nội dung</label>
+                                            <div class="filter-dropdown">
+                                                <button type="button" class="btn btn-outline-secondary w-100 text-start dropdown-toggle" data-bs-toggle="dropdown">
+                                                    <span class="selected-text">
+                                                        @(Model.SortOptions.ContentRating != null && Model.SortOptions.ContentRating.Any() ? string.Join(", ", Model.SortOptions.ContentRating) : "Any")
+                                                    </span>
+                                                </button>
+                                                <div class="dropdown-menu w-100">
+                                                    <div class="p-2">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="contentRating" id="contentSafe" value="safe" checked>
+                                                            <label class="form-check-label" for="contentSafe">An toàn</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="contentRating" id="contentSuggestive" value="suggestive" checked>
+                                                            <label class="form-check-label" for="contentSuggestive">Gợi ý</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Sắp xếp theo -->
+                                        <div class="col-md-6">
+                                            <label class="form-label">Sắp xếp theo</label>
+                                            <div class="filter-dropdown">
+                                                <button type="button" class="btn btn-outline-secondary w-100 text-start dropdown-toggle" data-bs-toggle="dropdown">
+                                                    <span class="selected-text">
+                                                        @{
+                                                            var sortByText = Model.SortOptions.SortBy switch
+                                                            {
+                                                                "title" => "Tên (A-Z)",
+                                                                "popular" => "Phổ biến",
+                                                                "relevance" => "Liên quan",
+                                                                "rating" => "Đánh giá",
+                                                                "createdAt" => "Thời gian tạo",
+                                                                "year" => "Năm xuất bản",
+                                                                _ => "Mới nhất"
+                                                            };
+                                                        }
+                                                        @sortByText
+                                                    </span>
+                                                </button>
+                                                <div class="dropdown-menu w-100">
+                                                    <div class="p-2">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="sortBy" id="sortLatest" value="latest" @(Model.SortOptions.SortBy == "latest" || string.IsNullOrEmpty(Model.SortOptions.SortBy) ? "checked" : "")>
+                                                            <label class="form-check-label" for="sortLatest">Mới nhất</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="sortBy" id="sortTitle" value="title" @(Model.SortOptions.SortBy == "title" ? "checked" : "")>
+                                                            <label class="form-check-label" for="sortTitle">Tên (A-Z)</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="sortBy" id="sortPopular" value="popular" @(Model.SortOptions.SortBy == "popular" ? "checked" : "")>
+                                                            <label class="form-check-label" for="sortPopular">Phổ biến</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="sortBy" id="sortRelevance" value="relevance" @(Model.SortOptions.SortBy == "relevance" ? "checked" : "")>
+                                                            <label class="form-check-label" for="sortRelevance">Liên quan</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="sortBy" id="sortRating" value="rating" @(Model.SortOptions.SortBy == "rating" ? "checked" : "")>
+                                                            <label class="form-check-label" for="sortRating">Đánh giá</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="sortBy" id="sortCreatedAt" value="createdAt" @(Model.SortOptions.SortBy == "createdAt" ? "checked" : "")>
+                                                            <label class="form-check-label" for="sortCreatedAt">Thời gian tạo</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="sortBy" id="sortYear" value="year" @(Model.SortOptions.SortBy == "year" ? "checked" : "")>
+                                                            <label class="form-check-label" for="sortYear">Năm xuất bản</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Phân trang -->
+                                        <div class="col-md-6">
+                                            <label class="form-label">Số kết quả mỗi trang</label>
+                                            <div class="filter-dropdown">
+                                                <button type="button" class="btn btn-outline-secondary w-100 text-start dropdown-toggle" data-bs-toggle="dropdown">
+                                                    <span class="selected-text">@Model.PageSize</span>
+                                                </button>
+                                                <div class="dropdown-menu w-100">
+                                                    <div class="p-2">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="pageSize" id="pageSize12" value="12" @(Model.PageSize == 12 ? "checked" : "")>
+                                                            <label class="form-check-label" for="pageSize12">12</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="pageSize" id="pageSize24" value="24" @(Model.PageSize == 24 ? "checked" : "")>
+                                                            <label class="form-check-label" for="pageSize24">24</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="pageSize" id="pageSize36" value="36" @(Model.PageSize == 36 ? "checked" : "")>
+                                                            <label class="form-check-label" for="pageSize36">36</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="pageSize" id="pageSize48" value="48" @(Model.PageSize == 48 ? "checked" : "")>
+                                                            <label class="form-check-label" for="pageSize48">48</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="pageSize" id="pageSize100" value="100" @(Model.PageSize == 100 ? "checked" : "")>
+                                                            <label class="form-check-label" for="pageSize100">100</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Danh sách thẻ từ MangaDex -->
+                                        <div class="col-md-12">
+                                            <label class="form-label mb-2">Thẻ và thể loại</label>
+                                            <div class="manga-tags-container">
+                                                <div class="manga-tags-selection" id="mangaTagsSelection" tabindex="0">
+                                                    <div class="manga-selected-tags" id="selectedTagsDisplay">
+                                                        <!-- Các tag đã chọn sẽ được hiển thị ở đây -->
+                                                        @if (Model.SortOptions.IncludedTags == null || !Model.SortOptions.IncludedTags.Any())
+                                                        {
+                                                            <span class="manga-tags-empty" id="emptyTagsMessage">Chưa có thẻ nào được chọn. Bấm để chọn thẻ.</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            foreach (var tag in Model.SortOptions.IncludedTags)
+                                                            {
+                                                                <div class="manga-tag-badge" data-tag-id="@tag">
+                                                                    <span class="manga-tag-name">@tag</span>
+                                                                    <span class="manga-tag-remove"><i class="bi bi-x"></i></span>
+                                                                </div>
+                                                            }
+                                                        }
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="manga-tags-dropdown" id="mangaTagsDropdown">
+                                                    <!-- Tìm kiếm thẻ -->
+                                                    <div class="manga-tag-search">
+                                                        <div class="input-group">
+                                                            <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                                                            <input type="text" class="form-control form-control-sm" id="tagSearchInput" placeholder="Tìm kiếm thẻ...">
                                                         </div>
                                                     </div>
                                                     
-                                                    <!-- Ngôn ngữ có sẵn -->
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Ngôn ngữ</label>
-                                                        <div class="d-flex flex-wrap gap-2">
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langVi" value="vi" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("vi") ? "checked" : "")>
-                                                                <label class="form-check-label" for="langVi">Tiếng Việt</label>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langEn" value="en" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("en") ? "checked" : "")>
-                                                                <label class="form-check-label" for="langEn">Tiếng Anh</label>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langJp" value="ja" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("ja") ? "checked" : "")>
-                                                                <label class="form-check-label" for="langJp">Tiếng Nhật</label>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langKo" value="ko" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("ko") ? "checked" : "")>
-                                                                <label class="form-check-label" for="langKo">Tiếng Hàn</label>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langZh" value="zh" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("zh") ? "checked" : "")>
-                                                                <label class="form-check-label" for="langZh">Tiếng Trung</label>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <!-- Đối tượng độc giả -->
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Đối tượng độc giả</label>
-                                                        <div class="d-flex flex-wrap gap-2">
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="radio" name="publicationDemographic" id="demoAll" value="" @(string.IsNullOrEmpty(Model.SortOptions.Demographic) || Model.SortOptions.Demographic == "Tất cả" ? "checked" : "")>
-                                                                <label class="form-check-label" for="demoAll">Tất cả</label>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="radio" name="publicationDemographic" id="demoShounen" value="shounen" @(Model.SortOptions.Demographic == "shounen" ? "checked" : "")>
-                                                                <label class="form-check-label" for="demoShounen">Shounen</label>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="radio" name="publicationDemographic" id="demoShoujo" value="shoujo" @(Model.SortOptions.Demographic == "shoujo" ? "checked" : "")>
-                                                                <label class="form-check-label" for="demoShoujo">Shoujo</label>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="radio" name="publicationDemographic" id="demoSeinen" value="seinen" @(Model.SortOptions.Demographic == "seinen" ? "checked" : "")>
-                                                                <label class="form-check-label" for="demoSeinen">Seinen</label>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="radio" name="publicationDemographic" id="demoJosei" value="josei" @(Model.SortOptions.Demographic == "josei" ? "checked" : "")>
-                                                                <label class="form-check-label" for="demoJosei">Josei</label>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <!-- Đánh giá nội dung -->
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Mức độ nội dung</label>
-                                                        <div class="d-flex flex-wrap gap-2">
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="checkbox" name="contentRating" id="contentSafe" value="safe" checked>
-                                                                <label class="form-check-label" for="contentSafe">An toàn</label>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input" type="checkbox" name="contentRating" id="contentSuggestive" value="suggestive" checked>
-                                                                <label class="form-check-label" for="contentSuggestive">Gợi ý</label>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <!-- Sắp xếp theo -->
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Sắp xếp theo</label>
-                                                        <select class="form-select" name="sortBy">
-                                                            @if (Model.SortOptions.SortBy == "latest")
-                                                            {
-                                                                <option value="latest" selected="selected">Mới nhất</option>
-                                                            }
-                                                            else
-                                                            {
-                                                                <option value="latest">Mới nhất</option>
-                                                            }
-                                                            
-                                                            @if (Model.SortOptions.SortBy == "title")
-                                                            {
-                                                                <option value="title" selected="selected">Tên (A-Z)</option>
-                                                            }
-                                                            else
-                                                            {
-                                                                <option value="title">Tên (A-Z)</option>
-                                                            }
-                                                            
-                                                            @if (Model.SortOptions.SortBy == "popular")
-                                                            {
-                                                                <option value="popular" selected="selected">Phổ biến</option>
-                                                            }
-                                                            else
-                                                            {
-                                                                <option value="popular">Phổ biến</option>
-                                                            }
-                                                            
-                                                            @if (Model.SortOptions.SortBy == "relevance")
-                                                            {
-                                                                <option value="relevance" selected="selected">Liên quan</option>
-                                                            }
-                                                            else
-                                                            {
-                                                                <option value="relevance">Liên quan</option>
-                                                            }
-                                                            
-                                                            @if (Model.SortOptions.SortBy == "rating")
-                                                            {
-                                                                <option value="rating" selected="selected">Đánh giá</option>
-                                                            }
-                                                            else
-                                                            {
-                                                                <option value="rating">Đánh giá</option>
-                                                            }
-                                                            
-                                                            @if (Model.SortOptions.SortBy == "createdAt")
-                                                            {
-                                                                <option value="createdAt" selected="selected">Thời gian tạo</option>
-                                                            }
-                                                            else
-                                                            {
-                                                                <option value="createdAt">Thời gian tạo</option>
-                                                            }
-                                                            
-                                                            @if (Model.SortOptions.SortBy == "year")
-                                                            {
-                                                                <option value="year" selected="selected">Năm xuất bản</option>
-                                                            }
-                                                            else
-                                                            {
-                                                                <option value="year">Năm xuất bản</option>
-                                                            }
-                                                        </select>
-                                                    </div>
-                                                    
-                                                    <!-- Hiển thị thẻ đã chọn -->
-                                                    <div class="col-12" id="selectedTagsGroup" style="display: none;">
-                                                        <label class="form-label">Thẻ đã chọn (<span id="tagsCount">0</span>)</label>
-                                                        <div id="selectedTagsBadges" class="d-flex flex-wrap gap-1 mb-2"></div>
-                                                    </div>
-                                                    
-                                                    <!-- Hộp tùy chọn thẻ mode -->
-                                                    <div class="col-12" id="tagsConfigGroup">
-                                                        <div class="d-flex align-items-center justify-content-between mb-2">
-                                                            <label class="form-label mb-0">Chế độ thẻ</label>
+                                                    <!-- Chế độ thẻ -->
+                                                    <div class="manga-tag-mode">
+                                                        <div class="d-flex align-items-center justify-content-between">
+                                                            <label class="manga-tag-mode-label">Chế độ thẻ</label>
                                                             <div class="form-check form-switch">
                                                                 <input class="form-check-input" type="checkbox" id="includedTagsModeToggle" @(Model.SortOptions.IncludedTagsMode == "OR" ? "checked" : "")>
                                                                 <label class="form-check-label" for="includedTagsModeToggle">
@@ -228,96 +301,50 @@
                                                             </div>
                                                             <input type="hidden" name="includedTagsMode" id="includedTagsMode" value="@Model.SortOptions.IncludedTagsMode">
                                                         </div>
-                                                        <small class="text-muted">
-                                                            <strong>VÀ</strong>: Manga phải chứa tất cả thẻ đã chọn.
-                                                            <strong>HOẶC</strong>: Manga chỉ cần chứa ít nhất một trong các thẻ đã chọn.
-                                                        </small>
-                                                    </div>
-                                                    
-                                                    <!-- Danh sách thẻ từ MangaDex -->
-                                                    <div class="col-md-12">
-                                                        <div class="d-flex align-items-center">
-                                                            <label class="form-label mb-0">Thẻ và thể loại</label>
-                                                            <button type="button" class="btn btn-sm btn-link ms-auto p-0" 
-                                                                    data-bs-toggle="collapse" 
-                                                                    data-bs-target="#tagsList" 
-                                                                    aria-expanded="false" 
-                                                                    aria-controls="tagsList">
-                                                                <i class="bi bi-plus-circle me-1"></i>Hiển thị
-                                                            </button>
+                                                        <div class="manga-tag-mode-desc">
+                                                            <strong>Sử dụng tag:</strong><br>
+                                                            • Click 1 lần: <span class="badge bg-primary">Bắt buộc có</span> - Manga phải chứa tag này.<br>
+                                                            • Click 2 lần: <span class="badge bg-danger">Loại trừ</span> - Manga không được chứa tag này.<br>
+                                                            • Click 3 lần: <span class="badge bg-secondary">Không áp dụng</span> - Bỏ tag khỏi bộ lọc.<br><br>
+                                                            <strong>VÀ</strong>: Manga phải chứa tất cả thẻ bắt buộc đã chọn.<br>
+                                                            <strong>HOẶC</strong>: Manga chỉ cần chứa ít nhất một trong các thẻ bắt buộc đã chọn.
                                                         </div>
-                                                        <div class="collapse mt-2" id="tagsList">
-                                                            <div id="tagsContainer" class="border rounded p-3 mb-3">
-                                                                <div class="text-center">
-                                                                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                                                                    <span>Đang tải danh sách thẻ...</span>
-                                                                </div>
-                                                            </div>
+                                                    </div>
+                                                    
+                                                    <!-- Danh sách nhóm thẻ -->
+                                                    <div id="tagsContainer" class="manga-tags-groups">
+                                                        <div class="text-center py-3">
+                                                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                                            <span>Đang tải danh sách thẻ...</span>
                                                         </div>
-                                                        <input type="hidden" id="selectedTags" name="includedTagsStr" value="@(string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()))" />
                                                     </div>
                                                     
-                                                    <!-- Phân trang -->
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Số kết quả mỗi trang</label>
-                                                        <select name="pageSize" class="form-select">
-                                                            @if (Model.PageSize == 12)
-                                                            {
-                                                                <option value="12" selected="selected">12</option>
-                                                            }
-                                                            else
-                                                            {
-                                                                <option value="12">12</option>
-                                                            }
-                                                            
-                                                            @if (Model.PageSize == 24)
-                                                            {
-                                                                <option value="24" selected="selected">24</option>
-                                                            }
-                                                            else
-                                                            {
-                                                                <option value="24">24</option>
-                                                            }
-                                                            
-                                                            @if (Model.PageSize == 36)
-                                                            {
-                                                                <option value="36" selected="selected">36</option>
-                                                            }
-                                                            else
-                                                            {
-                                                                <option value="36">36</option>
-                                                            }
-                                                            
-                                                            @if (Model.PageSize == 48)
-                                                            {
-                                                                <option value="48" selected="selected">48</option>
-                                                            }
-                                                            else
-                                                            {
-                                                                <option value="48">48</option>
-                                                            }
-                                                            
-                                                            @if (Model.PageSize == 100)
-                                                            {
-                                                                <option value="100" selected="selected">100</option>
-                                                            }
-                                                            else
-                                                            {
-                                                                <option value="100">100</option>
-                                                            }
-                                                        </select>
-                                                    </div>
-                                                    
-                                                    <div class="col-md-12 text-end">
-                                                        <button type="button" class="btn btn-outline-secondary me-2" id="resetFilters">
-                                                            <i class="bi bi-x-circle me-2"></i>Xóa bộ lọc
-                                                        </button>
-                                                        <button type="submit" class="btn btn-primary">
-                                                            <i class="bi bi-filter me-2"></i>Áp dụng bộ lọc
+                                                    <!-- Nút đóng dropdown -->
+                                                    <div class="manga-tags-footer">
+                                                        <button type="button" class="btn btn-sm btn-light" id="closeTagsDropdown">
+                                                            <i class="bi bi-x"></i> Đóng
                                                         </button>
                                                     </div>
                                                 </div>
                                             </div>
+                                            
+                                            <!-- Input ẩn chứa các tag đã chọn -->
+                                            <input type="hidden" id="selectedTags" name="includedTagsStr" value="@(string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()))" />
+                                            
+                                            <!-- Input ẩn chứa các tag loại trừ -->
+                                            <input type="hidden" id="excludedTags" name="excludedTagsStr" value="@(string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>()))" />
+                                            
+                                            <!-- Input ẩn chứa chế độ cho excludedTags -->
+                                            <input type="hidden" name="excludedTagsMode" id="excludedTagsMode" value="@(Model.SortOptions.ExcludedTagsMode ?? "OR")" />
+                                        </div>
+                                        
+                                        <div class="col-md-12 text-end">
+                                            <button type="button" class="btn btn-outline-secondary me-2" id="resetFilters">
+                                                <i class="bi bi-x-circle me-2"></i>Xóa bộ lọc
+                                            </button>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="bi bi-filter me-2"></i>Áp dụng bộ lọc
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -562,525 +589,11 @@
 </div>
 
 @section Styles {
-    <style>
-        /* Search card */
-        .search-card {
-            border-radius: 0.5rem;
-            box-shadow: var(--card-shadow);
-            border: none;
-            margin-bottom: 2rem;
-        }
-        
-        /* Manga Cards */
-        .manga-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border-radius: 0.5rem;
-            overflow: hidden;
-        }
-        
-        .manga-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--hover-shadow);
-        }
-        
-        /* Manga tag status */
-        .manga-status {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            font-size: 0.75rem;
-        }
-        
-        .manga-title {
-            font-size: 1rem;
-            height: 40px;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            margin-bottom: 0.5rem;
-        }
-        
-        /* Tags styling */
-        .tag-group h6 {
-            margin-bottom: 0.5rem;
-            color: var(--primary-color);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.25rem;
-        }
-        
-        .tag-list {
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .tag-item {
-            margin-right: 0 !important;
-            background-color: rgba(var(--bs-primary-rgb), 0.05);
-            border-radius: 0.25rem;
-            padding: 0.25rem 0.5rem;
-            transition: background-color 0.2s ease;
-        }
-        
-        .tag-item:hover {
-            background-color: rgba(var(--bs-primary-rgb), 0.1);
-        }
-        
-        .tag-item .form-check-input {
-            margin-top: 0.15rem;
-        }
-        
-        .tag-remove {
-            cursor: pointer;
-            margin-left: 0.25rem;
-            opacity: 0.7;
-            transition: opacity 0.2s ease;
-        }
-        
-        .tag-remove:hover {
-            opacity: 1;
-        }
-        
-        /* CSS cho thẻ đã chọn */
-        #selectedTagsBadges .badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.5rem 0.75rem;
-            font-size: 0.85rem;
-            font-weight: normal;
-        }
-        
-        /* Fix for dark mode text color */
-        [data-bs-theme="dark"] .manga-title a {
-            color: var(--body-color) !important;
-        }
-        
-        [data-bs-theme="dark"] .text-dark,
-        [data-bs-theme="dark"] .text-decoration-none.text-dark,
-        [data-bs-theme="dark"] .card-title a {
-            color: var(--body-color) !important;
-        }
-        
-        [data-bs-theme="dark"] .accordion-button {
-            color: var(--body-color);
-            background-color: var(--card-bg);
-        }
-        
-        [data-bs-theme="dark"] .accordion-item {
-            background-color: var(--card-bg);
-            border-color: var(--border-color);
-        }
-        
-        [data-bs-theme="dark"] .accordion-button:not(.collapsed) {
-            background-color: rgba(13, 110, 253, 0.1);
-            color: var(--primary-color);
-        }
-        
-        [data-bs-theme="dark"] .accordion-button:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        }
-        
-        [data-bs-theme="dark"] .accordion-button::after {
-            filter: invert(1) grayscale(100%) brightness(200%);
-        }
-        
-        /* Form controls trong chế độ tối */
-        [data-bs-theme="dark"] .form-control {
-            background-color: #2d2d2d;
-            border-color: var(--border-color);
-            color: var(--body-color);
-        }
-        
-        [data-bs-theme="dark"] .form-control:focus {
-            background-color: #363636;
-            color: var(--body-color);
-        }
-        
-        [data-bs-theme="dark"] .input-group-text {
-            background-color: #363636;
-            border-color: var(--border-color);
-            color: var(--body-color);
-        }
-        
-        /* Search input group */
-        .input-group-text.bg-primary {
-            background-color: var(--primary-color) !important;
-        }
-        
-        /* Pagination */
-        .pagination .page-link {
-            border-radius: 0.25rem;
-            margin: 0 2px;
-            color: var(--primary-color);
-        }
-        
-        .pagination .page-item.active .page-link {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-            color: white;
-        }
-        
-        /* Form elements */
-        .form-check-inline {
-            margin-right: 0.75rem;
-        }
-        
-        /* Badge adjustments for dark mode */
-        [data-bs-theme="dark"] .badge.bg-primary {
-            background-color: var(--primary-color) !important;
-        }
-        
-        [data-bs-theme="dark"] .badge.bg-secondary {
-            background-color: #505a68 !important;
-        }
-        
-        [data-bs-theme="dark"] .badge.bg-info {
-            background-color: #0a7f8f !important;
-        }
-        
-        /* Form check trong chế độ tối */
-        [data-bs-theme="dark"] .form-check-input {
-            background-color: #363636;
-            border-color: #666;
-        }
-        
-        [data-bs-theme="dark"] .form-check-input:checked {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-        
-        [data-bs-theme="dark"] .form-check-label {
-            color: var(--body-color);
-        }
-        
-        /* Form select trong chế độ tối */
-        [data-bs-theme="dark"] .form-select {
-            background-color: #2d2d2d;
-            border-color: var(--border-color);
-            color: var(--body-color);
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-        }
-        
-        [data-bs-theme="dark"] .form-select:focus {
-            background-color: #363636;
-            color: var(--body-color);
-            border-color: #86b7fe;
-            outline: 0;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        }
-        
-        /* Cải thiện card body trong chế độ tối */
-        [data-bs-theme="dark"] .card-body {
-            background-color: var(--card-bg);
-            color: var(--body-color);
-        }
-        
-        /* Button outline trong chế độ tối */
-        [data-bs-theme="dark"] .btn-outline-secondary {
-            color: #ccc;
-            border-color: #666;
-        }
-        
-        [data-bs-theme="dark"] .btn-outline-secondary:hover {
-            background-color: #444;
-            color: #fff;
-        }
-        
-        /* Reset filters button */
-        [data-bs-theme="dark"] #resetFilters:hover {
-            background-color: rgba(220, 53, 69, 0.1);
-            color: #dc3545;
-            border-color: #dc3545;
-        }
-        
-        /* Tags trong chế độ tối */
-        [data-bs-theme="dark"] .tag-item {
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-        
-        [data-bs-theme="dark"] .tag-item:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        
-        [data-bs-theme="dark"] #tagsContainer {
-            background-color: #222;
-            border-color: #444 !important;
-        }
-        
-        [data-bs-theme="dark"] .tag-group h6 {
-            color: #fff;
-            border-color: #444;
-        }
-    </style>
+    <link rel="stylesheet" href="~/css/pages/search.css" />
 }
 
 @section Scripts {
-    <script>
-        $(document).ready(function() {
-            // Xử lý nút reset bộ lọc
-            $('#resetFilters').click(function() {
-                // Reset form inputs
-                $('input[name="title"]').val('');
-                $('input[name="authorOrArtist"]').val('');
-                $('input[name="year"]').val('');
-                
-                // Reset trạng thái
-                $('input[name="status"]').prop('checked', false);
-                $('#statusAll').prop('checked', true);
-                
-                // Reset ngôn ngữ
-                $('input[name="availableTranslatedLanguage"]').prop('checked', false);
-                $('#langVi').prop('checked', true);
-                
-                // Reset đối tượng độc giả
-                $('input[name="publicationDemographic"]').prop('checked', false);
-                $('#demoAll').prop('checked', true);
-                
-                // Reset mức độ nội dung
-                $('input[name="contentRating"]').prop('checked', true);
-                
-                // Reset thẻ
-                $('input[name="includedTags[]"]').prop('checked', false);
-                $('#selectedTags').val('');
-                $('#selectedTagsBadges').empty();
-                $('#selectedTagsGroup').hide();
-                $('#tagsCount').text('0');
-                
-                // Reset includedTagsMode
-                $('#includedTagsModeToggle').prop('checked', false);
-                $('#includedTagsMode').val('AND');
-                $('#includedTagsModeLabel').text('VÀ');
-                
-                // Reset genres cũ (nếu còn)
-                $('input[name="genres"]').prop('checked', false);
-                
-                // Reset sortBy
-                $('select[name="sortBy"]').val('latest');
-                
-                // Reset pageSize
-                $('select[name="pageSize"]').val('24');
-                
-                // Reset page
-                $('input[name="page"]').val('1');
-                
-                // Submit form
-                $('#searchForm').submit();
-            });
-            
-            // Xử lý form submit để cập nhật giá trị hidden field
-            $('#searchForm').on('submit', function() {
-                // Cập nhật giá trị cho includedTagsStr từ các checkbox đã chọn
-                const selectedTags = [];
-                $('input[name="includedTags[]"]:checked').each(function() {
-                    selectedTags.push($(this).val());
-                });
-                
-                $('#selectedTags').val(selectedTags.join(','));
-                return true; // Cho phép form submit
-            });
-            
-            // Xử lý includedTagsMode toggle
-            $('#includedTagsModeToggle').on('change', function() {
-                if ($(this).is(':checked')) {
-                    $('#includedTagsMode').val('OR');
-                    $('#includedTagsModeLabel').text('HOẶC');
-                } else {
-                    $('#includedTagsMode').val('AND');
-                    $('#includedTagsModeLabel').text('VÀ');
-                }
-            });
-            
-            // Mở rộng collapse Tags nếu có tags đã được chọn
-            if ($('#selectedTags').val()) {
-                setTimeout(function() {
-                    $('#tagsList').collapse('show');
-                }, 500);
-            }
-            
-            // Kiểm tra số lượng thẻ đã chọn và cập nhật hiển thị
-            function updateTagsCount() {
-                const count = $('input[name="includedTags[]"]:checked').length;
-                $('#tagsCount').text(count);
-                $('#selectedTagsGroup').toggle(count > 0);
-            }
-            
-            // Chọn tất cả các ngôn ngữ
-            $('#selectAllLanguages').on('click', function(e) {
-                e.preventDefault();
-                $('input[name="availableTranslatedLanguage"]').prop('checked', true);
-            });
-            
-            // Bỏ chọn tất cả các ngôn ngữ
-            $('#deselectAllLanguages').on('click', function(e) {
-                e.preventDefault();
-                $('input[name="availableTranslatedLanguage"]').prop('checked', false);
-            });
-            
-            // Kiểm tra và cập nhật hiển thị ban đầu
-            updateTagsCount();
-            
-            // Khi thay đổi các checkbox thẻ
-            $(document).on('change', 'input[name="includedTags[]"]', function() {
-                updateTagsCount();
-            });
-            
-            // Xử lý tải danh sách thẻ từ API
-            $('#tagsList').on('show.bs.collapse', function() {
-                loadTags();
-            });
-            
-            // Hàm tải danh sách thẻ từ API
-            function loadTags() {
-                // Kiểm tra xem tags đã được tải hay chưa
-                if ($('#tagsContainer').find('.tag-group').length > 0) {
-                    return; // Đã tải rồi, không tải lại
-                }
-                
-                // Lấy danh sách các thẻ đã chọn
-                const selectedTagIds = ($('#selectedTags').val() || '').split(',').filter(id => id.trim() !== '');
-                
-                $.ajax({
-                    url: '/api/manga/tags',
-                    method: 'GET',
-                    success: function(response) {
-                        const tagsContainer = $('#tagsContainer');
-                        tagsContainer.empty();
-                        
-                        if (!response || !response.data || response.data.length === 0) {
-                            tagsContainer.html('<div class="alert alert-info">Không thể tải danh sách thẻ. Vui lòng thử lại sau.</div>');
-                            return;
-                        }
-                        
-                        // Nhóm thẻ theo group
-                        const tagGroups = {};
-                        
-                        response.data.forEach(tag => {
-                            if (!tag.attributes || !tag.attributes.name || !tag.attributes.group) return;
-                            
-                            const group = tag.attributes.group;
-                            if (!tagGroups[group]) {
-                                tagGroups[group] = [];
-                            }
-                            
-                            tagGroups[group].push({
-                                id: tag.id,
-                                name: tag.attributes.name.vi || tag.attributes.name.en || Object.values(tag.attributes.name)[0],
-                                description: tag.attributes.description?.vi || tag.attributes.description?.en || ''
-                            });
-                        });
-                        
-                        // Sắp xếp các nhóm thẻ theo thứ tự cố định
-                        const groupOrder = [
-                            'format', 'genre', 'theme', 'content', 'demographic'
-                        ];
-                        
-                        // Ánh xạ tên nhóm sang tiếng Việt
-                        const groupNames = {
-                            'format': 'Định dạng',
-                            'genre': 'Thể loại',
-                            'theme': 'Chủ đề',
-                            'content': 'Nội dung',
-                            'demographic': 'Đối tượng'
-                        };
-                        
-                        // Hiển thị các nhóm thẻ theo thứ tự
-                        groupOrder.forEach(group => {
-                            if (!tagGroups[group]) return;
-                            
-                            const tags = tagGroups[group];
-                            
-                            // Sắp xếp các thẻ theo tên
-                            tags.sort((a, b) => a.name.localeCompare(b.name));
-                            
-                            const groupDiv = $('<div class="tag-group mb-4"></div>');
-                            groupDiv.append(`<h6 class="border-bottom pb-2 mb-3">${groupNames[group] || group}</h6>`);
-                            
-                            const tagsDiv = $('<div class="d-flex flex-wrap gap-2"></div>');
-                            
-                            tags.forEach(tag => {
-                                const isChecked = selectedTagIds.includes(tag.id);
-                                const checkboxId = `tag-${tag.id}`;
-                                
-                                const tagDiv = $(`
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="includedTags[]" id="${checkboxId}" value="${tag.id}" ${isChecked ? 'checked' : ''}>
-                                        <label class="form-check-label" for="${checkboxId}" title="${tag.description || ''}">${tag.name}</label>
-                                    </div>
-                                `);
-                                
-                                tagsDiv.append(tagDiv);
-                                
-                                // Cập nhật hiển thị thẻ đã chọn
-                                if (isChecked) {
-                                    updateSelectedTagBadges(tag.id, tag.name);
-                                }
-                            });
-                            
-                            groupDiv.append(tagsDiv);
-                            tagsContainer.append(groupDiv);
-                        });
-                        
-                        // Cập nhật số lượng thẻ đã chọn
-                        updateTagsCount();
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Lỗi khi tải tags:', error);
-                        $('#tagsContainer').html(`
-                            <div class="alert alert-danger">
-                                <i class="bi bi-exclamation-triangle-fill me-2"></i>Không thể tải danh sách thẻ. Vui lòng thử lại sau.
-                            </div>
-                        `);
-                    }
-                });
-            }
-            
-            // Cập nhật hiển thị thẻ đã chọn
-            function updateSelectedTagBadges(tagId, tagName) {
-                const badgesContainer = $('#selectedTagsBadges');
-                const badgeId = `badge-${tagId}`;
-                
-                // Kiểm tra xem badge đã tồn tại chưa
-                if ($(`#${badgeId}`).length === 0) {
-                    const badge = $(`
-                        <span id="${badgeId}" class="badge bg-primary me-1 mb-1" data-tag-id="${tagId}">
-                            ${tagName}
-                            <button type="button" class="btn-close btn-close-white ms-1" aria-label="Xóa"></button>
-                        </span>
-                    `);
-                    
-                    badge.find('.btn-close').on('click', function() {
-                        $(`#tag-${tagId}`).prop('checked', false).trigger('change');
-                        badge.remove();
-                        updateTagsCount();
-                    });
-                    
-                    badgesContainer.append(badge);
-                }
-            }
-            
-            // Sự kiện khi chọn/bỏ chọn thẻ
-            $(document).on('change', 'input[name="includedTags[]"]', function() {
-                const tagId = $(this).val();
-                const tagName = $(this).next('label').text();
-                
-                if ($(this).is(':checked')) {
-                    updateSelectedTagBadges(tagId, tagName);
-                } else {
-                    $(`#badge-${tagId}`).remove();
-                }
-                
-                updateTagsCount();
-            });
-            
-            // Mở rộng tag list nếu đã có tags được chọn
-            if ($('#selectedTags').val()) {
-                setTimeout(function() {
-                    $('#tagsList').collapse('show');
-                }, 500);
-            }
-        });
-    </script>
+    <!-- Chức năng tìm kiếm được xử lý bởi module JavaScript riêng -->
 }
 
 @functions {

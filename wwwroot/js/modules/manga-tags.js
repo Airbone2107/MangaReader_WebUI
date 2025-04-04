@@ -2,66 +2,451 @@
  * manga-tags.js - Quản lý xử lý và hiển thị danh sách thẻ từ MangaDex API
  */
 
+// Biến lưu trữ danh sách thẻ đã tải
+let tagsData = null;
+let selectedTags = new Map(); // Sử dụng Map để lưu trữ các thẻ đã chọn (includedTags)
+let excludedTags = new Map(); // Sử dụng Map để lưu trữ các thẻ loại trừ (excludedTags)
+
 /**
- * Tải danh sách thẻ từ API MangaDex
+ * Khởi tạo chức năng thẻ trong form tìm kiếm
  */
-async function fetchTags() {
-    try {
-        console.log('Đang tải danh sách thẻ từ MangaDex...');
-        const response = await fetch('/api/manga/tags');
-        
-        if (!response.ok) {
-            throw new Error(`Lỗi khi tải danh sách thẻ: ${response.status}`);
+function initTagsInSearchForm() {
+    console.log('Đang khởi tạo module quản lý thẻ manga...');
+    
+    // Các phần tử DOM chính
+    const tagsSelection = document.getElementById('mangaTagsSelection');
+    const tagsDropdown = document.getElementById('mangaTagsDropdown');
+    const tagsContainer = document.getElementById('tagsContainer');
+    const selectedTagsDisplay = document.getElementById('selectedTagsDisplay');
+    const selectedTagsInput = document.getElementById('selectedTags');
+    const excludedTagsInput = document.getElementById('excludedTags');
+    const tagSearchInput = document.getElementById('tagSearchInput');
+    const closeTagsButton = document.getElementById('closeTagsDropdown');
+    const tagsModeToggle = document.getElementById('includedTagsModeToggle');
+    const tagsModeLabel = document.getElementById('includedTagsModeLabel');
+    const tagsModeInput = document.getElementById('includedTagsMode');
+    
+    // Nếu không tìm thấy các phần tử cần thiết, thoát
+    if (!tagsSelection || !tagsDropdown || !tagsContainer) {
+        console.log('Không tìm thấy các phần tử cần thiết cho module quản lý thẻ.');
+        return;
+    }
+    
+    // Khởi tạo danh sách thẻ đã chọn từ input ẩn
+    initSelectedTags();
+    
+    // Hiển thị/ẩn dropdown khi click vào selection box
+    tagsSelection.addEventListener('click', function() {
+        if (tagsDropdown.style.display === 'block') {
+            tagsDropdown.style.display = 'none';
+        } else {
+            tagsDropdown.style.display = 'block';
+            loadTags();
+            
+            // Focus vào ô tìm kiếm
+            if (tagSearchInput) {
+                setTimeout(() => tagSearchInput.focus(), 100);
+            }
         }
-        
-        const data = await response.json();
-        console.log('Đã tải danh sách thẻ thành công:', data);
-        return data;
-    } catch (error) {
-        console.error('Lỗi khi tải danh sách thẻ:', error);
-        return null;
+    });
+    
+    // Đóng dropdown khi click vào nút đóng
+    if (closeTagsButton) {
+        closeTagsButton.addEventListener('click', function() {
+            tagsDropdown.style.display = 'none';
+        });
+    }
+    
+    // Đóng dropdown khi click ra ngoài
+    document.addEventListener('click', function(e) {
+        if (!tagsSelection.contains(e.target) && !tagsDropdown.contains(e.target)) {
+            tagsDropdown.style.display = 'none';
+        }
+    });
+    
+    // Xử lý tìm kiếm thẻ
+    if (tagSearchInput) {
+        tagSearchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            const tagItems = document.querySelectorAll('.manga-tag-item');
+            const tagGroups = document.querySelectorAll('.manga-tag-group');
+            
+            let visibleCount = 0;
+            
+            tagItems.forEach(item => {
+                const tagName = item.querySelector('.manga-tag-name').textContent.toLowerCase();
+                if (searchTerm === '' || tagName.includes(searchTerm)) {
+                    item.style.display = '';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // Ẩn/hiện các nhóm thẻ dựa trên số thẻ hiển thị
+            tagGroups.forEach(group => {
+                const visibleItems = group.querySelectorAll('.manga-tag-item[style="display: none;"]');
+                if (visibleItems.length === group.querySelectorAll('.manga-tag-item').length) {
+                    group.style.display = 'none';
+                } else {
+                    group.style.display = '';
+                }
+            });
+        });
+    }
+    
+    // Xử lý thay đổi chế độ thẻ (AND/OR)
+    if (tagsModeToggle && tagsModeLabel && tagsModeInput) {
+        tagsModeToggle.addEventListener('change', function() {
+            if (this.checked) {
+                tagsModeLabel.textContent = 'HOẶC';
+                tagsModeInput.value = 'OR';
+            } else {
+                tagsModeLabel.textContent = 'VÀ';
+                tagsModeInput.value = 'AND';
+            }
+        });
+    }
+    
+    // Xử lý xóa thẻ khi click vào nút xóa trong các thẻ đã hiển thị
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.manga-tag-remove')) {
+            const tagBadge = e.target.closest('.manga-tag-badge');
+            const tagId = tagBadge.dataset.tagId;
+            const isExcluded = tagBadge.classList.contains('excluded');
+            
+            // Xóa thẻ khỏi danh sách tương ứng
+            if (isExcluded) {
+                excludedTags.delete(tagId);
+            } else {
+                selectedTags.delete(tagId);
+            }
+            
+            // Cập nhật hiển thị và input hidden
+            updateSelectedTagsDisplay();
+            updateTagsInput();
+            
+            // Cập nhật trạng thái checkbox trong danh sách
+            const tagItem = document.querySelector(`.manga-tag-item[data-tag-id="${tagId}"]`);
+            if (tagItem) {
+                const checkbox = tagItem.querySelector('input[type="checkbox"]');
+                if (checkbox) {
+                    checkbox.checked = false;
+                }
+                tagItem.classList.remove('selected', 'excluded');
+            }
+        }
+    });
+}
+
+/**
+ * Khởi tạo danh sách thẻ đã chọn từ input ẩn
+ */
+function initSelectedTags() {
+    // Xóa danh sách thẻ đã chọn cũ
+    selectedTags.clear();
+    excludedTags.clear();
+    
+    // Khởi tạo includedTags
+    const selectedTagsInput = document.getElementById('selectedTags');
+    if (selectedTagsInput && selectedTagsInput.value) {
+        const tagIds = selectedTagsInput.value.split(',').filter(Boolean);
+        tagIds.forEach(tagId => {
+            selectedTags.set(tagId, tagId); // Tạm thời sử dụng ID làm tên
+        });
+    }
+    
+    // Khởi tạo excludedTags
+    const excludedTagsInput = document.getElementById('excludedTags');
+    if (excludedTagsInput && excludedTagsInput.value) {
+        const tagIds = excludedTagsInput.value.split(',').filter(Boolean);
+        tagIds.forEach(tagId => {
+            excludedTags.set(tagId, tagId); // Tạm thời sử dụng ID làm tên
+        });
     }
 }
 
 /**
- * Phân loại danh sách thẻ theo nhóm
- * @param {Array} tags - Danh sách thẻ từ API
- * @returns {Object} Danh sách thẻ đã phân loại theo nhóm
+ * Tải danh sách thẻ từ API
  */
-function categorizeTagsByGroup(tags) {
-    if (!tags || !Array.isArray(tags)) return {};
+async function loadTags() {
+    // Nếu đã tải dữ liệu, không cần tải lại
+    if (tagsData) {
+        renderTags(tagsData);
+        return;
+    }
     
-    const categorizedTags = {};
-    
-    tags.forEach(tag => {
-        // Lấy dữ liệu từ tag
-        const id = tag.id;
-        const attributes = tag.attributes || {};
-        const name = attributes.name?.vi || attributes.name?.en || 'Không có tên';
-        const group = attributes.group || 'other';
-        
-        // Tạo nhóm nếu chưa tồn tại
-        if (!categorizedTags[group]) {
-            categorizedTags[group] = [];
+    try {
+        // Hiển thị spinner
+        const tagsContainer = document.getElementById('tagsContainer');
+        if (tagsContainer) {
+            tagsContainer.innerHTML = `
+                <div class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span>Đang tải danh sách thẻ...</span>
+                </div>
+            `;
         }
         
-        // Thêm tag vào nhóm
-        categorizedTags[group].push({
-            id,
-            name,
-            description: attributes.description?.vi || attributes.description?.en || '',
-        });
-    });
-    
-    return categorizedTags;
+        // Tải danh sách thẻ
+        const response = await fetch('/api/manga/tags');
+        if (!response.ok) {
+            throw new Error(`Lỗi khi tải danh sách thẻ: ${response.status}`);
+        }
+        
+        tagsData = await response.json();
+        renderTags(tagsData);
+    } catch (error) {
+        console.error('Lỗi khi tải danh sách thẻ:', error);
+        
+        // Hiển thị thông báo lỗi
+        const tagsContainer = document.getElementById('tagsContainer');
+        if (tagsContainer) {
+            tagsContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    Không thể tải danh sách thẻ. Vui lòng thử lại sau.
+                </div>
+            `;
+        }
+    }
 }
 
 /**
- * Dịch tên nhóm thẻ sang tiếng Việt
- * @param {string} groupName - Tên nhóm thẻ
- * @returns {string} Tên nhóm thẻ đã dịch
+ * Hiển thị danh sách thẻ từ API
+ * @param {Object} data - Dữ liệu thẻ từ API
  */
-function translateGroupName(groupName) {
+function renderTags(data) {
+    const container = document.getElementById('tagsContainer');
+    if (!container) return;
+    
+    // Xóa nội dung cũ
+    container.innerHTML = '';
+    
+    // Kiểm tra dữ liệu
+    if (!data || !data.data || !Array.isArray(data.data)) {
+        container.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Không có dữ liệu thẻ.
+            </div>
+        `;
+        return;
+    }
+    
+    // Phân loại thẻ theo nhóm
+    const tagsByGroup = {};
+    data.data.forEach(tag => {
+        const attributes = tag.attributes || {};
+        const group = attributes.group || 'other';
+        
+        if (!tagsByGroup[group]) {
+            tagsByGroup[group] = [];
+        }
+        
+        tagsByGroup[group].push({
+            id: tag.id,
+            name: attributes.name?.vi || attributes.name?.en || 'Không rõ',
+            description: attributes.description?.vi || attributes.description?.en || ''
+        });
+    });
+    
+    // Sắp xếp các nhóm theo thứ tự ưu tiên
+    const groupOrder = ['genre', 'theme', 'format', 'content', 'demographic', 'other'];
+    const sortedGroups = Object.keys(tagsByGroup).sort((a, b) => {
+        return groupOrder.indexOf(a) - groupOrder.indexOf(b);
+    });
+    
+    // Hiển thị từng nhóm
+    sortedGroups.forEach(group => {
+        // Dịch tên nhóm
+        const groupName = translateGroupName(group);
+        
+        // Tạo phần tử nhóm
+        const tagGroup = document.createElement('div');
+        tagGroup.className = 'manga-tag-group';
+        
+        // Tạo tiêu đề nhóm
+        const groupTitle = document.createElement('div');
+        groupTitle.className = 'manga-tag-group-title';
+        groupTitle.textContent = groupName;
+        tagGroup.appendChild(groupTitle);
+        
+        // Tạo danh sách thẻ trong nhóm
+        const tagList = document.createElement('div');
+        tagList.className = 'manga-tag-list';
+        
+        // Sắp xếp thẻ theo tên
+        tagsByGroup[group].sort((a, b) => a.name.localeCompare(b.name)).forEach(tag => {
+            // Xác định trạng thái của tag
+            const isIncluded = selectedTags.has(tag.id);
+            const isExcluded = excludedTags.has(tag.id);
+            
+            // Tạo item thẻ
+            const tagItem = document.createElement('div');
+            tagItem.className = 'manga-tag-item';
+            tagItem.dataset.tagId = tag.id;
+            
+            // Thêm class dựa trên trạng thái
+            if (isIncluded) {
+                tagItem.classList.add('selected');
+            } else if (isExcluded) {
+                tagItem.classList.add('excluded');
+            }
+            
+            // Tạo checkbox
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'form-check-input';
+            checkbox.checked = isIncluded || isExcluded;
+            
+            // Tạo label
+            const label = document.createElement('span');
+            label.className = 'manga-tag-name';
+            label.textContent = tag.name;
+            
+            // Thêm tooltip nếu có mô tả
+            if (tag.description) {
+                label.title = tag.description;
+            }
+            
+            // Thêm các phần tử vào item
+            tagItem.appendChild(checkbox);
+            tagItem.appendChild(label);
+            
+            // Xử lý sự kiện click
+            tagItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Xác định trạng thái hiện tại
+                const isIncluded = selectedTags.has(tag.id);
+                const isExcluded = excludedTags.has(tag.id);
+                
+                // Đảo trạng thái theo chu kỳ: Không chọn -> Included -> Excluded -> Không chọn
+                if (!isIncluded && !isExcluded) {
+                    // Thêm vào includedTags
+                    selectedTags.set(tag.id, tag.name);
+                    tagItem.classList.add('selected');
+                    tagItem.classList.remove('excluded');
+                    checkbox.checked = true;
+                } else if (isIncluded) {
+                    // Chuyển từ includedTags sang excludedTags
+                    selectedTags.delete(tag.id);
+                    excludedTags.set(tag.id, tag.name);
+                    tagItem.classList.remove('selected');
+                    tagItem.classList.add('excluded');
+                    checkbox.checked = true;
+                } else {
+                    // Xóa khỏi excludedTags (không chọn)
+                    excludedTags.delete(tag.id);
+                    tagItem.classList.remove('excluded', 'selected');
+                    checkbox.checked = false;
+                }
+                
+                // Cập nhật hiển thị
+                updateSelectedTagsDisplay();
+                updateTagsInput();
+            });
+            
+            tagList.appendChild(tagItem);
+        });
+        
+        tagGroup.appendChild(tagList);
+        container.appendChild(tagGroup);
+    });
+}
+
+/**
+ * Cập nhật hiển thị các thẻ đã chọn
+ */
+function updateSelectedTagsDisplay() {
+    const selectedTagsDisplay = document.getElementById('selectedTagsDisplay');
+    if (!selectedTagsDisplay) return;
+    
+    // Xóa tất cả các thẻ hiện tại
+    selectedTagsDisplay.innerHTML = '';
+    
+    if (selectedTags.size === 0 && excludedTags.size === 0) {
+        // Hiển thị thông báo trống
+        const empty = document.createElement('span');
+        empty.id = 'emptyTagsMessage';
+        empty.className = 'manga-tags-empty';
+        empty.textContent = 'Chưa có thẻ nào được chọn. Bấm để chọn thẻ.';
+        selectedTagsDisplay.appendChild(empty);
+    } else {
+        // Hiển thị các thẻ đã chọn (includedTags)
+        selectedTags.forEach((name, id) => {
+            const tagBadge = createTagBadge(id, name, false);
+            selectedTagsDisplay.appendChild(tagBadge);
+        });
+        
+        // Hiển thị các thẻ loại trừ (excludedTags)
+        excludedTags.forEach((name, id) => {
+            const tagBadge = createTagBadge(id, name, true);
+            selectedTagsDisplay.appendChild(tagBadge);
+        });
+    }
+}
+
+/**
+ * Tạo phần tử hiển thị tag badge
+ * @param {string} id - ID của tag
+ * @param {string} name - Tên của tag
+ * @param {boolean} isExcluded - Có phải là tag loại trừ không
+ * @returns {HTMLElement} - Phần tử badge
+ */
+function createTagBadge(id, name, isExcluded) {
+    const tagBadge = document.createElement('div');
+    tagBadge.className = 'manga-tag-badge';
+    tagBadge.dataset.tagId = id;
+    
+    // Thêm class loại trừ nếu cần
+    if (isExcluded) {
+        tagBadge.classList.add('excluded');
+    }
+    
+    const tagName = document.createElement('span');
+    tagName.className = 'manga-tag-name';
+    tagName.textContent = name;
+    
+    const tagRemove = document.createElement('span');
+    tagRemove.className = 'manga-tag-remove';
+    tagRemove.innerHTML = '<i class="bi bi-x"></i>';
+    
+    tagBadge.appendChild(tagName);
+    tagBadge.appendChild(tagRemove);
+    
+    return tagBadge;
+}
+
+/**
+ * Cập nhật input ẩn chứa danh sách thẻ đã chọn
+ */
+function updateTagsInput() {
+    // Cập nhật selectedTags (includedTags)
+    const selectedTagsInput = document.getElementById('selectedTags');
+    if (selectedTagsInput) {
+        // Chuyển map thành mảng ID
+        const tagIds = Array.from(selectedTags.keys());
+        selectedTagsInput.value = tagIds.join(',');
+    }
+    
+    // Cập nhật excludedTags
+    const excludedTagsInput = document.getElementById('excludedTags');
+    if (excludedTagsInput) {
+        // Chuyển map thành mảng ID
+        const tagIds = Array.from(excludedTags.keys());
+        excludedTagsInput.value = tagIds.join(',');
+    }
+}
+
+/**
+ * Dịch tên nhóm sang tiếng Việt
+ * @param {string} group - Tên nhóm gốc
+ * @returns {string} - Tên nhóm đã dịch
+ */
+function translateGroupName(group) {
     const translations = {
         'genre': 'Thể loại',
         'theme': 'Chủ đề',
@@ -71,153 +456,8 @@ function translateGroupName(groupName) {
         'other': 'Khác'
     };
     
-    return translations[groupName] || groupName;
+    return translations[group] || group;
 }
 
-/**
- * Tạo HTML cho danh sách thẻ theo nhóm
- * @param {Object} categorizedTags - Danh sách thẻ đã phân loại theo nhóm
- * @param {Array} selectedTags - Danh sách thẻ đã chọn (nếu có)
- * @returns {string} HTML cho danh sách thẻ
- */
-function createTagsHTML(categorizedTags, selectedTags = []) {
-    let html = '';
-    
-    // Sắp xếp các nhóm theo thứ tự ưu tiên
-    const sortOrder = ['genre', 'theme', 'format', 'content', 'demographic', 'other'];
-    const sortedGroups = Object.keys(categorizedTags).sort((a, b) => {
-        return sortOrder.indexOf(a) - sortOrder.indexOf(b);
-    });
-    
-    // Tạo HTML cho từng nhóm
-    sortedGroups.forEach(group => {
-        const tags = categorizedTags[group];
-        const groupNameTranslated = translateGroupName(group);
-        
-        html += `<div class="tag-group mb-3">
-            <h6 class="fw-bold">${groupNameTranslated}</h6>
-            <div class="d-flex flex-wrap tag-list">`;
-        
-        // Tạo HTML cho từng thẻ trong nhóm
-        tags.forEach(tag => {
-            const isSelected = selectedTags.includes(tag.id);
-            html += `
-                <div class="form-check form-check-inline tag-item" title="${tag.description || ''}">
-                    <input class="form-check-input" type="checkbox" name="includedTags[]" 
-                        id="tag-${tag.id}" value="${tag.id}" ${isSelected ? 'checked' : ''}>
-                    <label class="form-check-label" for="tag-${tag.id}">${tag.name}</label>
-                </div>`;
-        });
-        
-        html += `</div></div>`;
-    });
-    
-    return html;
-}
-
-/**
- * Khởi tạo xử lý danh sách thẻ trong form tìm kiếm
- */
-async function initTagsInSearchForm() {
-    const tagsContainer = document.getElementById('tagsContainer');
-    if (!tagsContainer) return;
-    
-    // Hiển thị trạng thái đang tải
-    tagsContainer.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Đang tải danh sách thẻ...</div>';
-    
-    try {
-        // Tải danh sách thẻ từ API
-        const tagsData = await fetchTags();
-        
-        if (!tagsData || !tagsData.data) {
-            tagsContainer.innerHTML = '<div class="alert alert-warning">Không thể tải danh sách thẻ. Vui lòng thử lại sau.</div>';
-            return;
-        }
-        
-        // Lấy danh sách thẻ đã phân loại
-        const categorizedTags = categorizeTagsByGroup(tagsData.data);
-        
-        // Lấy danh sách thẻ đã chọn (nếu có)
-        const selectedTagsElement = document.getElementById('selectedTags');
-        const selectedTags = selectedTagsElement ? selectedTagsElement.value.split(',').filter(Boolean) : [];
-        
-        // Hiển thị danh sách thẻ
-        tagsContainer.innerHTML = createTagsHTML(categorizedTags, selectedTags);
-        
-        // Thêm sự kiện cho các thẻ checkbox
-        attachTagsEvents();
-    } catch (error) {
-        console.error('Lỗi khi khởi tạo danh sách thẻ:', error);
-        tagsContainer.innerHTML = '<div class="alert alert-danger">Đã xảy ra lỗi khi tải danh sách thẻ.</div>';
-    }
-}
-
-/**
- * Gắn các sự kiện cho các thẻ checkbox
- */
-function attachTagsEvents() {
-    const tagCheckboxes = document.querySelectorAll('input[name="includedTags[]"]');
-    
-    tagCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            updateSelectedTagsBadges();
-        });
-    });
-    
-    // Khởi tạo hiển thị các thẻ đã chọn
-    updateSelectedTagsBadges();
-}
-
-/**
- * Cập nhật hiển thị badge cho các thẻ đã chọn
- */
-function updateSelectedTagsBadges() {
-    const selectedTagsContainer = document.getElementById('selectedTagsBadges');
-    if (!selectedTagsContainer) return;
-    
-    const tagCheckboxes = document.querySelectorAll('input[name="includedTags[]"]:checked');
-    const tagsCount = tagCheckboxes.length;
-    
-    // Cập nhật số lượng thẻ đã chọn
-    const tagsCountContainer = document.getElementById('tagsCount');
-    if (tagsCountContainer) {
-        tagsCountContainer.textContent = tagsCount;
-    }
-    
-    // Xóa tất cả badge hiện tại
-    selectedTagsContainer.innerHTML = '';
-    
-    // Thêm badge mới cho mỗi thẻ đã chọn
-    tagCheckboxes.forEach(checkbox => {
-        const labelElement = document.querySelector(`label[for="${checkbox.id}"]`);
-        const tagName = labelElement ? labelElement.textContent : checkbox.value;
-        
-        const badge = document.createElement('span');
-        badge.className = 'badge bg-primary me-1 mb-1';
-        badge.innerHTML = `${tagName} <i class="bi bi-x-circle tag-remove" data-tag-id="${checkbox.value}"></i>`;
-        selectedTagsContainer.appendChild(badge);
-        
-        // Thêm sự kiện xóa thẻ
-        const removeIcon = badge.querySelector('.tag-remove');
-        if (removeIcon) {
-            removeIcon.addEventListener('click', function() {
-                checkbox.checked = false;
-                updateSelectedTagsBadges();
-            });
-        }
-    });
-    
-    // Hiển thị hoặc ẩn container tùy thuộc vào số lượng thẻ đã chọn
-    const selectedTagsGroup = document.getElementById('selectedTagsGroup');
-    if (selectedTagsGroup) {
-        selectedTagsGroup.style.display = tagsCount > 0 ? 'block' : 'none';
-    }
-}
-
-// Export các hàm cần thiết
-export { 
-    initTagsInSearchForm,
-    fetchTags,
-    categorizeTagsByGroup,
-    createTagsHTML
-}; 
+// Export function
+export { initTagsInSearchForm };
