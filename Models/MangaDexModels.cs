@@ -38,9 +38,9 @@ namespace manga_reader_web.Models
     public class SortManga
     {
         public string Title { get; set; }
-        public string Status { get; set; }
+        public List<string> Status { get; set; } = new List<string>();
         public string Safety { get; set; }
-        public string Demographic { get; set; }
+        public List<string> Demographic { get; set; } = new List<string>();
         public List<string> IncludedTags { get; set; } = new List<string>();
         public List<string> ExcludedTags { get; set; } = new List<string>();
         public List<string> Languages { get; set; } = new List<string>();
@@ -49,24 +49,34 @@ namespace manga_reader_web.Models
         public List<string> Genres { get; set; } = new List<string>();
         public string IncludedTagsMode { get; set; } = "AND";
         public string ExcludedTagsMode { get; set; } = "OR";
-        public string AuthorOrArtist { get; set; }
+        public List<string> Authors { get; set; } = new List<string>();
+        public List<string> Artists { get; set; } = new List<string>();
         public int? Year { get; set; }
         public List<string> ContentRating { get; set; } = new List<string>();
+        public List<string> OriginalLanguage { get; set; } = new List<string>();
+        public List<string> ExcludedOriginalLanguage { get; set; } = new List<string>();
+        public string CreatedAtSince { get; set; }
+        public string UpdatedAtSince { get; set; }
+        public bool? HasAvailableChapters { get; set; }
+        public string Group { get; set; }
 
         public SortManga()
         {
             // Giá trị mặc định
             Title = "";
-            Status = "";
+            Status = new List<string>();
             Safety = "";
-            Demographic = "";
+            Demographic = new List<string>();
             SortBy = "latest";
-            AuthorOrArtist = "";
             IncludedTags = new List<string>();
             ExcludedTags = new List<string>();
             Languages = new List<string>();
             Genres = new List<string>();
-            ContentRating = new List<string>() { "safe", "suggestive" };
+            ContentRating = new List<string>() { "safe", "suggestive", "erotica"};
+            Authors = new List<string>();
+            Artists = new List<string>();
+            OriginalLanguage = new List<string>();
+            ExcludedOriginalLanguage = new List<string>();
         }
 
         // Chuyển đổi thành Dictionary để tạo query parameters
@@ -78,17 +88,21 @@ namespace manga_reader_web.Models
             if (!string.IsNullOrEmpty(Title))
                 parameters["title"] = Title;
                 
-            // Tác giả hoặc họa sĩ
-            if (!string.IsNullOrEmpty(AuthorOrArtist))
-                parameters["authorOrArtist"] = AuthorOrArtist;
+            // Danh sách tác giả
+            if (Authors != null && Authors.Count > 0)
+                parameters["authors[]"] = Authors;
+                
+            // Danh sách họa sĩ
+            if (Artists != null && Artists.Count > 0)
+                parameters["artists[]"] = Artists;
                 
             // Năm phát hành
             if (Year.HasValue && Year > 0)
                 parameters["year"] = Year.Value;
 
             // Tham số trạng thái - đảm bảo dùng status[] 
-            if (!string.IsNullOrEmpty(Status) && Status != "Tất cả")
-                parameters["status[]"] = Status.ToLower();
+            if (Status != null && Status.Count > 0)
+                parameters["status[]"] = Status;
 
             // Xử lý tham số includedTags[] - đúng định dạng API yêu cầu
             if (IncludedTags != null && IncludedTags.Count > 0)
@@ -116,6 +130,29 @@ namespace manga_reader_web.Models
                 if (validLanguages.Count > 0)
                     parameters["availableTranslatedLanguage[]"] = validLanguages;
             }
+            
+            // Ngôn ngữ gốc
+            if (OriginalLanguage != null && OriginalLanguage.Count > 0)
+                parameters["originalLanguage[]"] = OriginalLanguage;
+                
+            // Loại trừ ngôn ngữ gốc
+            if (ExcludedOriginalLanguage != null && ExcludedOriginalLanguage.Count > 0)
+                parameters["excludedOriginalLanguage[]"] = ExcludedOriginalLanguage;
+                
+            // Thời gian tạo và cập nhật
+            if (!string.IsNullOrEmpty(CreatedAtSince))
+                parameters["createdAtSince"] = CreatedAtSince;
+                
+            if (!string.IsNullOrEmpty(UpdatedAtSince))
+                parameters["updatedAtSince"] = UpdatedAtSince;
+                
+            // Manga có chương sẵn có
+            if (HasAvailableChapters.HasValue)
+                parameters["hasAvailableChapters"] = HasAvailableChapters.Value ? "true" : "false";
+                
+            // Nhóm
+            if (!string.IsNullOrEmpty(Group))
+                parameters["group"] = Group;
 
             // Chuyển đổi các giá trị sortBy sang các tham số order tương ứng
             if (SortBy == "latest")
@@ -166,10 +203,14 @@ namespace manga_reader_web.Models
                 parameters["contentRating[]"] = new[] { Safety.ToLower() };
             }
 
-            // Thêm tham số demographyic nếu có chỉ định
-            if (!string.IsNullOrEmpty(Demographic) && Demographic != "Tất cả")
+            // Thêm tham số demographic nếu có chỉ định
+            if (Demographic != null && Demographic.Count > 0)
             {
-                parameters["publicationDemographic[]"] = Demographic.ToLower();
+                parameters["publicationDemographic[]"] = Demographic;
+            }
+            else if (!string.IsNullOrEmpty(Safety) && Safety != "Tất cả")
+            {
+                parameters["publicationDemographic[]"] = new[] { Safety.ToLower() };
             }
 
             return parameters;

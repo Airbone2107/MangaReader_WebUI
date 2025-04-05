@@ -22,9 +22,11 @@
     --primary-rgb: 13, 110, 253; /* Màu chính dạng RGB để dùng với rgba() */
     --secondary-color: #6c757d;  /* Màu phụ */
     --success-color: #198754;    /* Màu thành công */
+    --success-rgb: 25, 135, 84;  /* RGB của màu thành công */
     --info-color: #0dcaf0;       /* Màu thông tin */
     --warning-color: #ffc107;    /* Màu cảnh báo */
     --danger-color: #dc3545;     /* Màu nguy hiểm/lỗi */
+    --danger-rgb: 220, 53, 69;   /* RGB của màu nguy hiểm */
     --light-color: #f8f9fa;      /* Màu sáng */
     --dark-color: #212529;       /* Màu tối */
     
@@ -77,6 +79,77 @@
     --active-hover-bg-light: rgba(13, 110, 253, 0.25);/* Màu nền khi hover active (nhạt) */
     --sidebar-active-text: var(--primary-color);      /* Màu chữ khi active trong sidebar */
     --sidebar-active-bg: rgba(13, 110, 253, 0.15);    /* Màu nền khi active trong sidebar */
+
+    /* ===== Form Elements - Các thành phần form ===== */
+    --input-bg: #ffffff;                             /* Màu nền input */
+    --input-focus-bg: #ffffff;                       /* Màu nền input khi focus */
+    --input-border: var(--border-color);             /* Màu viền input */
+    --input-focus-border: #86b7fe;                   /* Màu viền input khi focus */
+    --input-color: var(--body-color);                /* Màu chữ input */
+    --input-focus-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); /* Shadow khi focus input */
+    --input-group-bg: #f0f0f0;                       /* Màu nền input group */
+
+    /* ===== Accordion - Thành phần accordion ===== */
+    --accordion-bg: var(--card-bg);                  /* Màu nền accordion */
+    --accordion-border: var(--border-color);         /* Màu viền accordion */
+    --accordion-button-bg: var(--card-bg);           /* Màu nền nút accordion */
+    --accordion-button-active-bg: rgba(13, 110, 253, 0.1); /* Màu nền nút accordion khi active */
+    --accordion-button-active-color: var(--primary-color); /* Màu chữ nút accordion khi active */
+    --accordion-button-focus-border: var(--primary-color); /* Màu viền nút accordion khi focus */
+    --accordion-button-focus-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); /* Shadow nút accordion khi focus */
+
+    /* ===== Search Elements - Các thành phần tìm kiếm ===== */
+    --filter-toggle-bg: #ffffff;                     /* Màu nền nút filter */
+    --filter-toggle-border: var(--border-color);     /* Màu viền nút filter */
+    --filter-content-bg: #ffffff;                    /* Màu nền nội dung filter */
+    --filter-content-border: var(--border-color);    /* Màu viền nội dung filter */
+    --dropdown-bg: #ffffff;                          /* Màu nền dropdown */
+    --dropdown-border: var(--border-color);          /* Màu viền dropdown */
+    --dropdown-item-hover-bg: rgba(0, 0, 0, 0.05);   /* Màu nền item dropdown khi hover */
+    --dropdown-item-active-bg: var(--primary-color); /* Màu nền item dropdown khi active */
+    --dropdown-scrollbar-thumb: #aaaaaa;             /* Màu thanh cuộn thumb trong dropdown */
+
+    /* ===== Tag Components - Các thành phần tag ===== */
+    --tag-item-bg: #f0f0f0;                          /* Màu nền tag */
+    --tag-item-hover-bg: #e0e0e0;                    /* Màu nền tag khi hover */
+    --tag-item-border: var(--border-color);          /* Màu viền tag */
+    --tag-container-bg: #ffffff;                     /* Màu nền container tag */
+    --tag-container-border: var(--border-color);     /* Màu viền container tag */
+    --tag-group-title-border: var(--border-color);   /* Màu viền tiêu đề nhóm tag */
+    
+    /* ===== Manga Tag Components - Các thành phần tag manga ===== */
+    --manga-tag-item-bg: #f0f0f0;                    /* Màu nền tag manga */
+    --manga-tag-item-hover-bg: #e0e0e0;              /* Màu nền tag manga khi hover */
+    --manga-tag-item-border: rgba(0, 0, 0, 0.1);     /* Màu viền tag manga */
+    --manga-tag-selected-bg: rgba(25, 135, 84, 0.15);/* Màu nền tag manga khi được chọn */
+    --manga-tag-selected-color: var(--success-color);/* Màu chữ tag manga khi được chọn */
+    --manga-tag-selected-border: rgba(25, 135, 84, 0.3); /* Màu viền tag manga khi được chọn */
+    --manga-tag-excluded-bg: rgba(220, 53, 69, 0.2); /* Màu nền tag manga khi bị loại trừ */
+    --manga-tag-excluded-hover-bg: rgba(220, 53, 69, 0.25); /* Màu nền tag manga khi hover và bị loại trừ */
+    --manga-tag-excluded-color: #dc3545;             /* Màu chữ tag manga khi bị loại trừ */
+    --manga-tag-excluded-border: rgba(220, 53, 69, 0.3); /* Màu viền tag manga khi bị loại trừ */
+    --manga-tags-selection-bg: #ffffff;              /* Màu nền vùng chọn tag manga */
+    --manga-tags-selection-border: var(--border-color); /* Màu viền vùng chọn tag manga */
+    --manga-tags-dropdown-bg: #ffffff;               /* Màu nền dropdown tag manga */
+    --manga-tags-dropdown-border: var(--border-color); /* Màu viền dropdown tag manga */
+    --manga-tag-badge-bg: rgba(25, 135, 84, 0.2);    /* Màu nền badge tag manga */
+    --manga-tag-badge-border: rgba(25, 135, 84, 0.3);/* Màu viền badge tag manga */
+    --manga-tag-badge-color: #198754;                /* Màu chữ badge tag manga */
+    --manga-tag-group-title-after-bg: #e0e0e0;       /* Màu nền sau tiêu đề nhóm tag manga */
+    --manga-tags-footer-bg: rgba(0, 0, 0, 0.02);     /* Màu nền footer tag manga */
+    --manga-tags-footer-border: var(--border-color); /* Màu viền footer tag manga */
+
+    /* ===== Tooltip Components - Các thành phần tooltip ===== */
+    --tooltip-bg: #ffffff;                           /* Màu nền tooltip */
+    --tooltip-border: var(--border-color);           /* Màu viền tooltip */
+    --tooltip-arrow-color: #ffffff;                  /* Màu mũi tên tooltip */
+    --help-icon-color: rgba(13, 110, 253, 0.9);      /* Màu biểu tượng trợ giúp */
+
+    /* ===== Tag Mode Components - Các thành phần chế độ tag ===== */
+    --tag-mode-and-bg: rgba(13, 110, 253, 0.2);      /* Màu nền chế độ tag AND */
+    --tag-mode-and-color: var(--primary-color);      /* Màu chữ chế độ tag AND */
+    --tag-mode-or-bg: rgba(25, 135, 84, 0.2);        /* Màu nền chế độ tag OR */
+    --tag-mode-or-color: var(--success-color);       /* Màu chữ chế độ tag OR */
 }
 
 /* Dark theme - Biến cho chế độ tối */
@@ -86,9 +159,11 @@
     --primary-rgb: 13, 110, 253;
     --secondary-color: #6c757d;
     --success-color: #198754;
+    --success-rgb: 25, 135, 84;
     --info-color: #0dcaf0;
     --warning-color: #ffc107;
     --danger-color: #dc3545;
+    --danger-rgb: 220, 53, 69;
     --light-color: #212529;      /* Đảo ngược light/dark */
     --dark-color: #f8f9fa;       /* Đảo ngược light/dark */
     
@@ -140,4 +215,80 @@
     --active-hover-bg-dark: rgba(13, 110, 253, 0.35);/* Màu nền hover active đậm hơn */
     --sidebar-active-text: #97c0ff;                 /* Màu chữ active sidebar xanh sáng */
     --sidebar-active-bg: rgba(13, 110, 253, 0.25);  /* Màu nền active sidebar */
+
+    /* ===== Form Elements - Các thành phần form trong dark mode ===== */
+    --input-bg: #2d2d2d;                              /* Màu nền input trong dark mode */
+    --input-focus-bg: #363636;                        /* Màu nền input khi focus trong dark mode */
+    --input-border: var(--border-color);              /* Màu viền input trong dark mode */
+    --input-focus-border: #86b7fe;                    /* Màu viền input khi focus trong dark mode */
+    --input-color: var(--body-color);                 /* Màu chữ input trong dark mode */
+    --input-focus-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); /* Shadow khi focus input trong dark mode */
+    --input-group-bg: #363636;                        /* Màu nền input group trong dark mode */
+
+    /* ===== Accordion - Thành phần accordion trong dark mode ===== */
+    --accordion-bg: var(--card-bg);                   /* Màu nền accordion trong dark mode */
+    --accordion-border: var(--border-color);          /* Màu viền accordion trong dark mode */
+    --accordion-button-bg: var(--card-bg);            /* Màu nền nút accordion trong dark mode */
+    --accordion-button-active-bg: rgba(13, 110, 253, 0.1); /* Màu nền nút accordion khi active trong dark mode */
+    --accordion-button-active-color: var(--primary-color); /* Màu chữ nút accordion khi active trong dark mode */
+    --accordion-button-focus-border: var(--primary-color); /* Màu viền nút accordion khi focus trong dark mode */
+    --accordion-button-focus-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); /* Shadow nút accordion khi focus trong dark mode */
+
+    /* ===== Search Elements - Các thành phần tìm kiếm trong dark mode ===== */
+    --filter-toggle-bg: #2d2d2d;                      /* Màu nền nút filter trong dark mode */
+    --filter-toggle-border: #444;                     /* Màu viền nút filter trong dark mode */
+    --filter-content-bg: #2d2d2d;                     /* Màu nền nội dung filter trong dark mode */
+    --filter-content-border: #444;                    /* Màu viền nội dung filter trong dark mode */
+    --dropdown-bg: #222;                              /* Màu nền dropdown trong dark mode */
+    --dropdown-border: #444;                          /* Màu viền dropdown trong dark mode */
+    --dropdown-item-hover-bg: rgba(255, 255, 255, 0.05); /* Màu nền item dropdown khi hover trong dark mode */
+    --dropdown-item-active-bg: var(--primary-color);  /* Màu nền item dropdown khi active trong dark mode */
+    --dropdown-scrollbar-thumb: #555;                 /* Màu thanh cuộn thumb trong dropdown trong dark mode */
+
+    /* ===== Badge Colors - Màu badge trong dark mode ===== */
+    --badge-primary-bg: var(--primary-color);         /* Màu nền badge primary trong dark mode */
+    --badge-secondary-bg: #505a68;                    /* Màu nền badge secondary trong dark mode */
+    --badge-info-bg: #0a7f8f;                         /* Màu nền badge info trong dark mode */
+
+    /* ===== Tag Components - Các thành phần tag trong dark mode ===== */
+    --tag-item-bg: rgba(255, 255, 255, 0.05);         /* Màu nền tag trong dark mode */
+    --tag-item-hover-bg: rgba(255, 255, 255, 0.1);    /* Màu nền tag khi hover trong dark mode */
+    --tag-item-border: rgba(255, 255, 255, 0.1);      /* Màu viền tag trong dark mode */
+    --tag-container-bg: #222;                         /* Màu nền container tag trong dark mode */
+    --tag-container-border: #444;                     /* Màu viền container tag trong dark mode */
+    --tag-group-title-border: #444;                   /* Màu viền tiêu đề nhóm tag trong dark mode */
+    
+    /* ===== Manga Tag Components - Các thành phần tag manga trong dark mode ===== */
+    --manga-tag-item-bg: var(--card-bg);              /* Màu nền tag manga trong dark mode */
+    --manga-tag-item-hover-bg: transparent;           /* Màu nền tag manga khi hover trong dark mode */
+    --manga-tag-item-border: rgba(255, 255, 255, 0.1);/* Màu viền tag manga trong dark mode */
+    --manga-tag-selected-bg: rgba(25, 135, 84, 0.15); /* Màu nền tag manga khi được chọn trong dark mode */
+    --manga-tag-selected-color: #4eed8e;              /* Màu chữ tag manga khi được chọn trong dark mode */
+    --manga-tag-selected-border: rgba(25, 135, 84, 0.3); /* Màu viền tag manga khi được chọn trong dark mode */
+    --manga-tag-excluded-bg: rgba(220, 53, 69, 0.2);  /* Màu nền tag manga khi bị loại trừ trong dark mode */
+    --manga-tag-excluded-hover-bg: rgba(220, 53, 69, 0.25); /* Màu nền tag manga khi hover và bị loại trừ trong dark mode */
+    --manga-tag-excluded-color: #ff8a8a;              /* Màu chữ tag manga khi bị loại trừ trong dark mode */
+    --manga-tag-excluded-border: rgba(220, 53, 69, 0.3); /* Màu viền tag manga khi bị loại trừ trong dark mode */
+    --manga-tags-selection-bg: #2d2d2d;               /* Màu nền vùng chọn tag manga trong dark mode */
+    --manga-tags-selection-border: #444;              /* Màu viền vùng chọn tag manga trong dark mode */
+    --manga-tags-dropdown-bg: #222;                   /* Màu nền dropdown tag manga trong dark mode */
+    --manga-tags-dropdown-border: #444;               /* Màu viền dropdown tag manga trong dark mode */
+    --manga-tag-badge-bg: rgba(25, 135, 84, 0.2);     /* Màu nền badge tag manga trong dark mode */
+    --manga-tag-badge-border: rgba(25, 135, 84, 0.3); /* Màu viền badge tag manga trong dark mode */
+    --manga-tag-badge-color: #2ecc71;                 /* Màu chữ badge tag manga trong dark mode */
+    --manga-tag-group-title-after-bg: #444;           /* Màu nền sau tiêu đề nhóm tag manga trong dark mode */
+    --manga-tags-footer-bg: rgba(255, 255, 255, 0.02);/* Màu nền footer tag manga trong dark mode */
+    --manga-tags-footer-border: #444;                 /* Màu viền footer tag manga trong dark mode */
+
+    /* ===== Tooltip Components - Các thành phần tooltip trong dark mode ===== */
+    --tooltip-bg: #333;                               /* Màu nền tooltip trong dark mode */
+    --tooltip-border: #444;                           /* Màu viền tooltip trong dark mode */
+    --tooltip-arrow-color: #333;                      /* Màu mũi tên tooltip trong dark mode */
+    --help-icon-color: rgba(13, 110, 253, 0.9);       /* Màu biểu tượng trợ giúp trong dark mode */
+
+    /* ===== Tag Mode Components - Các thành phần chế độ tag trong dark mode ===== */
+    --tag-mode-and-bg: rgba(13, 110, 253, 0.2);       /* Màu nền chế độ tag AND trong dark mode */
+    --tag-mode-and-color: var(--bs-primary);          /* Màu chữ chế độ tag AND trong dark mode */
+    --tag-mode-or-bg: rgba(25, 135, 84, 0.2);         /* Màu nền chế độ tag OR trong dark mode */
+    --tag-mode-or-color: var(--bs-success);           /* Màu chữ chế độ tag OR trong dark mode */
 } 

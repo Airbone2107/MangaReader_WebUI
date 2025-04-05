@@ -22,9 +22,16 @@ function initTagsInSearchForm() {
     const excludedTagsInput = document.getElementById('excludedTags');
     const tagSearchInput = document.getElementById('tagSearchInput');
     const closeTagsButton = document.getElementById('closeTagsDropdown');
-    const tagsModeToggle = document.getElementById('includedTagsModeToggle');
-    const tagsModeLabel = document.getElementById('includedTagsModeLabel');
-    const tagsModeInput = document.getElementById('includedTagsMode');
+    
+    // Phần tử cho chế độ thẻ bắt buộc (includedTagsMode)
+    const includedTagsModeBox = document.getElementById('includedTagsModeBox');
+    const includedTagsModeText = document.getElementById('includedTagsModeText');
+    const includedTagsModeInput = document.getElementById('includedTagsMode');
+    
+    // Phần tử cho chế độ thẻ loại trừ (excludedTagsMode)
+    const excludedTagsModeBox = document.getElementById('excludedTagsModeBox');
+    const excludedTagsModeText = document.getElementById('excludedTagsModeText');
+    const excludedTagsModeInput = document.getElementById('excludedTagsMode');
     
     // Nếu không tìm thấy các phần tử cần thiết, thoát
     if (!tagsSelection || !tagsDropdown || !tagsContainer) {
@@ -95,15 +102,40 @@ function initTagsInSearchForm() {
         });
     }
     
-    // Xử lý thay đổi chế độ thẻ (AND/OR)
-    if (tagsModeToggle && tagsModeLabel && tagsModeInput) {
-        tagsModeToggle.addEventListener('change', function() {
-            if (this.checked) {
-                tagsModeLabel.textContent = 'HOẶC';
-                tagsModeInput.value = 'OR';
+    // Xử lý thay đổi chế độ thẻ cho includedTagsMode khi bấm vào box
+    if (includedTagsModeBox && includedTagsModeText && includedTagsModeInput) {
+        includedTagsModeBox.addEventListener('click', function() {
+            const currentMode = includedTagsModeInput.value;
+            
+            if (currentMode === 'AND') {
+                includedTagsModeInput.value = 'OR';
+                includedTagsModeText.textContent = 'HOẶC';
+                includedTagsModeBox.classList.remove('tag-mode-and');
+                includedTagsModeBox.classList.add('tag-mode-or');
             } else {
-                tagsModeLabel.textContent = 'VÀ';
-                tagsModeInput.value = 'AND';
+                includedTagsModeInput.value = 'AND';
+                includedTagsModeText.textContent = 'VÀ';
+                includedTagsModeBox.classList.remove('tag-mode-or');
+                includedTagsModeBox.classList.add('tag-mode-and');
+            }
+        });
+    }
+    
+    // Xử lý thay đổi chế độ thẻ cho excludedTagsMode khi bấm vào box
+    if (excludedTagsModeBox && excludedTagsModeText && excludedTagsModeInput) {
+        excludedTagsModeBox.addEventListener('click', function() {
+            const currentMode = excludedTagsModeInput.value;
+            
+            if (currentMode === 'OR') {
+                excludedTagsModeInput.value = 'AND';
+                excludedTagsModeText.textContent = 'VÀ';
+                excludedTagsModeBox.classList.remove('tag-mode-or');
+                excludedTagsModeBox.classList.add('tag-mode-and');
+            } else {
+                excludedTagsModeInput.value = 'OR';
+                excludedTagsModeText.textContent = 'HOẶC';
+                excludedTagsModeBox.classList.remove('tag-mode-and');
+                excludedTagsModeBox.classList.add('tag-mode-or');
             }
         });
     }
@@ -244,9 +276,12 @@ function renderTags(data) {
             tagsByGroup[group] = [];
         }
         
+        // Lấy tên thẻ theo thứ tự ưu tiên: Tiếng Việt > Tiếng Anh > ID
+        const tagName = attributes.name?.vi || attributes.name?.en || tag.id;
+        
         tagsByGroup[group].push({
             id: tag.id,
-            name: attributes.name?.vi || attributes.name?.en || 'Không rõ',
+            name: tagName,
             description: attributes.description?.vi || attributes.description?.en || ''
         });
     });
@@ -282,6 +317,13 @@ function renderTags(data) {
             const isIncluded = selectedTags.has(tag.id);
             const isExcluded = excludedTags.has(tag.id);
             
+            // Cập nhật tên thẻ trong maps nếu đã chọn
+            if (isIncluded) {
+                selectedTags.set(tag.id, tag.name);
+            } else if (isExcluded) {
+                excludedTags.set(tag.id, tag.name);
+            }
+            
             // Tạo item thẻ
             const tagItem = document.createElement('div');
             tagItem.className = 'manga-tag-item';
@@ -294,12 +336,6 @@ function renderTags(data) {
                 tagItem.classList.add('excluded');
             }
             
-            // Tạo checkbox
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.className = 'form-check-input';
-            checkbox.checked = isIncluded || isExcluded;
-            
             // Tạo label
             const label = document.createElement('span');
             label.className = 'manga-tag-name';
@@ -308,10 +344,16 @@ function renderTags(data) {
             // Thêm tooltip nếu có mô tả
             if (tag.description) {
                 label.title = tag.description;
+                // Thêm bootstrap tooltip nếu có
+                if (window.bootstrap && window.bootstrap.Tooltip) {
+                    new bootstrap.Tooltip(label, {
+                        placement: 'top',
+                        delay: {show: 500, hide: 100}
+                    });
+                }
             }
             
             // Thêm các phần tử vào item
-            tagItem.appendChild(checkbox);
             tagItem.appendChild(label);
             
             // Xử lý sự kiện click
@@ -327,21 +369,19 @@ function renderTags(data) {
                 if (!isIncluded && !isExcluded) {
                     // Thêm vào includedTags
                     selectedTags.set(tag.id, tag.name);
-                    tagItem.classList.add('selected');
-                    tagItem.classList.remove('excluded');
-                    checkbox.checked = true;
+                    smoothToggleClass(tagItem, 'selected', true);
+                    smoothToggleClass(tagItem, 'excluded', false);
                 } else if (isIncluded) {
                     // Chuyển từ includedTags sang excludedTags
                     selectedTags.delete(tag.id);
                     excludedTags.set(tag.id, tag.name);
-                    tagItem.classList.remove('selected');
-                    tagItem.classList.add('excluded');
-                    checkbox.checked = true;
+                    smoothToggleClass(tagItem, 'selected', false);
+                    smoothToggleClass(tagItem, 'excluded', true);
                 } else {
                     // Xóa khỏi excludedTags (không chọn)
                     excludedTags.delete(tag.id);
-                    tagItem.classList.remove('excluded', 'selected');
-                    checkbox.checked = false;
+                    smoothToggleClass(tagItem, 'excluded', false);
+                    smoothToggleClass(tagItem, 'selected', false);
                 }
                 
                 // Cập nhật hiển thị
@@ -355,6 +395,9 @@ function renderTags(data) {
         tagGroup.appendChild(tagList);
         container.appendChild(tagGroup);
     });
+    
+    // Cập nhật hiển thị của các thẻ đã chọn
+    updateSelectedTagsDisplay();
 }
 
 /**
@@ -457,6 +500,24 @@ function translateGroupName(group) {
     };
     
     return translations[group] || group;
+}
+
+/**
+ * Áp dụng/gỡ bỏ class mà không có hiệu ứng ánh lên
+ * @param {HTMLElement} element - Phần tử cần thay đổi
+ * @param {string} className - Tên class cần thay đổi
+ * @param {boolean} add - True để thêm, False để xóa
+ */
+function smoothToggleClass(element, className, add) {
+    if (add) {
+        // Thêm class không có hiệu ứng fade
+        element.classList.add(className);
+    } else {
+        // Xóa class không có hiệu ứng fade
+        if (element.classList.contains(className)) {
+            element.classList.remove(className);
+        }
+    }
 }
 
 // Export function

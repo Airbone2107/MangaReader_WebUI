@@ -1,0 +1,48 @@
+/* Search card */
+.search-card {
+    border-radius: 0.5rem;
+    box-shadow: var(--card-shadow);
+    border: none;
+    margin-bottom: 2rem;
+    overflow: visible;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Card body cho search card */
+.search-card .card-body {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    padding-bottom: 0;
+}
+
+/* Search input group */
+.input-group-text.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+/* Chỉnh sửa z-index cho container form */
+#searchForm {
+    position: relative;
+    z-index: 1;
+    padding-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+/* Container row cho form */
+.search-card .row {
+    position: relative;
+}
+
+/* Chỉnh sửa quan trọng để đảm bảo dropdown đẩy card border xuống */
+.search-card, 
+.search-card .card-body,
+#searchForm, 
+.search-card .row,
+.search-card .col-md-12 {
+    overflow: visible !important;
+} 

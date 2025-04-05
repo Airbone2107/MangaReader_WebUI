@@ -1,0 +1,275 @@
+/* Tags Dropdown Styles */
+.tags-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.tags-selection {
+    cursor: pointer;
+    min-height: 38px;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Tags Dropdown Menu */
+.tags-dropdown-menu {
+    transition: all 0.3s ease;
+}
+
+.tag-badge {
+    background-color: rgba(var(--primary-rgb), 0.1);
+    color: var(--primary-color);
+    border: 1px solid rgba(var(--primary-rgb), 0.3);
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.tag-badge .tag-remove {
+    cursor: pointer;
+    margin-left: 0.5rem;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.tag-badge .tag-remove:hover {
+    opacity: 1;
+}
+
+.empty-tag-message {
+    color: var(--text-muted);
+    padding: 0.25rem 0;
+    user-select: none;
+}
+
+/* Nhóm thẻ */
+.tag-group {
+    margin-bottom: 1rem;
+}
+
+.tag-group-title {
+    position: relative;
+    padding: 0 1rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--body-color);
+    display: flex;
+    align-items: center;
+    text-transform: uppercase;
+}
+
+/* Manga tag item với trạng thái loại trừ (excluded) */
+.manga-tag-item.excluded {
+    background-color: var(--manga-tag-excluded-bg);
+    color: var(--manga-tag-excluded-color);
+    border-color: var(--manga-tag-excluded-border);
+    font-weight: 400 !important;
+}
+
+/* Tag badge cho trạng thái loại trừ */
+.manga-tag-badge.excluded {
+    background-color: var(--manga-tag-excluded-bg);
+    color: var(--manga-tag-excluded-color);
+    border: 1px solid var(--manga-tag-excluded-border);
+}
+
+.manga-tag-badge.excluded:hover {
+    background-color: var(--manga-tag-excluded-hover-bg);
+}
+
+/* Manga Tags Container */
+.manga-tags-container {
+    position: relative;
+    width: 100%;
+}
+
+/* Selection Box */
+.manga-tags-selection {
+    min-height: 45px;
+    padding: 0.5rem;
+    border: 1px solid var(--manga-tags-selection-border);
+    border-radius: 0.375rem;
+    cursor: pointer;
+    background-color: var(--manga-tags-selection-bg);
+}
+
+/* Selected Tags */
+.manga-selected-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* Message khi chưa có tag nào */
+.manga-tags-empty {
+    color: var(--text-muted);
+    font-style: italic;
+    margin: 0.25rem 0;
+    user-select: none;
+}
+
+/* Tag Badge Style - Hiển thị trong selection box */
+.manga-tag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    background-color: var(--manga-tag-badge-bg);
+    color: var(--manga-tag-badge-color);
+    border: 1px solid var(--manga-tag-badge-border);
+    transition: all 0.2s ease;
+}
+
+.manga-tag-badge:hover {
+    background-color: rgba(var(--success-rgb), 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Nút xóa tag */
+.manga-tag-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+
+.manga-tag-remove:hover {
+    opacity: 1;
+    background-color: rgba(var(--success-rgb), 0.3);
+}
+
+.manga-tag-badge.excluded .manga-tag-remove:hover {
+    background-color: rgba(var(--danger-rgb), 0.3);
+}
+
+/* Tags Dropdown Menu */
+.manga-tags-dropdown {
+    position: absolute;
+    width: 100%;
+    top: 100%;
+    left: 0;
+    margin-top: 0.375rem;
+    background-color: var(--manga-tags-dropdown-bg);
+    border: 1px solid var(--manga-tags-dropdown-border);
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+    z-index: 1060;
+    max-height: 350px;
+    overflow-y: auto;
+    display: none;
+    animation: fadeIn 0.2s ease;
+}
+
+/* Tag Groups */
+.manga-tag-group {
+    margin-bottom: 1.5rem;
+}
+
+.manga-tag-group-title {
+    position: relative;
+    padding: 0 1rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--body-color);
+    display: flex;
+    align-items: center;
+    text-transform: uppercase;
+}
+
+.manga-tag-group-title::after {
+    content: '';
+    flex-grow: 1;
+    height: 1px;
+    background-color: var(--manga-tag-group-title-after-bg);
+    margin-left: 0.75rem;
+}
+
+/* Tag List trong mỗi group */
+.manga-tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0 1rem;
+}
+
+/* Tag Item Style - Hiển thị trong dropdown */
+.manga-tag-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    user-select: none;
+    background-color: var(--manga-tag-item-bg);
+    border: 1px solid var(--manga-tag-item-border);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.manga-tag-item:hover {
+    background-color: var(--manga-tag-item-hover-bg);
+}
+
+.manga-tag-item.selected {
+    background-color: var(--manga-tag-selected-bg);
+    color: var(--manga-tag-selected-color);
+    border-color: var(--manga-tag-selected-border);
+    font-weight: 500;
+}
+
+/* Tag Mode Selector */
+.manga-tag-mode {
+    padding: 0 1rem 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.manga-tag-mode-label {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.manga-tag-mode-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.manga-tag-search {
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.manga-tags-footer {
+    padding: 0.75rem 1rem;
+    background-color: var(--manga-tags-footer-bg);
+    border-top: 1px solid var(--manga-tags-footer-border);
+    display: flex;
+    justify-content: space-between;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.manga-tag-name {
+    margin-right: 0.5rem;
+    white-space: nowrap;
+} 

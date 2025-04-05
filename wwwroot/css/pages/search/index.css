@@ -1,0 +1,19 @@
+/**
+ * SEARCH PAGE CSS
+ * ---------------
+ * Tệp CSS tổng hợp cho trang tìm kiếm
+ */
+
+/* Các thành phần cơ bản */
+@import url("./search-card.css");
+@import url("./manga-card.css");
+@import url("./tag-base.css");
+
+/* Thành phần tương tác */
+@import url("./dropdown.css");
+@import url("./filter.css");
+@import url("./manga-tags.css");
+
+/* Styles bổ sung */
+/* Đã loại bỏ dark-mode.css vì đã chuyển sang sử dụng CSS Variables trong variables.css */
+@import url("./responsive.css"); 

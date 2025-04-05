@@ -96,16 +96,6 @@ body {
     }
 }
 
-/* ===== FOCUS STYLES - Tùy chỉnh hiệu ứng focus ===== */
-/* Sửa styles khi focus cho các elements */
-.btn:focus, 
-.btn:active:focus, 
-.btn-link.nav-link:focus, 
-.form-control:focus, 
-.form-check-input:focus {
-    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--primary-color);
-}
-
 /* ===== DARK MODE FIXES - Sửa các issues trong chế độ tối ===== */
 /* Sửa màu input trong dark mode */
 [data-bs-theme="dark"] .form-control {

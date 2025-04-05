@@ -328,15 +328,28 @@ function setupResetFilters() {
             selectedTagsDisplay.innerHTML = '<span class="manga-tags-empty" id="emptyTagsMessage">Chưa có thẻ nào được chọn. Bấm để chọn thẻ.</span>';
         }
         
-        // Reset tags mode to AND
-        const tagsModeToggle = document.getElementById('includedTagsModeToggle');
-        const tagsModeLabel = document.getElementById('includedTagsModeLabel');
-        const tagsModeInput = document.getElementById('includedTagsMode');
+        // Reset tags mode to AND for includedTagsMode
+        const includedTagsModeInput = document.getElementById('includedTagsMode');
+        const includedTagsModeBox = document.getElementById('includedTagsModeBox');
+        const includedTagsModeText = document.getElementById('includedTagsModeText');
         
-        if (tagsModeToggle && tagsModeLabel && tagsModeInput) {
-            tagsModeToggle.checked = false;
-            tagsModeLabel.textContent = 'VÀ';
-            tagsModeInput.value = 'AND';
+        if (includedTagsModeInput && includedTagsModeBox && includedTagsModeText) {
+            includedTagsModeInput.value = 'AND';
+            includedTagsModeText.textContent = 'VÀ';
+            includedTagsModeBox.classList.remove('tag-mode-or');
+            includedTagsModeBox.classList.add('tag-mode-and');
+        }
+        
+        // Reset tags mode to OR for excludedTagsMode (default)
+        const excludedTagsModeInput = document.getElementById('excludedTagsMode');
+        const excludedTagsModeBox = document.getElementById('excludedTagsModeBox');
+        const excludedTagsModeText = document.getElementById('excludedTagsModeText');
+        
+        if (excludedTagsModeInput && excludedTagsModeBox && excludedTagsModeText) {
+            excludedTagsModeInput.value = 'OR';
+            excludedTagsModeText.textContent = 'HOẶC';
+            excludedTagsModeBox.classList.remove('tag-mode-and');
+            excludedTagsModeBox.classList.add('tag-mode-or');
         }
         
         // Cập nhật hiển thị của dropdown

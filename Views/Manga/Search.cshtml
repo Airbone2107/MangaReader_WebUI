@@ -258,7 +258,39 @@
                                         
                                         <!-- Danh sách thẻ từ MangaDex -->
                                         <div class="col-md-12">
-                                            <label class="form-label mb-2">Thẻ và thể loại</label>
+                                            <label class="form-label mb-2">Thẻ và thể loại 
+                                                <span class="tags-help-icon ms-1">
+                                                    <i class="bi bi-info-circle-fill"></i>
+                                                    <div class="custom-tooltip">
+                                                        <strong>Sử dụng tag:</strong><br>
+                                                        • Click 1 lần: <span class='badge bg-primary'>Bắt buộc có</span> - Manga phải chứa tag này.<br>
+                                                        • Click 2 lần: <span class='badge bg-danger'>Loại trừ</span> - Manga không được chứa tag này.<br>
+                                                        • Click 3 lần: <span class='badge bg-secondary'>Không áp dụng</span> - Bỏ tag khỏi bộ lọc.<br><br>
+                                                        <strong>Chế độ thẻ bắt buộc:</strong><br>
+                                                        <strong>VÀ</strong>: Manga phải chứa tất cả thẻ bắt buộc đã chọn.<br>
+                                                        <strong>HOẶC</strong>: Manga chỉ cần chứa ít nhất một trong các thẻ bắt buộc đã chọn.<br><br>
+                                                        <strong>Chế độ thẻ loại trừ:</strong><br>
+                                                        <strong>VÀ</strong>: Manga không được chứa tất cả thẻ loại trừ đã chọn (chặn chỉ khi có đủ tất cả thẻ).<br>
+                                                        <strong>HOẶC</strong>: Manga không được chứa bất kỳ thẻ loại trừ nào đã chọn (chặn khi có bất kỳ thẻ nào).
+                                                    </div>
+                                                </span>
+                                            </label>
+                                            <div class="d-flex gap-2 mb-2">
+                                                <div class="tag-mode-box-container">
+                                                    <div class="tag-mode-label">Thẻ bắt buộc:</div>
+                                                    <div class="tag-mode-box @(Model.SortOptions.IncludedTagsMode == "OR" ? "tag-mode-or" : "tag-mode-and")" id="includedTagsModeBox">
+                                                        <span id="includedTagsModeText">@(Model.SortOptions.IncludedTagsMode == "OR" ? "HOẶC" : "VÀ")</span>
+                                                    </div>
+                                                    <input type="hidden" name="includedTagsMode" id="includedTagsMode" value="@Model.SortOptions.IncludedTagsMode">
+                                                </div>
+                                                <div class="tag-mode-box-container">
+                                                    <div class="tag-mode-label">Thẻ loại trừ:</div>
+                                                    <div class="tag-mode-box @(Model.SortOptions.ExcludedTagsMode == "AND" ? "tag-mode-and" : "tag-mode-or")" id="excludedTagsModeBox">
+                                                        <span id="excludedTagsModeText">@(Model.SortOptions.ExcludedTagsMode == "AND" ? "VÀ" : "HOẶC")</span>
+                                                    </div>
+                                                    <input type="hidden" name="excludedTagsMode" id="excludedTagsMode" value="@Model.SortOptions.ExcludedTagsMode">
+                                                </div>
+                                            </div>
                                             <div class="manga-tags-container">
                                                 <div class="manga-tags-selection" id="mangaTagsSelection" tabindex="0">
                                                     <div class="manga-selected-tags" id="selectedTagsDisplay">
@@ -289,28 +321,6 @@
                                                         </div>
                                                     </div>
                                                     
-                                                    <!-- Chế độ thẻ -->
-                                                    <div class="manga-tag-mode">
-                                                        <div class="d-flex align-items-center justify-content-between">
-                                                            <label class="manga-tag-mode-label">Chế độ thẻ</label>
-                                                            <div class="form-check form-switch">
-                                                                <input class="form-check-input" type="checkbox" id="includedTagsModeToggle" @(Model.SortOptions.IncludedTagsMode == "OR" ? "checked" : "")>
-                                                                <label class="form-check-label" for="includedTagsModeToggle">
-                                                                    <span id="includedTagsModeLabel">@(Model.SortOptions.IncludedTagsMode == "OR" ? "HOẶC" : "VÀ")</span>
-                                                                </label>
-                                                            </div>
-                                                            <input type="hidden" name="includedTagsMode" id="includedTagsMode" value="@Model.SortOptions.IncludedTagsMode">
-                                                        </div>
-                                                        <div class="manga-tag-mode-desc">
-                                                            <strong>Sử dụng tag:</strong><br>
-                                                            • Click 1 lần: <span class="badge bg-primary">Bắt buộc có</span> - Manga phải chứa tag này.<br>
-                                                            • Click 2 lần: <span class="badge bg-danger">Loại trừ</span> - Manga không được chứa tag này.<br>
-                                                            • Click 3 lần: <span class="badge bg-secondary">Không áp dụng</span> - Bỏ tag khỏi bộ lọc.<br><br>
-                                                            <strong>VÀ</strong>: Manga phải chứa tất cả thẻ bắt buộc đã chọn.<br>
-                                                            <strong>HOẶC</strong>: Manga chỉ cần chứa ít nhất một trong các thẻ bắt buộc đã chọn.
-                                                        </div>
-                                                    </div>
-                                                    
                                                     <!-- Danh sách nhóm thẻ -->
                                                     <div id="tagsContainer" class="manga-tags-groups">
                                                         <div class="text-center py-3">
@@ -333,9 +343,6 @@
                                             
                                             <!-- Input ẩn chứa các tag loại trừ -->
                                             <input type="hidden" id="excludedTags" name="excludedTagsStr" value="@(string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>()))" />
-                                            
-                                            <!-- Input ẩn chứa chế độ cho excludedTags -->
-                                            <input type="hidden" name="excludedTagsMode" id="excludedTagsMode" value="@(Model.SortOptions.ExcludedTagsMode ?? "OR")" />
                                         </div>
                                         
                                         <div class="col-md-12 text-end">
@@ -469,8 +476,10 @@
                                        year = Model.SortOptions.Year,
                                        publicationDemographic = Model.SortOptions.Demographic,
                                        includedTagsMode = Model.SortOptions.IncludedTagsMode,
+                                       excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
                                        pageSize = Model.PageSize,
-                                       includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()) 
+                                       includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
+                                       excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
                                    })" 
                                    hx-target="#main-content" 
                                    hx-push-url="true" 
@@ -489,8 +498,10 @@
                                        year = Model.SortOptions.Year,
                                        publicationDemographic = Model.SortOptions.Demographic,
                                        includedTagsMode = Model.SortOptions.IncludedTagsMode,
+                                       excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
                                        pageSize = Model.PageSize,
-                                       includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()) 
+                                       includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
+                                       excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
                                    })" 
                                    hx-target="#main-content" 
                                    hx-push-url="true" 
@@ -523,8 +534,10 @@
                                            year = Model.SortOptions.Year,
                                            publicationDemographic = Model.SortOptions.Demographic,
                                            includedTagsMode = Model.SortOptions.IncludedTagsMode,
+                                           excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
                                            pageSize = Model.PageSize,
-                                           includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()) 
+                                           includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
+                                           excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
                                        })" 
                                        hx-target="#main-content" 
                                        hx-push-url="true">
@@ -546,8 +559,10 @@
                                            year = Model.SortOptions.Year,
                                            publicationDemographic = Model.SortOptions.Demographic,
                                            includedTagsMode = Model.SortOptions.IncludedTagsMode,
+                                           excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
                                            pageSize = Model.PageSize,
-                                           includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()) 
+                                           includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
+                                           excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
                                        })" 
                                        hx-target="#main-content" 
                                        hx-push-url="true" 
@@ -566,8 +581,10 @@
                                            year = Model.SortOptions.Year,
                                            publicationDemographic = Model.SortOptions.Demographic,
                                            includedTagsMode = Model.SortOptions.IncludedTagsMode,
+                                           excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
                                            pageSize = Model.PageSize,
-                                           includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()) 
+                                           includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
+                                           excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
                                        })" 
                                        hx-target="#main-content" 
                                        hx-push-url="true" 
@@ -588,13 +605,6 @@
     </div>
 </div>
 
-@section Styles {
-    <link rel="stylesheet" href="~/css/pages/search.css" />
-}
-
-@section Scripts {
-    <!-- Chức năng tìm kiếm được xử lý bởi module JavaScript riêng -->
-}
 
 @functions {
     public string TranslateStatus(string status)

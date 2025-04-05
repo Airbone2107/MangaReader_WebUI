@@ -1,0 +1,12 @@
+/* Responsive cho filter dropdown trên màn hình nhỏ */
+@media (max-width: 767.98px) {
+    .filter-content {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .filter-menu {
+        margin-left: 0;
+        margin-right: 0;
+    }
+} 
