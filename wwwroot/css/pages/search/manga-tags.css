@@ -230,7 +230,6 @@
     background-color: var(--manga-tag-selected-bg);
     color: var(--manga-tag-selected-color);
     border-color: var(--manga-tag-selected-border);
-    font-weight: 500;
 }
 
 /* Tag Mode Selector */
@@ -268,8 +267,3 @@
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
-.manga-tag-name {
-    margin-right: 0.5rem;
-    white-space: nowrap;
-} 

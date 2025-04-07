@@ -130,9 +130,9 @@
     visibility: hidden;
     position: absolute;
     z-index: 1070;
-    bottom: 125%;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 125%;
+    left: 0;
+    transform: translateX(0);
     width: 350px;
     background-color: var(--tooltip-bg);
     color: var(--body-color);
@@ -150,12 +150,12 @@
 .tags-help-icon .custom-tooltip::after {
     content: "";
     position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
+    bottom: 100%;
+    left: 15px;
+    margin-left: 0;
     border-width: 5px;
     border-style: solid;
-    border-color: var(--tooltip-arrow-color) transparent transparent transparent;
+    border-color: transparent transparent var(--tooltip-arrow-color) transparent;
 }
 
 .tags-help-icon:hover .custom-tooltip {

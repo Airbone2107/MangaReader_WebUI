@@ -190,7 +190,27 @@ namespace manga_reader_web.Services
                         var data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(content, _jsonOptions);
                         if (data.ContainsKey("data"))
                         {
-                            return JsonSerializer.Deserialize<List<dynamic>>(data["data"].ToString(), _jsonOptions);
+                            var result = new List<dynamic>();
+                            
+                            // Thêm thông tin tổng số manga vào kết quả trả về nếu có
+                            if (data.ContainsKey("total"))
+                            {
+                                int total = data["total"].GetInt32();
+                                // Tạo một dynamic object để lưu totalCount
+                                var totalInfo = new Dictionary<string, object>
+                                {
+                                    { "total", total }
+                                };
+                                
+                                // Thêm vào đầu danh sách kết quả
+                                result.Add(JsonSerializer.Deserialize<dynamic>(JsonSerializer.Serialize(totalInfo), _jsonOptions));
+                            }
+                            
+                            // Thêm dữ liệu manga vào kết quả
+                            var mangaList = JsonSerializer.Deserialize<List<dynamic>>(data["data"].ToString(), _jsonOptions);
+                            result.AddRange(mangaList);
+                            
+                            return result;
                         }
                         else
                         {
@@ -396,21 +416,21 @@ namespace manga_reader_web.Services
                     {
                         // Trả về URL ảnh mặc định nếu không tìm thấy
                         Console.WriteLine($"Không tìm thấy ảnh bìa cho manga {mangaId}");
-                        return "/images/no-cover.png";
+                        return "/images/cover-placeholder.jpg";
                     }
                 }
                 else if ((int)response.StatusCode == 503)
                 {
                     // Ảnh bìa mặc định nếu server bảo trì
                     Console.WriteLine("Server MangaDex đang bảo trì");
-                    return "/images/no-cover.png";
+                    return "/images/cover-placeholder.jpg";
                 }
                 else
                 {
                     // Ảnh bìa mặc định nếu có lỗi khác
                     LogError("FetchCoverUrlAsync", response, content);
                     Console.WriteLine($"Lỗi khi tải ảnh bìa: {(int)response.StatusCode}");
-                    return "/images/no-cover.png";
+                    return "/images/cover-placeholder.jpg";
                 }
             }
             catch (Exception ex)
@@ -418,7 +438,7 @@ namespace manga_reader_web.Services
                 // Ghi log lỗi nhưng vẫn trả về ảnh mặc định thay vì throw exception
                 Console.WriteLine($"Lỗi không xác định khi tải ảnh bìa: {ex.Message}");
                 _logger?.LogError($"Lỗi khi tải ảnh bìa: {ex.Message}");
-                return "/images/no-cover.png";
+                return "/images/cover-placeholder.jpg";
             }
         }
 

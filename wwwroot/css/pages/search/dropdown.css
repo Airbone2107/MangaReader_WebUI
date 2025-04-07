@@ -1,10 +1,11 @@
-/* Custom Dropdown Styles */
+/* Custom Dropdown Styles - Không phụ thuộc vào Bootstrap */
 .custom-dropdown {
     position: relative;
     width: 100%;
 }
 
-.custom-dropdown-toggle {
+/* Phần toggle button cho dropdown */
+.custom-dropdown-btn {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -21,14 +22,15 @@
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
-.custom-dropdown-toggle:focus {
+.custom-dropdown-btn:focus {
     outline: 0;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 0.25rem rgba(var(--primary-rgb), 0.25);
 }
 
-.custom-dropdown-toggle:after {
-    content: '';
+/* Icon chỉ xuống */
+.dropdown-arrow {
+    display: inline-block;
     width: 0.8em;
     height: 0.5em;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
@@ -38,11 +40,12 @@
     transition: transform 0.2s ease;
 }
 
-.custom-dropdown.show .custom-dropdown-toggle:after {
+.custom-dropdown.show .dropdown-arrow {
     transform: rotate(180deg);
 }
 
-.custom-dropdown-menu {
+/* Nội dung dropdown menu */
+.custom-dropdown-content {
     position: absolute;
     top: 100%;
     left: 0;
@@ -65,10 +68,11 @@
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
-.custom-dropdown.show .custom-dropdown-menu {
+.custom-dropdown.show .custom-dropdown-content {
     display: block;
 }
 
+/* Dropdown item */
 .custom-dropdown-item {
     display: block;
     width: 100%;
@@ -104,26 +108,26 @@
     background-color: transparent;
 }
 
-/* Thêm một chút padding cho nội dung dropdown khi có thanh cuộn */
-.custom-dropdown-menu::-webkit-scrollbar {
+/* Thanh cuộn cho dropdown có nhiều nội dung */
+.custom-dropdown-content::-webkit-scrollbar {
     width: 8px;
 }
 
-.custom-dropdown-menu::-webkit-scrollbar-track {
+.custom-dropdown-content::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.custom-dropdown-menu::-webkit-scrollbar-thumb {
+.custom-dropdown-content::-webkit-scrollbar-thumb {
     background-color: var(--dropdown-scrollbar-thumb);
     border-radius: 4px;
 }
 
-.custom-dropdown-menu::-webkit-scrollbar-thumb:hover {
+.custom-dropdown-content::-webkit-scrollbar-thumb:hover {
     background-color: var(--primary-color);
 }
 
-/* Đảm bảo các dropdown thông thường vẫn dùng absolute */
-.custom-dropdown:not(.search-filter-dropdown) .custom-dropdown-menu {
+/* Đảm bảo các dropdown thông thường (không phải filter-dropdown) vẫn dùng absolute */
+.custom-dropdown:not(.filter-dropdown) .custom-dropdown-content {
     position: absolute;
     top: 100%;
     left: 0;

@@ -109,16 +109,97 @@
 }
 
 /* Pagination */
+.pagination {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.pagination .page-item {
+    margin: 0 5px;
+    cursor: pointer;
+}
+
 .pagination .page-link {
     border-radius: 0.25rem;
-    margin: 0 2px;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 1rem;
     color: var(--primary-color);
+    border: none;
+    font-weight: bold;
+    color: white;
+    background-color: transparent;
+    transition: all 0.2s ease;
+}
+
+.pagination .page-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
 }
 
 .pagination .page-item.active .page-link {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
     color: white;
+}
+
+.pagination .page-item.disabled .page-link {
+    background-color: transparent;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Style đặc biệt cho dấu ... */
+.pagination .page-item .page-link.dots {
+    cursor: pointer;
+}
+
+.pagination .page-item .page-goto-input {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    text-align: center;
+    border-radius: 0.25rem;
+    font-weight: bold;
+    font-size: 1rem;
+    position: relative;
+    z-index: 2;
+}
+
+/* Đảm bảo không có hiệu ứng hover cho input */
+.pagination .page-item:hover .page-goto-input {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="light"] .pagination .page-link {
+    color: var(--primary-color);
+    background-color: transparent;
+}
+
+[data-bs-theme="light"] .pagination .page-link:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--primary-color);
+}
+
+[data-bs-theme="light"] .pagination .page-item.disabled .page-link {
+    background-color: transparent;
+    color: rgba(0, 0, 0, 0.4);
+}
+
+[data-bs-theme="light"] .pagination .page-item .page-goto-input {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--primary-color);
+}
+
+/* Đảm bảo không có hiệu ứng hover cho input trong chế độ sáng */
+[data-bs-theme="light"] .pagination .page-item:hover .page-goto-input {
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 /* Badge improvements */
@@ -170,13 +251,13 @@ img.error-image {
     filter: grayscale(100%);
 }
 
-img[src="/images/no-cover.png"] {
+img[src="/images/cover-placeholder.jpg"] {
     object-fit: contain !important;
     background-color: #f8f9fa;
     padding: 10px;
 }
 
-[data-bs-theme="dark"] img[src="/images/no-cover.png"] {
+[data-bs-theme="dark"] img[src="/images/cover-placeholder.jpg"] {
     background-color: #2c2c2c;
 }
 

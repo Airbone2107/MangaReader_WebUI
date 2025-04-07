@@ -49,8 +49,8 @@
                            hx-get="@Url.Action("Details", "Manga", new { id = manga.Id })" 
                            hx-target="#main-content" 
                            hx-push-url="true">
-                            <img src="@manga.CoverUrl" class="card-manga-cover" alt="@manga.Title" 
-                                 onerror="this.onerror=null; this.src='/images/no-cover.png';" loading="lazy">
+                            <img src="@manga.CoverUrl" class="card-manga-cover" alt="@manga.Title"
+                                 onerror="this.onerror=null; this.src='/images/cover-placeholder.jpg';" loading="lazy">
                         </a>
                         <div class="card-body">
                             <h5 class="card-title text-truncate" title="@manga.Title">

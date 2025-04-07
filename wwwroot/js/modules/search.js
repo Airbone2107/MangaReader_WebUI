@@ -43,16 +43,12 @@ document.addEventListener('htmx:afterSwap', function(event) {
     if (event.detail.target.id === 'main-content' && document.getElementById('searchForm')) {
         initSearchPage();
         
-        // Đảm bảo CSS được tải
-        if (!document.querySelector('link[href*="search.css"]')) {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = '/css/pages/search.css';
-            document.head.appendChild(link);
-        }
-        
-        // Đồng bộ theme cho nội dung mới
-        syncThemeForSearchCard();
+        // Đảm bảo cập nhật text hiển thị sau khi swap
+        setTimeout(function() {
+            document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
+                updateDropdownText(dropdown);
+            });
+        }, 100); // Đợi 100ms để đảm bảo DOM đã hoàn toàn cập nhật
     }
 });
 
@@ -77,9 +73,6 @@ function init() {
     
     // Xử lý nút reset filter
     setupResetFilters();
-    
-    // Đồng bộ theme cho search card
-    syncThemeForSearchCard();
 }
 
 /**
@@ -129,18 +122,21 @@ function initAdvancedFilter() {
  */
 function checkForActiveFilters() {
     // Kiểm tra các trường tìm kiếm
-    const authorField = document.querySelector('input[name="authorOrArtist"]');
+    const authorField = document.querySelector('input[name="authors"]');
     if (authorField && authorField.value.trim()) return true;
+    
+    const artistField = document.querySelector('input[name="artists"]');
+    if (artistField && artistField.value.trim()) return true;
     
     const yearField = document.querySelector('input[name="year"]');
     if (yearField && yearField.value.trim()) return true;
     
-    // Kiểm tra các radio không mặc định
-    const statusRadios = document.querySelectorAll('input[name="status"]:checked');
-    if (statusRadios.length && statusRadios[0].id !== 'statusAll') return true;
+    // Kiểm tra các checkbox được chọn
+    const statusChecks = document.querySelectorAll('input[name="status[]"]:checked');
+    if (statusChecks.length) return true;
     
-    const demoRadios = document.querySelectorAll('input[name="publicationDemographic"]:checked');
-    if (demoRadios.length && demoRadios[0].id !== 'demoAll') return true;
+    const demoChecks = document.querySelectorAll('input[name="publicationDemographic[]"]:checked');
+    if (demoChecks.length) return true;
     
     // Kiểm tra ngôn ngữ được chọn
     const langChecks = document.querySelectorAll('input[name="availableTranslatedLanguage"]:checked');
@@ -158,6 +154,17 @@ function checkForActiveFilters() {
     const pageSize = document.querySelector('input[name="pageSize"]:checked');
     if (pageSize && pageSize.value !== '24') return true;
     
+    // Kiểm tra nội dung không mặc định
+    const contentRating = document.querySelectorAll('input[name="contentRating[]"]:checked');
+    const defaultRatings = ['safe', 'suggestive', 'erotica'];
+    if (contentRating.length !== defaultRatings.length) return true;
+    
+    // Kiểm tra xem có phải tất cả các giá trị mặc định đều được chọn
+    const checkedValues = Array.from(contentRating).map(c => c.value);
+    for (const rating of defaultRatings) {
+        if (!checkedValues.includes(rating)) return true;
+    }
+    
     return false;
 }
 
@@ -167,13 +174,43 @@ function checkForActiveFilters() {
 function initFilterDropdowns() {
     // Cập nhật text cho các dropdown khi chọn
     document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
-        const toggle = dropdown.querySelector('.dropdown-toggle');
-        const menu = dropdown.querySelector('.dropdown-menu');
+        const toggle = dropdown.querySelector('.filter-toggle-btn');
+        const menu = dropdown.querySelector('.filter-menu-content');
         const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
         const radios = dropdown.querySelectorAll('input[type="radio"]');
         const selectedText = toggle.querySelector('.selected-text');
         
         if (!toggle || !menu || !selectedText) return;
+        
+        // Xóa event listeners cũ
+        const newToggle = toggle.cloneNode(true);
+        toggle.parentNode.replaceChild(newToggle, toggle);
+        
+        // Thêm event listener mới cho việc toggle dropdown
+        newToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Đóng tất cả các dropdowns khác
+            document.querySelectorAll('.filter-dropdown.show').forEach(openDropdown => {
+                if (openDropdown !== dropdown) {
+                    openDropdown.classList.remove('show');
+                    const openMenu = openDropdown.querySelector('.filter-menu-content');
+                    if (openMenu) openMenu.style.display = 'none';
+                }
+            });
+            
+            // Toggle dropdown hiện tại
+            const isVisible = dropdown.classList.contains('show');
+            
+            if (isVisible) {
+                dropdown.classList.remove('show');
+                menu.style.display = 'none';
+            } else {
+                dropdown.classList.add('show');
+                menu.style.display = 'block';
+            }
+        });
         
         // Xử lý sự kiện khi chọn checkbox
         checkboxes.forEach(checkbox => {
@@ -186,11 +223,83 @@ function initFilterDropdowns() {
         radios.forEach(radio => {
             radio.addEventListener('change', function() {
                 updateDropdownText(dropdown);
-                // Đóng dropdown sau khi chọn radio
-                if (window.bootstrap && window.bootstrap.Dropdown) {
-                    const dropdownInstance = bootstrap.Dropdown.getInstance(toggle);
-                    if (dropdownInstance) {
-                        dropdownInstance.hide();
+                
+                // Đóng dropdown sau khi chọn radio (vì chỉ chọn được một lựa chọn)
+                dropdown.classList.remove('show');
+                menu.style.display = 'none';
+            });
+        });
+        
+        // Thêm xử lý click cho toàn bộ filter-option
+        dropdown.querySelectorAll('.filter-option').forEach(option => {
+            // Xóa event listener cũ (nếu có)
+            const newOption = option.cloneNode(true);
+            option.parentNode.replaceChild(newOption, option);
+            
+            // Tìm input và label trong filter-option mới
+            const input = newOption.querySelector('input[type="checkbox"], input[type="radio"]');
+            const label = newOption.querySelector('.filter-option-label');
+            
+            if (input) {
+                // Thêm event listener cho input để cập nhật text
+                input.addEventListener('change', function() {
+                    updateDropdownText(dropdown);
+                    
+                    // Đóng dropdown sau khi chọn radio
+                    if (input.type === 'radio') {
+                        dropdown.classList.remove('show');
+                        menu.style.display = 'none';
+                    }
+                });
+                
+                // Thêm event listener cho label
+                if (label) {
+                    label.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Đảo trạng thái checkbox
+                        if (input.type === 'checkbox') {
+                            input.checked = !input.checked;
+                            // Trigger sự kiện change
+                            const event = new Event('change');
+                            input.dispatchEvent(event);
+                        }
+                        // Chọn radio
+                        else if (input.type === 'radio') {
+                            input.checked = true;
+                            // Trigger sự kiện change
+                            const event = new Event('change');
+                            input.dispatchEvent(event);
+                        }
+                    });
+                }
+            }
+            
+            // Thêm event listener cho toàn bộ filter-option
+            newOption.addEventListener('click', function(e) {
+                // Ngăn sự kiện bubble lên
+                e.stopPropagation();
+                
+                // Nếu click vào input hoặc label, không làm gì thêm
+                if (e.target === input || e.target === label || e.target.closest('label')) {
+                    return;
+                }
+                
+                if (input) {
+                    // Đảo trạng thái checkbox
+                    if (input.type === 'checkbox') {
+                        input.checked = !input.checked;
+                        // Trigger sự kiện change
+                        const event = new Event('change');
+                        input.dispatchEvent(event);
+                    }
+                    // Chọn radio
+                    else if (input.type === 'radio') {
+                        input.checked = true;
+                        // Trigger sự kiện change
+                        const event = new Event('change');
+                        input.dispatchEvent(event);
                     }
                 }
             });
@@ -199,31 +308,113 @@ function initFilterDropdowns() {
         // Cập nhật text ban đầu
         updateDropdownText(dropdown);
     });
+    
+    // Đóng dropdown khi click ra ngoài
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.filter-dropdown')) {
+            document.querySelectorAll('.filter-dropdown.show').forEach(dropdown => {
+                dropdown.classList.remove('show');
+                const menu = dropdown.querySelector('.filter-menu-content');
+                if (menu) menu.style.display = 'none';
+            });
+        }
+    });
 }
 
 /**
  * Cập nhật text hiển thị cho dropdown
  */
 function updateDropdownText(dropdown) {
-    const toggle = dropdown.querySelector('.dropdown-toggle');
+    const toggle = dropdown.querySelector('.filter-toggle-btn');
     const selectedText = toggle.querySelector('.selected-text');
     const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+    const allCheckboxes = dropdown.querySelectorAll('input[type="checkbox"]');
     const radios = dropdown.querySelectorAll('input[type="radio"]:checked');
     
     if (!selectedText) return;
     
+    // Kiểm tra một số trường hợp đặc biệt
+    const isContentRating = dropdown.closest('.col-md-4')?.querySelector('.filter-dropdown-label')?.textContent.includes('Mức độ nội dung');
+    
+    // Xử lý đặc biệt cho Mức độ nội dung
+    if (isContentRating) {
+        const contentSafe = dropdown.querySelector('#contentSafe')?.checked;
+        const contentSuggestive = dropdown.querySelector('#contentSuggestive')?.checked;
+        const contentErotica = dropdown.querySelector('#contentErotica')?.checked;
+        const contentPornographic = dropdown.querySelector('#contentPornographic')?.checked;
+        
+        // Trường hợp mặc định khi chọn safe, suggestive, erotica
+        if (contentSafe && contentSuggestive && contentErotica && !contentPornographic) {
+            selectedText.textContent = "An Toàn, Nhạy cảm, R18";
+            return;
+        }
+        // Trường hợp chọn tất cả
+        else if (contentSafe && contentSuggestive && contentErotica && contentPornographic) {
+            selectedText.textContent = "Tất cả";
+            return;
+        }
+        // Trường hợp không chọn gì
+        else if (!contentSafe && !contentSuggestive && !contentErotica && !contentPornographic) {
+            selectedText.textContent = "Tất cả";
+            return;
+        }
+    }
+    
+    // Kiểm tra xem tất cả checkbox có được chọn hay không
+    const allSelected = allCheckboxes.length > 0 && checkboxes.length === allCheckboxes.length;
+    
+    // Kiểm tra xem không có checkbox nào được chọn
+    const noneSelected = allCheckboxes.length > 0 && checkboxes.length === 0;
+    
     // Xử lý hiển thị cho các checkbox
     if (checkboxes.length > 0) {
-        if (checkboxes.length <= 2) {
-            const labels = Array.from(checkboxes).map(cb => {
-                const label = document.querySelector(`label[for="${cb.id}"]`);
-                return label ? label.textContent.trim() : '';
-            }).filter(Boolean);
-            
-            selectedText.textContent = labels.join(', ');
-        } else {
-            selectedText.textContent = `${checkboxes.length} đã chọn`;
+        // Nếu tất cả đều được chọn, hiển thị "Tất cả"
+        if (allSelected) {
+            selectedText.textContent = "Tất cả";
+            return;
         }
+        
+        const labels = Array.from(checkboxes).map(cb => {
+            const label = document.querySelector(`label[for="${cb.id}"]`);
+            return label ? label.textContent.trim() : '';
+        }).filter(Boolean);
+        
+        // Đảm bảo có độ dài tối thiểu
+        const minChars = 20; 
+        
+        // Tính độ dài văn bản tối đa dựa trên chiều rộng của toggle button
+        let maxWidth = toggle.offsetWidth * 0.8; // Sử dụng 80% chiều rộng của nút
+        if (maxWidth < 100) maxWidth = 200; // Đảm bảo có kích thước tối thiểu nếu DOM chưa tải xong
+        
+        const avgCharWidth = 8; // Ước tính trung bình độ rộng của mỗi ký tự (px)
+        const maxChars = Math.max(minChars, Math.floor(maxWidth / avgCharWidth));
+        
+        let displayText = labels.join(', ');
+        
+        if (displayText.length > maxChars) {
+            // Cắt text và thêm "..." ở cuối
+            let shortenedText = '';
+            let currentLength = 0;
+            
+            for (let i = 0; i < labels.length; i++) {
+                if (currentLength + labels[i].length + 2 > maxChars) { // +2 cho dấu phẩy và khoảng trắng
+                    shortenedText += ',...';
+                    break;
+                }
+                
+                if (i > 0) {
+                    shortenedText += ', ';
+                    currentLength += 2;
+                }
+                
+                shortenedText += labels[i];
+                currentLength += labels[i].length;
+            }
+            
+            displayText = shortenedText;
+        }
+        
+        selectedText.textContent = displayText;
     } 
     // Xử lý hiển thị cho các radio
     else if (radios.length > 0) {
@@ -232,38 +423,8 @@ function updateDropdownText(dropdown) {
     }
     // Trường hợp không có gì được chọn
     else {
-        selectedText.textContent = 'Chọn...';
+        selectedText.textContent = 'Tất cả';
     }
-}
-
-/**
- * Đồng bộ theme giữa các phần tử trong search card
- */
-function syncThemeForSearchCard() {
-    // Áp dụng class bg-body cho các phần tử cần thiết
-    const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
-    
-    // Cập nhật màu nền cho dropdown menu
-    document.querySelectorAll('.dropdown-menu').forEach(menu => {
-        if (isDarkMode) {
-            menu.classList.add('bg-dark');
-            menu.classList.remove('bg-white');
-        } else {
-            menu.classList.add('bg-white');
-            menu.classList.remove('bg-dark');
-        }
-    });
-    
-    // Cập nhật màu nền cho input group text
-    document.querySelectorAll('.input-group-text:not(.bg-primary)').forEach(item => {
-        if (isDarkMode) {
-            item.classList.add('bg-dark');
-            item.classList.remove('bg-light');
-        } else {
-            item.classList.add('bg-light');
-            item.classList.remove('bg-dark');
-        }
-    });
 }
 
 /**
@@ -271,6 +432,129 @@ function syncThemeForSearchCard() {
  */
 function initSearchPage() {
     init();
+    
+    // Thêm sự kiện load để đảm bảo cập nhật sau khi DOM và hình ảnh đã tải hoàn tất
+    window.addEventListener('load', function() {
+        // Cập nhật lại text hiển thị của tất cả các dropdown sau khi trang đã tải hoàn toàn
+        document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
+            updateDropdownText(dropdown);
+        });
+    });
+    
+    // Khởi tạo chức năng nhảy trang từ dấu "..."
+    initPageGoTo();
+}
+
+/**
+ * Khởi tạo chức năng nhảy trang từ dấu "..."
+ */
+function initPageGoTo() {
+    // Tìm tất cả nút "..." trong phân trang
+    document.querySelectorAll('.page-link.dots').forEach(dotsElement => {
+        dotsElement.addEventListener('click', function() {
+            // Lấy trạng thái hiện tại của nút
+            const pageItem = this.closest('.page-item');
+            const gotoDirection = this.getAttribute('data-page-goto');
+            
+            // Xóa hoàn toàn nội dung hiện tại
+            pageItem.innerHTML = '';
+            
+            // Tạo input để nhập số trang
+            const inputElement = document.createElement('input');
+            inputElement.type = 'text';
+            inputElement.className = 'page-goto-input';
+            inputElement.maxLength = 4;
+            inputElement.placeholder = '...';
+            inputElement.setAttribute('data-page-goto-direction', gotoDirection);
+            
+            // Thêm input vào DOM
+            pageItem.appendChild(inputElement);
+            
+            // Focus vào input
+            inputElement.focus();
+            
+            // Xử lý khi người dùng nhấn Enter
+            inputElement.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    
+                    const pageNumber = parseInt(this.value);
+                    const totalPages = getTotalPages();
+                    
+                    // Kiểm tra tính hợp lệ của số trang
+                    if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= totalPages) {
+                        // Tạo đường dẫn đến trang được chọn
+                        navigateToPage(pageNumber);
+                    } else {
+                        // Hiển thị thông báo nếu số trang không hợp lệ
+                        alert('Vui lòng nhập số trang hợp lệ (1-' + totalPages + ')');
+                        this.value = '';
+                        this.focus();
+                    }
+                }
+            });
+            
+            // Xử lý khi người dùng click ra ngoài (blur)
+            inputElement.addEventListener('blur', function() {
+                // Khôi phục lại dấu "..."
+                setTimeout(() => {
+                    if (pageItem.contains(this)) {
+                        // Tạo lại phần tử span với dấu ...
+                        const dotsSpan = document.createElement('span');
+                        dotsSpan.className = 'page-link dots';
+                        dotsSpan.setAttribute('data-page-goto', gotoDirection);
+                        dotsSpan.textContent = '...';
+                        
+                        // Xóa input
+                        pageItem.innerHTML = '';
+                        
+                        // Thêm dấu ... mới
+                        pageItem.appendChild(dotsSpan);
+                        
+                        // Khởi tạo lại sự kiện cho nút "..."
+                        initPageGoTo();
+                    }
+                }, 200);
+            });
+        });
+    });
+}
+
+/**
+ * Lấy tổng số trang từ phân trang
+ */
+function getTotalPages() {
+    const paginationInfo = document.querySelector('.text-center.mt-2.text-muted small');
+    if (paginationInfo) {
+        const text = paginationInfo.textContent;
+        const match = text.match(/tổng số (\d+) manga/);
+        if (match && match[1]) {
+            const totalMangas = parseInt(match[1]);
+            const pageSizeElement = document.querySelector('input[name="pageSize"]:checked');
+            const pageSize = pageSizeElement ? parseInt(pageSizeElement.value) : 24;
+            
+            return Math.ceil(totalMangas / pageSize);
+        }
+    }
+    return 0;
+}
+
+/**
+ * Nhảy đến trang được chỉ định
+ */
+function navigateToPage(pageNumber) {
+    // Lấy URL hiện tại
+    const currentUrl = new URL(window.location.href);
+    const searchParams = currentUrl.searchParams;
+    
+    // Cập nhật tham số page
+    searchParams.set('page', pageNumber);
+    
+    // Tạo URL mới
+    const newUrl = `${currentUrl.pathname}?${searchParams.toString()}`;
+    
+    // Thực hiện chuyển trang bằng HTMX
+    htmx.ajax('GET', newUrl, { target: '#main-content', pushUrl: true });
 }
 
 /**
@@ -290,18 +574,14 @@ function setupResetFilters() {
             }
         });
         
-        // Reset các radio button về mặc định
-        document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
-            const radios = dropdown.querySelectorAll('input[type="radio"]');
-            if (radios.length > 0) {
-                // Chọn radio đầu tiên (thường là "Tất cả")
-                radios[0].checked = true;
-            }
+        // Reset các checkbox trạng thái và đối tượng độc giả (unchecked)
+        document.querySelectorAll('input[name="status[]"], input[name="publicationDemographic[]"]').forEach(cb => {
+            cb.checked = false;
         });
         
-        // Reset các checkbox về mặc định
-        document.querySelectorAll('input[name="contentRating"]').forEach(cb => {
-            cb.checked = true;
+        // Reset các checkbox nội dung (checked)
+        document.querySelectorAll('input[name="contentRating[]"]').forEach(cb => {
+            cb.checked = ['safe', 'suggestive', 'erotica'].includes(cb.value);
         });
         
         // Reset language checkbox

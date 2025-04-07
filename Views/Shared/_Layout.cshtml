@@ -42,24 +42,6 @@
                         <i class="bi bi-search me-2"></i>Tìm kiếm nâng cao
                     </a>
                 </li>
-                <li class="nav-item mb-2">
-                    <a class="nav-link sidebar-nav-link p-2" asp-area="" asp-controller="Manga" asp-action="Latest" 
-                       hx-get="@Url.Action("Latest", "Manga")" hx-target="#main-content" hx-push-url="true">
-                        <i class="bi bi-calendar-check me-2"></i>Truyện mới cập nhật
-                    </a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a class="nav-link sidebar-nav-link p-2" asp-area="" asp-controller="Manga" asp-action="Popular" 
-                       hx-get="@Url.Action("Popular", "Manga")" hx-target="#main-content" hx-push-url="true">
-                        <i class="bi bi-graph-up me-2"></i>Truyện phổ biến
-                    </a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a class="nav-link sidebar-nav-link p-2" asp-controller="Home" asp-action="Privacy"
-                       hx-get="@Url.Action("Privacy", "Home")" hx-target="#main-content" hx-push-url="true">
-                        <i class="bi bi-shield-check me-2"></i>Chính sách bảo mật
-                    </a>
-                </li>
             </ul>
             
             <!-- Phần footer trong sidebar -->

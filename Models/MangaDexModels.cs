@@ -261,6 +261,7 @@ namespace manga_reader_web.Models
         public int TotalCount { get; set; }
         public int CurrentPage { get; set; }
         public int PageSize { get; set; }
+        public int MaxPages { get; set; } // Số trang tối đa có thể truy cập dựa trên giới hạn API
         public SortManga SortOptions { get; set; } = new SortManga();
     }
 

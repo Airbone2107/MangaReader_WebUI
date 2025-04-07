@@ -20,7 +20,7 @@ function initErrorHandling() {
     // Xử lý lỗi khi tải hình ảnh
     document.querySelectorAll('img').forEach(img => {
         img.addEventListener('error', function() {
-            this.src = '/images/no-cover.png';
+            this.src = '/images/cover-placeholder.jpg';
         });
     });
 

@@ -14,7 +14,7 @@
                         <div class="row g-3">
                             <div class="col-md-12">
                                 <div class="input-group mb-3">
-                                    <span class="input-group-text bg-primary theme-text"><i class="bi bi-search"></i></span>
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
                                     <input type="text" name="title" value="@Model.SortOptions.Title" class="form-control form-control-lg" placeholder="Nhập tên manga cần tìm...">
                                     <button type="submit" class="btn btn-primary">
                                         <i class="bi bi-search me-2"></i>Tìm kiếm
@@ -23,239 +23,14 @@
                             </div>
                             
                             <div class="col-md-12">
-                                <button type="button" class="btn btn-outline-secondary w-100 py-2 text-start" id="filterToggle">
+                                <button type="button" class="filter-toggle-btn w-100 py-2 text-start" id="filterToggle">
                                     <i class="bi bi-funnel me-2"></i>
                                     <span>Bộ lọc nâng cao</span>
-                                    <i class="bi bi-chevron-down float-end mt-1"></i>
+                                    <span class="chevron-icon float-end mt-1"></span>
                                 </button>
                                 
                                 <div class="filter-content p-3 border rounded mt-2" id="filterContainer" style="display: none;">
                                     <div class="row g-3">
-                                        <!-- Tác giả / Họa sĩ -->
-                                        <div class="col-md-6">
-                                            <label class="form-label">Tác giả / Họa sĩ</label>
-                                            <input type="text" name="authorOrArtist" class="form-control" placeholder="Nhập tên tác giả hoặc họa sĩ..." value="@Model.SortOptions.AuthorOrArtist">
-                                        </div>
-                                        
-                                        <!-- Năm phát hành -->
-                                        <div class="col-md-6">
-                                            <label class="form-label">Năm phát hành</label>
-                                            <input type="number" name="year" class="form-control" placeholder="Nhập năm..." min="1900" max="@DateTime.Now.Year" value="@Model.SortOptions.Year">
-                                        </div>
-                                        
-                                        <!-- Trạng thái -->
-                                        <div class="col-md-6">
-                                            <label class="form-label">Trạng thái</label>
-                                            <div class="filter-dropdown">
-                                                <button type="button" class="btn btn-outline-secondary w-100 text-start dropdown-toggle" data-bs-toggle="dropdown">
-                                                    <span class="selected-text">
-                                                        @(string.IsNullOrEmpty(Model.SortOptions.Status) ? "Any" : TranslateStatus(Model.SortOptions.Status))
-                                                    </span>
-                                                </button>
-                                                <div class="dropdown-menu w-100">
-                                                    <div class="p-2">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="status" id="statusAll" value="" @(string.IsNullOrEmpty(Model.SortOptions.Status) ? "checked" : "")>
-                                                            <label class="form-check-label" for="statusAll">Tất cả</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="status" id="statusOngoing" value="ongoing" @(Model.SortOptions.Status == "ongoing" ? "checked" : "")>
-                                                            <label class="form-check-label" for="statusOngoing">Đang tiến hành</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="status" id="statusCompleted" value="completed" @(Model.SortOptions.Status == "completed" ? "checked" : "")>
-                                                            <label class="form-check-label" for="statusCompleted">Hoàn thành</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="status" id="statusHiatus" value="hiatus" @(Model.SortOptions.Status == "hiatus" ? "checked" : "")>
-                                                            <label class="form-check-label" for="statusHiatus">Tạm ngưng</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="status" id="statusCancelled" value="cancelled" @(Model.SortOptions.Status == "cancelled" ? "checked" : "")>
-                                                            <label class="form-check-label" for="statusCancelled">Đã hủy</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Ngôn ngữ có sẵn -->
-                                        <div class="col-md-6">
-                                            <label class="form-label">Ngôn ngữ</label>
-                                            <div class="d-flex flex-wrap gap-2">
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langVi" value="vi" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("vi") ? "checked" : "")>
-                                                    <label class="form-check-label" for="langVi">Tiếng Việt</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langEn" value="en" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("en") ? "checked" : "")>
-                                                    <label class="form-check-label" for="langEn">Tiếng Anh</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langJp" value="ja" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("ja") ? "checked" : "")>
-                                                    <label class="form-check-label" for="langJp">Tiếng Nhật</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langKo" value="ko" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("ko") ? "checked" : "")>
-                                                    <label class="form-check-label" for="langKo">Tiếng Hàn</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="checkbox" name="availableTranslatedLanguage" id="langZh" value="zh" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("zh") ? "checked" : "")>
-                                                    <label class="form-check-label" for="langZh">Tiếng Trung</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Đối tượng độc giả -->
-                                        <div class="col-md-6">
-                                            <label class="form-label">Đối tượng độc giả</label>
-                                            <div class="filter-dropdown">
-                                                <button type="button" class="btn btn-outline-secondary w-100 text-start dropdown-toggle" data-bs-toggle="dropdown">
-                                                    <span class="selected-text">
-                                                        @(string.IsNullOrEmpty(Model.SortOptions.Demographic) ? "Any" : Model.SortOptions.Demographic)
-                                                    </span>
-                                                </button>
-                                                <div class="dropdown-menu w-100">
-                                                    <div class="p-2">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="publicationDemographic" id="demoAll" value="" @(string.IsNullOrEmpty(Model.SortOptions.Demographic) || Model.SortOptions.Demographic == "Tất cả" ? "checked" : "")>
-                                                            <label class="form-check-label" for="demoAll">Tất cả</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="publicationDemographic" id="demoShounen" value="shounen" @(Model.SortOptions.Demographic == "shounen" ? "checked" : "")>
-                                                            <label class="form-check-label" for="demoShounen">Shounen</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="publicationDemographic" id="demoShoujo" value="shoujo" @(Model.SortOptions.Demographic == "shoujo" ? "checked" : "")>
-                                                            <label class="form-check-label" for="demoShoujo">Shoujo</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="publicationDemographic" id="demoSeinen" value="seinen" @(Model.SortOptions.Demographic == "seinen" ? "checked" : "")>
-                                                            <label class="form-check-label" for="demoSeinen">Seinen</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="publicationDemographic" id="demoJosei" value="josei" @(Model.SortOptions.Demographic == "josei" ? "checked" : "")>
-                                                            <label class="form-check-label" for="demoJosei">Josei</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Đánh giá nội dung -->
-                                        <div class="col-md-6">
-                                            <label class="form-label">Mức độ nội dung</label>
-                                            <div class="filter-dropdown">
-                                                <button type="button" class="btn btn-outline-secondary w-100 text-start dropdown-toggle" data-bs-toggle="dropdown">
-                                                    <span class="selected-text">
-                                                        @(Model.SortOptions.ContentRating != null && Model.SortOptions.ContentRating.Any() ? string.Join(", ", Model.SortOptions.ContentRating) : "Any")
-                                                    </span>
-                                                </button>
-                                                <div class="dropdown-menu w-100">
-                                                    <div class="p-2">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" name="contentRating" id="contentSafe" value="safe" checked>
-                                                            <label class="form-check-label" for="contentSafe">An toàn</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" name="contentRating" id="contentSuggestive" value="suggestive" checked>
-                                                            <label class="form-check-label" for="contentSuggestive">Gợi ý</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Sắp xếp theo -->
-                                        <div class="col-md-6">
-                                            <label class="form-label">Sắp xếp theo</label>
-                                            <div class="filter-dropdown">
-                                                <button type="button" class="btn btn-outline-secondary w-100 text-start dropdown-toggle" data-bs-toggle="dropdown">
-                                                    <span class="selected-text">
-                                                        @{
-                                                            var sortByText = Model.SortOptions.SortBy switch
-                                                            {
-                                                                "title" => "Tên (A-Z)",
-                                                                "popular" => "Phổ biến",
-                                                                "relevance" => "Liên quan",
-                                                                "rating" => "Đánh giá",
-                                                                "createdAt" => "Thời gian tạo",
-                                                                "year" => "Năm xuất bản",
-                                                                _ => "Mới nhất"
-                                                            };
-                                                        }
-                                                        @sortByText
-                                                    </span>
-                                                </button>
-                                                <div class="dropdown-menu w-100">
-                                                    <div class="p-2">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="sortBy" id="sortLatest" value="latest" @(Model.SortOptions.SortBy == "latest" || string.IsNullOrEmpty(Model.SortOptions.SortBy) ? "checked" : "")>
-                                                            <label class="form-check-label" for="sortLatest">Mới nhất</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="sortBy" id="sortTitle" value="title" @(Model.SortOptions.SortBy == "title" ? "checked" : "")>
-                                                            <label class="form-check-label" for="sortTitle">Tên (A-Z)</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="sortBy" id="sortPopular" value="popular" @(Model.SortOptions.SortBy == "popular" ? "checked" : "")>
-                                                            <label class="form-check-label" for="sortPopular">Phổ biến</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="sortBy" id="sortRelevance" value="relevance" @(Model.SortOptions.SortBy == "relevance" ? "checked" : "")>
-                                                            <label class="form-check-label" for="sortRelevance">Liên quan</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="sortBy" id="sortRating" value="rating" @(Model.SortOptions.SortBy == "rating" ? "checked" : "")>
-                                                            <label class="form-check-label" for="sortRating">Đánh giá</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="sortBy" id="sortCreatedAt" value="createdAt" @(Model.SortOptions.SortBy == "createdAt" ? "checked" : "")>
-                                                            <label class="form-check-label" for="sortCreatedAt">Thời gian tạo</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="sortBy" id="sortYear" value="year" @(Model.SortOptions.SortBy == "year" ? "checked" : "")>
-                                                            <label class="form-check-label" for="sortYear">Năm xuất bản</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Phân trang -->
-                                        <div class="col-md-6">
-                                            <label class="form-label">Số kết quả mỗi trang</label>
-                                            <div class="filter-dropdown">
-                                                <button type="button" class="btn btn-outline-secondary w-100 text-start dropdown-toggle" data-bs-toggle="dropdown">
-                                                    <span class="selected-text">@Model.PageSize</span>
-                                                </button>
-                                                <div class="dropdown-menu w-100">
-                                                    <div class="p-2">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="pageSize" id="pageSize12" value="12" @(Model.PageSize == 12 ? "checked" : "")>
-                                                            <label class="form-check-label" for="pageSize12">12</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="pageSize" id="pageSize24" value="24" @(Model.PageSize == 24 ? "checked" : "")>
-                                                            <label class="form-check-label" for="pageSize24">24</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="pageSize" id="pageSize36" value="36" @(Model.PageSize == 36 ? "checked" : "")>
-                                                            <label class="form-check-label" for="pageSize36">36</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="pageSize" id="pageSize48" value="48" @(Model.PageSize == 48 ? "checked" : "")>
-                                                            <label class="form-check-label" for="pageSize48">48</label>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="pageSize" id="pageSize100" value="100" @(Model.PageSize == 100 ? "checked" : "")>
-                                                            <label class="form-check-label" for="pageSize100">100</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
                                         <!-- Danh sách thẻ từ MangaDex -->
                                         <div class="col-md-12">
                                             <label class="form-label mb-2">Thẻ và thể loại 
@@ -316,7 +91,7 @@
                                                     <!-- Tìm kiếm thẻ -->
                                                     <div class="manga-tag-search">
                                                         <div class="input-group">
-                                                            <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                                                            <span class="input-group-text"><i class="bi bi-search"></i></span>
                                                             <input type="text" class="form-control form-control-sm" id="tagSearchInput" placeholder="Tìm kiếm thẻ...">
                                                         </div>
                                                     </div>
@@ -345,11 +120,283 @@
                                             <input type="hidden" id="excludedTags" name="excludedTagsStr" value="@(string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>()))" />
                                         </div>
                                         
+                                        <!-- Hàng 1: Sắp xếp theo, Trạng thái, Số kết quả mỗi trang -->
+                                        <!-- Sắp xếp theo -->
+                                        <div class="col-md-4">
+                                            <label class="filter-dropdown-label">Sắp xếp theo</label>
+                                            <div class="filter-dropdown">
+                                                <button type="button" class="filter-toggle-btn">
+                                                    <span class="selected-text">
+                                                        @{
+                                                            var sortByText = Model.SortOptions.SortBy switch
+                                                            {
+                                                                "title" => "Tên (A-Z)",
+                                                                "popular" => "Phổ biến",
+                                                                "relevance" => "Liên quan",
+                                                                "rating" => "Đánh giá",
+                                                                "createdAt" => "Thời gian tạo",
+                                                                "year" => "Năm xuất bản",
+                                                                _ => "Mới nhất"
+                                                            };
+                                                        }
+                                                        @sortByText
+                                                    </span>
+                                                    <span class="toggle-icon"></span>
+                                                </button>
+                                                <div class="filter-menu-content">
+                                                    <div class="filter-menu-padding">
+                                                        <div class="filter-option">
+                                                            <input type="radio" name="sortBy" id="sortLatest" value="latest" @(Model.SortOptions.SortBy == "latest" || string.IsNullOrEmpty(Model.SortOptions.SortBy) ? "checked" : "")>
+                                                            <label class="filter-option-label" for="sortLatest">Mới nhất</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="radio" name="sortBy" id="sortTitle" value="title" @(Model.SortOptions.SortBy == "title" ? "checked" : "")>
+                                                            <label class="filter-option-label" for="sortTitle">Tên (A-Z)</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="radio" name="sortBy" id="sortPopular" value="popular" @(Model.SortOptions.SortBy == "popular" ? "checked" : "")>
+                                                            <label class="filter-option-label" for="sortPopular">Phổ biến</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="radio" name="sortBy" id="sortRelevance" value="relevance" @(Model.SortOptions.SortBy == "relevance" ? "checked" : "")>
+                                                            <label class="filter-option-label" for="sortRelevance">Liên quan</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="radio" name="sortBy" id="sortRating" value="rating" @(Model.SortOptions.SortBy == "rating" ? "checked" : "")>
+                                                            <label class="filter-option-label" for="sortRating">Đánh giá</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="radio" name="sortBy" id="sortCreatedAt" value="createdAt" @(Model.SortOptions.SortBy == "createdAt" ? "checked" : "")>
+                                                            <label class="filter-option-label" for="sortCreatedAt">Thời gian tạo</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="radio" name="sortBy" id="sortYear" value="year" @(Model.SortOptions.SortBy == "year" ? "checked" : "")>
+                                                            <label class="filter-option-label" for="sortYear">Năm xuất bản</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Đánh giá nội dung - Đã chuyển từ hàng 2 lên -->
+                                        <div class="col-md-4">
+                                            <label class="filter-dropdown-label">Mức độ nội dung</label>
+                                            <div class="filter-dropdown">
+                                                <button type="button" class="filter-toggle-btn">
+                                                    <span class="selected-text">
+                                                        @{
+                                                            var selectedRating = Model.SortOptions.ContentRating != null && Model.SortOptions.ContentRating.Any()
+                                                                ? string.Join(", ", Model.SortOptions.ContentRating.Select(TranslateContentRating))
+                                                                : "Tất cả";
+                                                            
+                                                            // Khi mặc định đã chọn 3 rating
+                                                            var selectedCount = Model.SortOptions.ContentRating?.Count() ?? 0;
+                                                            var defaultThree = selectedCount == 3 && 
+                                                                              (Model.SortOptions.ContentRating?.Contains("safe") ?? false) &&
+                                                                              (Model.SortOptions.ContentRating?.Contains("suggestive") ?? false) &&
+                                                                              (Model.SortOptions.ContentRating?.Contains("erotica") ?? false);
+                                                            
+                                                            if (defaultThree) {
+                                                                selectedRating = "An Toàn, Nhạy cảm, R18, NSFW";
+                                                            }
+                                                        }
+                                                        @selectedRating
+                                                    </span>
+                                                    <span class="toggle-icon"></span>
+                                                </button>
+                                                <div class="filter-menu-content">
+                                                    <div class="filter-menu-padding">
+                                                        <div class="filter-option">
+                                                            <input type="checkbox" name="contentRating[]" id="contentSafe" value="safe" 
+                                                                   @(Model.SortOptions.ContentRating == null || Model.SortOptions.ContentRating.Contains("safe") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="contentSafe">An Toàn</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="checkbox" name="contentRating[]" id="contentSuggestive" value="suggestive" 
+                                                                   @(Model.SortOptions.ContentRating == null || Model.SortOptions.ContentRating.Contains("suggestive") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="contentSuggestive">Nhạy cảm</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="checkbox" name="contentRating[]" id="contentErotica" value="erotica" 
+                                                                   @(Model.SortOptions.ContentRating == null || Model.SortOptions.ContentRating.Contains("erotica") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="contentErotica">R18</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="checkbox" name="contentRating[]" id="contentPornographic" value="pornographic" 
+                                                                   @(Model.SortOptions.ContentRating != null && Model.SortOptions.ContentRating.Contains("pornographic") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="contentPornographic">NSFW</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Phân trang -->
+                                        <div class="col-md-4">
+                                            <label class="filter-dropdown-label">Số kết quả mỗi trang</label>
+                                            <div class="filter-dropdown">
+                                                <button type="button" class="filter-toggle-btn">
+                                                    <span class="selected-text">@Model.PageSize</span>
+                                                    <span class="toggle-icon"></span>
+                                                </button>
+                                                <div class="filter-menu-content">
+                                                    <div class="filter-menu-padding">
+                                                        <div class="filter-option">
+                                                            <input type="radio" name="pageSize" id="pageSize12" value="12" @(Model.PageSize == 12 ? "checked" : "")>
+                                                            <label class="filter-option-label" for="pageSize12">12</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="radio" name="pageSize" id="pageSize24" value="24" @(Model.PageSize == 24 ? "checked" : "")>
+                                                            <label class="filter-option-label" for="pageSize24">24</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="radio" name="pageSize" id="pageSize36" value="36" @(Model.PageSize == 36 ? "checked" : "")>
+                                                            <label class="filter-option-label" for="pageSize36">36</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="radio" name="pageSize" id="pageSize48" value="48" @(Model.PageSize == 48 ? "checked" : "")>
+                                                            <label class="filter-option-label" for="pageSize48">48</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="radio" name="pageSize" id="pageSize100" value="100" @(Model.PageSize == 100 ? "checked" : "")>
+                                                            <label class="filter-option-label" for="pageSize100">100</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Hàng 2: Đối tượng độc giả, Trạng thái, Ngôn ngữ -->
+                                        <!-- Đối tượng độc giả -->
+                                        <div class="col-md-4">
+                                            <label class="filter-dropdown-label">Đối tượng độc giả</label>
+                                            <div class="filter-dropdown">
+                                                <button type="button" class="filter-toggle-btn">
+                                                    <span class="selected-text">
+                                                        @(Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Any() ? string.Join(", ", Model.SortOptions.Demographic.Select(d => d.ToUpperInvariant())) : "Tất cả")
+                                                    </span>
+                                                    <span class="toggle-icon"></span>
+                                                </button>
+                                                <div class="filter-menu-content">
+                                                    <div class="filter-menu-padding">
+                                                        <div class="filter-option">
+                                                            <input type="checkbox" name="publicationDemographic[]" id="demoShounen" value="shounen" @(Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Contains("shounen") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="demoShounen">Shounen</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="checkbox" name="publicationDemographic[]" id="demoShoujo" value="shoujo" @(Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Contains("shoujo") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="demoShoujo">Shoujo</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="checkbox" name="publicationDemographic[]" id="demoSeinen" value="seinen" @(Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Contains("seinen") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="demoSeinen">Seinen</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="checkbox" name="publicationDemographic[]" id="demoJosei" value="josei" @(Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Contains("josei") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="demoJosei">Josei</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Trạng thái - Đã chuyển từ hàng 1 xuống -->
+                                        <div class="col-md-4">
+                                            <label class="filter-dropdown-label">Trạng thái</label>
+                                            <div class="filter-dropdown">
+                                                <button type="button" class="filter-toggle-btn">
+                                                    <span class="selected-text">
+                                                        @(Model.SortOptions.Status != null && Model.SortOptions.Status.Any() ? string.Join(", ", Model.SortOptions.Status.Select(s => TranslateStatus(s))) : "Tất cả")
+                                                    </span>
+                                                    <span class="toggle-icon"></span>
+                                                </button>
+                                                <div class="filter-menu-content">
+                                                    <div class="filter-menu-padding">
+                                                        <div class="filter-option">
+                                                            <input type="checkbox" name="status[]" id="statusOngoing" value="ongoing" @(Model.SortOptions.Status != null && Model.SortOptions.Status.Contains("ongoing") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="statusOngoing">Đang tiến hành</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="checkbox" name="status[]" id="statusCompleted" value="completed" @(Model.SortOptions.Status != null && Model.SortOptions.Status.Contains("completed") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="statusCompleted">Hoàn thành</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="checkbox" name="status[]" id="statusHiatus" value="hiatus" @(Model.SortOptions.Status != null && Model.SortOptions.Status.Contains("hiatus") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="statusHiatus">Tạm ngưng</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input type="checkbox" name="status[]" id="statusCancelled" value="cancelled" @(Model.SortOptions.Status != null && Model.SortOptions.Status.Contains("cancelled") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="statusCancelled">Đã hủy</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Ngôn ngữ có sẵn -->
+                                        <div class="col-md-4">
+                                            <label class="filter-dropdown-label">Ngôn ngữ</label>
+                                            <div class="filter-dropdown">
+                                                <button type="button" class="filter-toggle-btn">
+                                                    <span class="selected-text">
+                                                        @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Any() ? 
+                                                          string.Join(", ", Model.SortOptions.Languages.Select(l => 
+                                                            l == "vi" ? "Tiếng Việt" : 
+                                                            l == "en" ? "Tiếng Anh" : 
+                                                            l == "ja" ? "Tiếng Nhật" : 
+                                                            l == "ko" ? "Tiếng Hàn" : 
+                                                            l == "zh" ? "Tiếng Trung" : l)) : "Tất cả")
+                                                    </span>
+                                                    <span class="toggle-icon"></span>
+                                                </button>
+                                                <div class="filter-menu-content">
+                                                    <div class="filter-menu-padding">
+                                                        <div class="filter-option">
+                                                            <input class="filter-check-input" type="checkbox" name="availableTranslatedLanguage" id="langVi" value="vi" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("vi") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="langVi">Tiếng Việt</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input class="filter-check-input" type="checkbox" name="availableTranslatedLanguage" id="langEn" value="en" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("en") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="langEn">Tiếng Anh</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input class="filter-check-input" type="checkbox" name="availableTranslatedLanguage" id="langJp" value="ja" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("ja") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="langJp">Tiếng Nhật</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input class="filter-check-input" type="checkbox" name="availableTranslatedLanguage" id="langKo" value="ko" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("ko") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="langKo">Tiếng Hàn</label>
+                                                        </div>
+                                                        <div class="filter-option">
+                                                            <input class="filter-check-input" type="checkbox" name="availableTranslatedLanguage" id="langZh" value="zh" @(Model.SortOptions.Languages != null && Model.SortOptions.Languages.Contains("zh") ? "checked" : "")>
+                                                            <label class="filter-option-label" for="langZh">Tiếng Trung</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Hàng tác giả, họa sĩ, năm phát hành - mỗi cái chiếm 4 cột -->
+                                        <div class="col-md-4">
+                                            <label class="form-label">Tác giả</label>
+                                            <input type="text" name="authors" class="form-control" placeholder="Nhập tên tác giả..." value="@(string.Join(", ", Model.SortOptions.Authors ?? new List<string>()))">
+                                        </div>
+                                        
+                                        <div class="col-md-4">
+                                            <label class="form-label">Họa sĩ</label>
+                                            <input type="text" name="artists" class="form-control" placeholder="Nhập tên họa sĩ..." value="@(string.Join(", ", Model.SortOptions.Artists ?? new List<string>()))">
+                                        </div>
+                                        
+                                        <div class="col-md-4">
+                                            <label class="form-label">Năm phát hành</label>
+                                            <input type="number" name="year" class="form-control" placeholder="Nhập năm..." min="1900" max="@DateTime.Now.Year" value="@Model.SortOptions.Year">
+                                        </div>
+                                        
                                         <div class="col-md-12 text-end">
-                                            <button type="button" class="btn btn-outline-secondary me-2" id="resetFilters">
+                                            <button type="button" class="filter-reset-btn me-2" id="resetFilters">
                                                 <i class="bi bi-x-circle me-2"></i>Xóa bộ lọc
                                             </button>
-                                            <button type="submit" class="btn btn-primary">
+                                            <button type="submit" class="filter-apply-btn">
                                                 <i class="bi bi-filter me-2"></i>Áp dụng bộ lọc
                                             </button>
                                         </div>
@@ -373,7 +420,7 @@
             </div>
         }
         
-        @if (!string.IsNullOrEmpty(Model.SortOptions.Title) || !string.IsNullOrEmpty(Model.SortOptions.Status) || (Model.SortOptions.Genres != null && Model.SortOptions.Genres.Any()) || (Model.SortOptions.IncludedTags != null && Model.SortOptions.IncludedTags.Any()))
+        @if (!string.IsNullOrEmpty(Model.SortOptions.Title) || (Model.SortOptions.Status != null && Model.SortOptions.Status.Any()) || (Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Any()) || (Model.SortOptions.Genres != null && Model.SortOptions.Genres.Any()) || (Model.SortOptions.IncludedTags != null && Model.SortOptions.IncludedTags.Any()))
         {
             <div class="d-flex align-items-center mb-4">
                 <h5 class="mb-0 me-3">Kết quả tìm kiếm:</h5>
@@ -382,9 +429,19 @@
                     {
                         <span class="badge bg-primary">Tên: @Model.SortOptions.Title</span>
                     }
-                    @if (!string.IsNullOrEmpty(Model.SortOptions.Status))
+                    @if (Model.SortOptions.Status != null && Model.SortOptions.Status.Any())
                     {
-                        <span class="badge bg-info">Trạng thái: @TranslateStatus(Model.SortOptions.Status)</span>
+                        foreach (var status in Model.SortOptions.Status)
+                        {
+                            <span class="badge bg-info">Trạng thái: @TranslateStatus(status)</span>
+                        }
+                    }
+                    @if (Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Any())
+                    {
+                        foreach (var demo in Model.SortOptions.Demographic)
+                        {
+                            <span class="badge bg-success">Đối tượng: @demo.ToUpperInvariant()</span>
+                        }
                     }
                     @if (Model.SortOptions.Genres != null)
                     {
@@ -420,41 +477,27 @@
         }
         else
         {
-            <div class="row">
+            <div class="row manga-grid">
                 @foreach (var manga in Model.Mangas)
                 {
-                    <div class="col-6 col-md-4 col-lg-3 mb-4">
-                        <div class="card h-100">
+                    <div class="col-6 col-md-4 col-lg-3 col-xl-2 col-xxl-2 mb-4">
+                        <div class="manga-card">
                             <a asp-action="Details" asp-route-id="@manga.Id" 
                                hx-get="@Url.Action("Details", "Manga", new { id = manga.Id })" 
                                hx-target="#main-content" 
                                hx-push-url="true" 
-                               class="card-manga-cover-link">
-                                <img src="@manga.CoverUrl" class="card-manga-cover" alt="@manga.Title" loading="lazy">
-                                @if (!string.IsNullOrEmpty(manga.Status))
-                                {
-                                    <span class="manga-status badge @(manga.Status == "ongoing" ? "bg-success" : "bg-secondary")">
-                                        @TranslateStatus(manga.Status)
-                                    </span>
-                                }
+                               class="manga-cover-link">
+                                <img src="@(string.IsNullOrEmpty(manga.CoverUrl) ? "/Images/cover-placeholder.jpg" : manga.CoverUrl)" class="manga-cover" alt="@manga.Title" loading="lazy">
+                                <div class="manga-info-overlay">
+                                    <h5 class="manga-title" title="@manga.Title">@manga.Title</h5>
+                                    @if (!string.IsNullOrEmpty(manga.Author))
+                                    {
+                                        <p class="manga-author">
+                                            <i class="bi bi-person"></i> @manga.Author
+                                        </p>
+                                    }
+                                </div>
                             </a>
-                            <div class="card-body">
-                                <h5 class="card-title text-truncate" title="@manga.Title">
-                                    <a asp-action="Details" asp-route-id="@manga.Id" 
-                                       hx-get="@Url.Action("Details", "Manga", new { id = manga.Id })" 
-                                       hx-target="#main-content" 
-                                       hx-push-url="true" 
-                                       class="text-decoration-none text-dark">
-                                        @manga.Title
-                                    </a>
-                                </h5>
-                                @if (!string.IsNullOrEmpty(manga.Author))
-                                {
-                                    <p class="card-text small text-muted">
-                                        <i class="bi bi-person"></i> @manga.Author
-                                    </p>
-                                }
-                            </div>
                         </div>
                     </div>
                 }
@@ -465,38 +508,27 @@
                 <div class="d-flex justify-content-center mt-4">
                     <nav aria-label="Page navigation">
                         <ul class="pagination">
-                            <li class="page-item">
+                            @{
+                                // Sử dụng MaxPages đã được tính toán sẵn từ controller
+                                var totalPages = Model.MaxPages;
+                                
+                                // Tính toán phạm vi trang hiển thị
+                                var startPage = Math.Max(2, Model.CurrentPage - 2);
+                                var endPage = Math.Min(totalPages - 1, Model.CurrentPage + 2);
+                            }
+                            
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
                                 <a class="page-link" 
                                    hx-get="@Url.Action("Search", "Manga", new { 
-                                       page = 1, 
+                                       page = Math.Max(1, Model.CurrentPage - 1), 
                                        title = Model.SortOptions.Title, 
                                        status = Model.SortOptions.Status, 
-                                       sortBy = Model.SortOptions.SortBy, 
-                                       authorOrArtist = Model.SortOptions.AuthorOrArtist,
-                                       year = Model.SortOptions.Year,
                                        publicationDemographic = Model.SortOptions.Demographic,
-                                       includedTagsMode = Model.SortOptions.IncludedTagsMode,
-                                       excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
-                                       pageSize = Model.PageSize,
-                                       includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
-                                       excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
-                                   })" 
-                                   hx-target="#main-content" 
-                                   hx-push-url="true" 
-                                   aria-label="First">
-                                    <i class="bi bi-chevron-double-left"></i>
-                                </a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" 
-                                   hx-get="@Url.Action("Search", "Manga", new { 
-                                       page = Model.CurrentPage - 1, 
-                                       title = Model.SortOptions.Title, 
-                                       status = Model.SortOptions.Status, 
+                                       contentRating = Model.SortOptions.ContentRating,
                                        sortBy = Model.SortOptions.SortBy, 
-                                       authorOrArtist = Model.SortOptions.AuthorOrArtist,
+                                       authors = string.Join(",", Model.SortOptions.Authors ?? new List<string>()),
+                                       artists = string.Join(",", Model.SortOptions.Artists ?? new List<string>()),
                                        year = Model.SortOptions.Year,
-                                       publicationDemographic = Model.SortOptions.Demographic,
                                        includedTagsMode = Model.SortOptions.IncludedTagsMode,
                                        excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
                                        pageSize = Model.PageSize,
@@ -510,17 +542,40 @@
                                 </a>
                             </li>
                             
-                            @{
-                                var totalPages = (int)Math.Ceiling((double)Model.TotalCount / Model.PageSize);
-                                var startPage = Math.Max(1, Model.CurrentPage - 2);
-                                var endPage = Math.Min(startPage + 4, totalPages);
-                                
-                                if (endPage - startPage < 4 && startPage > 1)
-                                {
-                                    startPage = Math.Max(1, endPage - 4);
-                                }
+                            <!-- Trang đầu -->
+                            <li class="page-item @(Model.CurrentPage == 1 ? "active" : "")">
+                                <a class="page-link" 
+                                   hx-get="@Url.Action("Search", "Manga", new { 
+                                       page = 1, 
+                                       title = Model.SortOptions.Title, 
+                                       status = Model.SortOptions.Status, 
+                                       publicationDemographic = Model.SortOptions.Demographic,
+                                       contentRating = Model.SortOptions.ContentRating,
+                                       sortBy = Model.SortOptions.SortBy, 
+                                       authors = string.Join(",", Model.SortOptions.Authors ?? new List<string>()),
+                                       artists = string.Join(",", Model.SortOptions.Artists ?? new List<string>()),
+                                       year = Model.SortOptions.Year,
+                                       includedTagsMode = Model.SortOptions.IncludedTagsMode,
+                                       excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
+                                       pageSize = Model.PageSize,
+                                       includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
+                                       excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
+                                   })" 
+                                   hx-target="#main-content" 
+                                   hx-push-url="true">
+                                    1
+                                </a>
+                            </li>
+                            
+                            <!-- Dấu ba chấm bên trái nếu cần -->
+                            @if (startPage > 2)
+                            {
+                                <li class="page-item">
+                                    <span class="page-link dots" data-page-goto="left">...</span>
+                                </li>
                             }
                             
+                            <!-- Các trang ở giữa -->
                             @for (var i = startPage; i <= endPage; i++)
                             {
                                 <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
@@ -529,10 +584,12 @@
                                            page = i, 
                                            title = Model.SortOptions.Title, 
                                            status = Model.SortOptions.Status, 
-                                           sortBy = Model.SortOptions.SortBy, 
-                                           authorOrArtist = Model.SortOptions.AuthorOrArtist,
-                                           year = Model.SortOptions.Year,
                                            publicationDemographic = Model.SortOptions.Demographic,
+                                           contentRating = Model.SortOptions.ContentRating,
+                                           sortBy = Model.SortOptions.SortBy, 
+                                           authors = string.Join(",", Model.SortOptions.Authors ?? new List<string>()),
+                                           artists = string.Join(",", Model.SortOptions.Artists ?? new List<string>()),
+                                           year = Model.SortOptions.Year,
                                            includedTagsMode = Model.SortOptions.IncludedTagsMode,
                                            excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
                                            pageSize = Model.PageSize,
@@ -546,40 +603,29 @@
                                 </li>
                             }
                             
-                            @if (Model.CurrentPage < totalPages)
+                            <!-- Dấu ba chấm bên phải nếu cần -->
+                            @if (endPage < totalPages - 1)
                             {
                                 <li class="page-item">
-                                    <a class="page-link" 
-                                       hx-get="@Url.Action("Search", "Manga", new { 
-                                           page = Model.CurrentPage + 1, 
-                                           title = Model.SortOptions.Title, 
-                                           status = Model.SortOptions.Status, 
-                                           sortBy = Model.SortOptions.SortBy, 
-                                           authorOrArtist = Model.SortOptions.AuthorOrArtist,
-                                           year = Model.SortOptions.Year,
-                                           publicationDemographic = Model.SortOptions.Demographic,
-                                           includedTagsMode = Model.SortOptions.IncludedTagsMode,
-                                           excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
-                                           pageSize = Model.PageSize,
-                                           includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
-                                           excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
-                                       })" 
-                                       hx-target="#main-content" 
-                                       hx-push-url="true" 
-                                       aria-label="Next">
-                                        <i class="bi bi-chevron-right"></i>
-                                    </a>
+                                    <span class="page-link dots" data-page-goto="right">...</span>
                                 </li>
-                                <li class="page-item">
+                            }
+                            
+                            <!-- Trang cuối -->
+                            @if (totalPages > 1)
+                            {
+                                <li class="page-item @(Model.CurrentPage == totalPages ? "active" : "")">
                                     <a class="page-link" 
                                        hx-get="@Url.Action("Search", "Manga", new { 
                                            page = totalPages, 
                                            title = Model.SortOptions.Title, 
                                            status = Model.SortOptions.Status, 
-                                           sortBy = Model.SortOptions.SortBy, 
-                                           authorOrArtist = Model.SortOptions.AuthorOrArtist,
-                                           year = Model.SortOptions.Year,
                                            publicationDemographic = Model.SortOptions.Demographic,
+                                           contentRating = Model.SortOptions.ContentRating,
+                                           sortBy = Model.SortOptions.SortBy, 
+                                           authors = string.Join(",", Model.SortOptions.Authors ?? new List<string>()),
+                                           artists = string.Join(",", Model.SortOptions.Artists ?? new List<string>()),
+                                           year = Model.SortOptions.Year,
                                            includedTagsMode = Model.SortOptions.IncludedTagsMode,
                                            excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
                                            pageSize = Model.PageSize,
@@ -587,18 +633,46 @@
                                            excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
                                        })" 
                                        hx-target="#main-content" 
-                                       hx-push-url="true" 
-                                       aria-label="Last">
-                                        <i class="bi bi-chevron-double-right"></i>
+                                       hx-push-url="true">
+                                        @totalPages
                                     </a>
                                 </li>
                             }
+                            
+                            <li class="page-item @(Model.CurrentPage == totalPages ? "disabled" : "")">
+                                <a class="page-link" 
+                                   hx-get="@Url.Action("Search", "Manga", new { 
+                                       page = Math.Min(totalPages, Model.CurrentPage + 1), 
+                                       title = Model.SortOptions.Title, 
+                                       status = Model.SortOptions.Status, 
+                                       publicationDemographic = Model.SortOptions.Demographic,
+                                       contentRating = Model.SortOptions.ContentRating,
+                                       sortBy = Model.SortOptions.SortBy, 
+                                       authors = string.Join(",", Model.SortOptions.Authors ?? new List<string>()),
+                                       artists = string.Join(",", Model.SortOptions.Artists ?? new List<string>()),
+                                       year = Model.SortOptions.Year,
+                                       includedTagsMode = Model.SortOptions.IncludedTagsMode,
+                                       excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
+                                       pageSize = Model.PageSize,
+                                       includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
+                                       excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
+                                   })" 
+                                   hx-target="#main-content" 
+                                   hx-push-url="true" 
+                                   aria-label="Next">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
                         </ul>
                     </nav>
                 </div>
                 
                 <div class="text-center mt-2 text-muted">
                     <small>Hiển thị @((Model.CurrentPage - 1) * Model.PageSize + 1) - @Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalCount) trong tổng số @Model.TotalCount manga</small>
+                    @if (Model.TotalCount > 10000)
+                    {
+                        <br><small class="text-warning">API giới hạn chỉ hiển thị tối đa 10000 kết quả, tương ứng với trang @Model.MaxPages</small>
+                    }
                 </div>
             }
         }
@@ -615,6 +689,18 @@
             "completed" => "Hoàn thành",
             "hiatus" => "Tạm ngưng",
             "cancelled" => "Đã hủy",
+            _ => "Không rõ"
+        };
+    }
+
+    public string TranslateContentRating(string rating)
+    {
+        return rating switch
+        {
+            "safe" => "An Toàn",
+            "suggestive" => "Nhạy cảm",
+            "erotica" => "R18",
+            "pornographic" => "NSFW",
             _ => "Không rõ"
         };
     }

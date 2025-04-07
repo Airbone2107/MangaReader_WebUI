@@ -9,4 +9,104 @@
         margin-left: 0;
         margin-right: 0;
     }
+    
+    /* Responsive cho filter-dropdown mới */
+    .filter-dropdown {
+        width: 100%;
+        position: relative;
+    }
+    
+    .filter-menu-content {
+        width: 100%;
+        position: absolute;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        margin-top: 0.25rem;
+        max-height: 16rem;
+        overflow-y: auto;
+        z-index: 1051; /* Đảm bảo hiển thị trên các phần tử khác */
+    }
+    
+    .filter-toggle-btn {
+        width: 100%;
+    }
+    
+    /* Thêm padding cho các lựa chọn để dễ chạm trên mobile */
+    .filter-option {
+        padding: 0.75rem 0.5rem;
+        min-height: 44px; /* Đảm bảo đủ kích thước cho tap target trên mobile */
+    }
+    
+    /* Đảm bảo radio/checkbox có kích thước lớn hơn trên mobile */
+    .filter-option input[type="checkbox"],
+    .filter-option input[type="radio"],
+    .filter-check-input {
+        width: 1.2rem;
+        height: 1.2rem;
+        min-width: 1.2rem; /* Đảm bảo kích thước tối thiểu */
+    }
+    
+    /* Đảm bảo label có đủ không gian */
+    .filter-option-label {
+        padding: 0.5rem 0;
+        font-size: 1rem;
+    }
+    
+    /* Responsive cho manga grid trên mobile */
+    .manga-info-overlay {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .manga-title {
+        -webkit-line-clamp: 1; /* Giới hạn chỉ hiển thị 1 dòng tiêu đề trên điện thoại */
+    }
+}
+
+/* Responsive cho màn hình tablet và desktop nhỏ */
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    .manga-grid > div {
+        margin-bottom: 1.25rem;
+    }
+    
+    .manga-info-overlay {
+        padding: 0.875rem 0.625rem;
+    }
+}
+
+/* Responsive cho màn hình lớn (1200px trở lên) */
+@media (min-width: 1200px) {
+    .manga-grid {
+        margin-right: -0.75rem;
+        margin-left: -0.75rem;
+    }
+    
+    .manga-grid > div {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .manga-card:hover {
+        transform: translateY(-8px);
+    }
+}
+
+/* Responsive cho màn hình cực lớn (1920px trở lên) */
+@media (min-width: 1921px) {
+    .container {
+        max-width: 1800px; /* Container rộng hơn cho màn hình cực lớn */
+    }
+    
+    .manga-grid > div {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .manga-title {
+        font-size: 1.1rem;
+    }
+    
+    .manga-author {
+        font-size: 0.9rem;
+    }
 } 
