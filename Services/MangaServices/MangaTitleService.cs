@@ -1,25 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using manga_reader_web.Services;
 
 namespace manga_reader_web.Services.MangaServices
 {
     public class MangaTitleService
     {
-        private readonly LocalizationService _localizationService;
-        private readonly JsonConversionService _jsonConversionService;
         private readonly ILogger<MangaTitleService> _logger;
 
         public MangaTitleService(
-            LocalizationService localizationService,
-            JsonConversionService jsonConversionService,
             ILogger<MangaTitleService> logger)
         {
-            _localizationService = localizationService;
-            _jsonConversionService = jsonConversionService;
             _logger = logger;
         }
 
@@ -40,7 +32,7 @@ namespace manga_reader_web.Services.MangaServices
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi xử lý title manga: {ex.Message}");
+                _logger.LogError($"Lỗi khi xử lý tiêu đề mặc định: {ex.Message}");
                 return "Không có tiêu đề";
             }
         }
@@ -69,8 +61,8 @@ namespace manga_reader_web.Services.MangaServices
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi xử lý tiêu đề manga ưu tiên: {ex.Message}");
-                return GetDefaultMangaTitle(titleObj);
+                _logger.LogError($"Lỗi khi xử lý tiêu đề ưu tiên: {ex.Message}");
+                return "Không có tiêu đề";
             }
         }
 
@@ -140,7 +132,6 @@ namespace manga_reader_web.Services.MangaServices
                 var firstLang = altTitlesDictionary.Keys.First();
                 return altTitlesDictionary[firstLang].FirstOrDefault() ?? "";
             }
-            
             return "";
         }
     }

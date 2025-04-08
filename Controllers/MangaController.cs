@@ -21,6 +21,7 @@ namespace manga_reader_web.Controllers
         private readonly JsonConversionService _jsonConversionService;
         private readonly MangaUtilityService _mangaUtilityService;
         private readonly MangaTitleService _mangaTitleService;
+        private readonly MangaTagService _mangaTagService;
 
         public MangaController(
             MangaDexService mangaDexService, 
@@ -28,7 +29,8 @@ namespace manga_reader_web.Controllers
             LocalizationService localizationService,
             JsonConversionService jsonConversionService,
             MangaUtilityService mangaUtilityService,
-            MangaTitleService mangaTitleService)
+            MangaTitleService mangaTitleService,
+            MangaTagService mangaTagService)
         {
             _mangaDexService = mangaDexService;
             _logger = logger;
@@ -36,6 +38,7 @@ namespace manga_reader_web.Controllers
             _jsonConversionService = jsonConversionService;
             _mangaUtilityService = mangaUtilityService;
             _mangaTitleService = mangaTitleService;
+            _mangaTagService = mangaTagService;
         }
 
         /// <summary>
@@ -154,6 +157,12 @@ namespace manga_reader_web.Controllers
                     }
                 }
                 
+                // Sử dụng MangaTagService để xử lý tags
+                var tags = _mangaTagService.GetMangaTags(mangaDict);
+                
+                // Tải ảnh bìa
+                string coverUrl = await _mangaDexService.FetchCoverUrlAsync(id);
+                
                 // Xử lý thời gian cập nhật
                 DateTime? lastUpdated = null;
                 if (attributesDict.ContainsKey("updatedAt") && attributesDict["updatedAt"] != null)
@@ -163,202 +172,6 @@ namespace manga_reader_web.Controllers
                         lastUpdated = updatedAt;
                     }
                 }
-                
-                // Xử lý tags
-                var tags = new List<string>();
-                if (attributesDict.ContainsKey("tags") && attributesDict["tags"] != null)
-                {
-                    try
-                    {
-                        // Đổi cách phân tích JSON tags để phù hợp với cấu trúc API MangaDex
-                        var tagsArray = attributesDict["tags"];
-                        if (tagsArray is JsonElement tagsElement && tagsElement.ValueKind == JsonValueKind.Array)
-                        {
-                            var tagsList = new List<Dictionary<string, object>>();
-                            
-                            foreach (var tagElem in tagsElement.EnumerateArray())
-                            {
-                                tagsList.Add(_jsonConversionService.ConvertJsonElementToDict(tagElem));
-                            }
-                        
-                            foreach (var tagDict in tagsList)
-                            {
-                                if (tagDict.ContainsKey("attributes") && tagDict["attributes"] != null)
-                                {
-                                    var tagAttrs = (Dictionary<string, object>)tagDict["attributes"];
-                                    if (tagAttrs.ContainsKey("name") && tagAttrs["name"] != null)
-                                    {
-                                        // Xử lý tên tag theo các ngôn ngữ
-                                        Dictionary<string, string> tagNameDict;
-                                        
-                                        if (tagAttrs["name"] is Dictionary<string, object> existingDict)
-                                        {
-                                            tagNameDict = existingDict.ToDictionary(
-                                                kv => kv.Key,
-                                                kv => kv.Value?.ToString() ?? ""
-                                            );
-                                        }
-                                        else if (tagAttrs["name"] is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Object)
-                                        {
-                                            // Xử lý trường hợp nameObj là JsonElement
-                                            tagNameDict = _jsonConversionService.ConvertJsonElementToDict(jsonElement)
-                                                .ToDictionary(kv => kv.Key, kv => kv.Value?.ToString() ?? "");
-                                        }
-                                        else
-                                        {
-                                            // Trường hợp không thể xác định, sử dụng dictionary trống
-                                            tagNameDict = new Dictionary<string, string>();
-                                            _logger.LogWarning($"Không thể xử lý nameObj có kiểu {tagAttrs["name"]?.GetType().Name ?? "null"}");
-                                        }
-                                        
-                                        // Ưu tiên tên tag tiếng Việt, sau đó đến tiếng Anh
-                                        if (tagNameDict.ContainsKey("vi") && !string.IsNullOrEmpty(tagNameDict["vi"]))
-                                            tags.Add(tagNameDict["vi"]);
-                                        else if (tagNameDict.ContainsKey("en") && !string.IsNullOrEmpty(tagNameDict["en"]))
-                                            tags.Add(tagNameDict["en"]);
-                                        else if (tagNameDict.Count > 0)
-                                            tags.Add(tagNameDict.FirstOrDefault(t => !string.IsNullOrEmpty(t.Value)).Value ?? "Không rõ");
-                                    }
-                                    
-                                    // Thêm nhóm tag nếu có
-                                    if (tagAttrs.ContainsKey("group") && tagAttrs["group"] != null)
-                                    {
-                                        var group = tagAttrs["group"].ToString();
-                                        if (!string.IsNullOrEmpty(group))
-                                        {
-                                            // Có thể thêm tiền tố hoặc hậu tố vào tên tag để hiển thị nhóm tag
-                                            // Ví dụ: tags[tags.Count - 1] += $" ({TranslateTagGroup(group)})";
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        else if (tagsArray is List<object> tagsList)
-                        {
-                            // Nếu đã là List<object>, xử lý tương tự
-                            foreach (var tag in tagsList)
-                            {
-                                if (tag is Dictionary<string, object> tagDict && 
-                                    tagDict.ContainsKey("attributes") && 
-                                    tagDict["attributes"] != null)
-                                {
-                                    var tagAttrs = (Dictionary<string, object>)tagDict["attributes"];
-                                    if (tagAttrs.ContainsKey("name") && tagAttrs["name"] != null)
-                                    {
-                                        var nameObj = tagAttrs["name"];
-                                        Dictionary<string, string> tagNameDict;
-                                        
-                                        if (nameObj is Dictionary<string, object> nameDict)
-                                        {
-                                            tagNameDict = nameDict.ToDictionary(
-                                                kv => kv.Key,
-                                                kv => kv.Value?.ToString() ?? ""
-                                            );
-                                        }
-                                        else if (nameObj is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Object)
-                                        {
-                                            // Xử lý trường hợp nameObj là JsonElement
-                                            tagNameDict = _jsonConversionService.ConvertJsonElementToDict(jsonElement)
-                                                .ToDictionary(kv => kv.Key, kv => kv.Value?.ToString() ?? "");
-                                        }
-                                        else
-                                        {
-                                            // Trường hợp không thể xác định, sử dụng dictionary trống
-                                            tagNameDict = new Dictionary<string, string>();
-                                            _logger.LogWarning($"Không thể xử lý nameObj có kiểu {nameObj?.GetType().Name ?? "null"}");
-                                        }
-                                        
-                                        // Ưu tiên tên tag tiếng Việt, sau đó đến tiếng Anh
-                                        if (tagNameDict.ContainsKey("vi") && !string.IsNullOrEmpty(tagNameDict["vi"]))
-                                            tags.Add(tagNameDict["vi"]);
-                                        else if (tagNameDict.ContainsKey("en") && !string.IsNullOrEmpty(tagNameDict["en"]))
-                                            tags.Add(tagNameDict["en"]);
-                                        else if (tagNameDict.Count > 0)
-                                            tags.Add(tagNameDict.FirstOrDefault(t => !string.IsNullOrEmpty(t.Value)).Value ?? "Không rõ");
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError($"Lỗi khi xử lý tags: {ex.Message}\nStack: {ex.StackTrace}");
-                    }
-                }
-                
-                // Kiểm tra thêm nếu tags là rỗng, thử lấy từ relationships
-                if (tags.Count == 0 && mangaDict.ContainsKey("relationships") && mangaDict["relationships"] != null)
-                {
-                    try
-                    {
-                        var relationships = mangaDict["relationships"];
-                        List<object> relationshipsList;
-                        
-                        if (relationships is JsonElement relElement && relElement.ValueKind == JsonValueKind.Array)
-                        {
-                            relationshipsList = _jsonConversionService.ConvertJsonElementToList(relElement);
-                        }
-                        else
-                        {
-                            relationshipsList = (List<object>)relationships;
-                        }
-                        
-                        foreach (var rel in relationshipsList)
-                        {
-                            var relDict = rel as Dictionary<string, object>;
-                            if (relDict == null) continue;
-                            
-                            if (relDict.ContainsKey("type") && relDict["type"]?.ToString() == "tag" && 
-                                relDict.ContainsKey("attributes") && relDict["attributes"] != null)
-                            {
-                                var tagAttrs = (Dictionary<string, object>)relDict["attributes"];
-                                if (tagAttrs.ContainsKey("name") && tagAttrs["name"] != null)
-                                {
-                                    var nameObj = tagAttrs["name"];
-                                    Dictionary<string, string> tagNameDict;
-                                    
-                                    if (nameObj is Dictionary<string, object> nameDict)
-                                    {
-                                        tagNameDict = nameDict.ToDictionary(
-                                            kv => kv.Key,
-                                            kv => kv.Value?.ToString() ?? ""
-                                        );
-                                    }
-                                    else if (nameObj is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Object)
-                                    {
-                                        // Xử lý trường hợp nameObj là JsonElement
-                                        tagNameDict = _jsonConversionService.ConvertJsonElementToDict(jsonElement)
-                                            .ToDictionary(kv => kv.Key, kv => kv.Value?.ToString() ?? "");
-                                    }
-                                    else
-                                    {
-                                        // Trường hợp không thể xác định, sử dụng dictionary trống
-                                        tagNameDict = new Dictionary<string, string>();
-                                        _logger.LogWarning($"Không thể xử lý nameObj có kiểu {nameObj?.GetType().Name ?? "null"}");
-                                    }
-                                    
-                                    // Ưu tiên tên tag tiếng Việt, sau đó đến tiếng Anh
-                                    if (tagNameDict.ContainsKey("vi") && !string.IsNullOrEmpty(tagNameDict["vi"]))
-                                        tags.Add(tagNameDict["vi"]);
-                                    else if (tagNameDict.ContainsKey("en") && !string.IsNullOrEmpty(tagNameDict["en"]))
-                                        tags.Add(tagNameDict["en"]);
-                                    else if (tagNameDict.Count > 0)
-                                        tags.Add(tagNameDict.FirstOrDefault(t => !string.IsNullOrEmpty(t.Value)).Value ?? "Không rõ");
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError($"Lỗi khi xử lý tags từ relationships: {ex.Message}");
-                    }
-                }
-                
-                // Sắp xếp tags theo thứ tự alphabet cho dễ đọc
-                tags = tags.Distinct().OrderBy(t => t).ToList();
-                
-                // Tải ảnh bìa
-                string coverUrl = await _mangaDexService.FetchCoverUrlAsync(id);
                 
                 // Xử lý thông tin tác giả, họa sĩ, nhà xuất bản từ relationships
                 string author = "Không rõ";
