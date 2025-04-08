@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text.Json.Serialization;
-using System.Linq;
-
 namespace manga_reader_web.Models
 {
     // Các model cho dữ liệu người dùng
@@ -228,7 +223,6 @@ namespace manga_reader_web.Models
         public List<string> Tags { get; set; } = new List<string>();
         public string Author { get; set; }
         public string Artist { get; set; }
-        public string Publisher { get; set; }
         public string OriginalLanguage { get; set; }
         public string PublicationDemographic { get; set; }
         public string ContentRating { get; set; }

@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Extensions.Logging;
-
 namespace manga_reader_web.Services.MangaServices
 {
     public class MangaTitleService

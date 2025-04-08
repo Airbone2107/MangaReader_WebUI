@@ -48,6 +48,7 @@ builder.Services.AddScoped<manga_reader_web.Services.MangaServices.JsonConversio
 builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaUtilityService>();
 builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaTitleService>();
 builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaTagService>();
+builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaRelationshipService>();
 
 var app = builder.Build();
 

@@ -1,15 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Text.Json;
-using System.Threading.Tasks;
 using manga_reader_web.Models;
 using manga_reader_web.Services;
 using manga_reader_web.Services.MangaServices;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Http;
-using System.Linq;
+using System.Text.Json;
 
 namespace manga_reader_web.Controllers
 {
@@ -22,6 +15,7 @@ namespace manga_reader_web.Controllers
         private readonly MangaUtilityService _mangaUtilityService;
         private readonly MangaTitleService _mangaTitleService;
         private readonly MangaTagService _mangaTagService;
+        private readonly MangaRelationshipService _mangaRelationshipService;
 
         public MangaController(
             MangaDexService mangaDexService, 
@@ -30,7 +24,8 @@ namespace manga_reader_web.Controllers
             JsonConversionService jsonConversionService,
             MangaUtilityService mangaUtilityService,
             MangaTitleService mangaTitleService,
-            MangaTagService mangaTagService)
+            MangaTagService mangaTagService,
+            MangaRelationshipService mangaRelationshipService)
         {
             _mangaDexService = mangaDexService;
             _logger = logger;
@@ -39,6 +34,7 @@ namespace manga_reader_web.Controllers
             _mangaUtilityService = mangaUtilityService;
             _mangaTitleService = mangaTitleService;
             _mangaTagService = mangaTagService;
+            _mangaRelationshipService = mangaRelationshipService;
         }
 
         /// <summary>
@@ -172,63 +168,11 @@ namespace manga_reader_web.Controllers
                         lastUpdated = updatedAt;
                     }
                 }
-                
-                // Xử lý thông tin tác giả, họa sĩ, nhà xuất bản từ relationships
-                string author = "Không rõ";
-                string artist = "";
-                string publisher = "";
-                
-                if (mangaDict.ContainsKey("relationships") && mangaDict["relationships"] != null)
-                {
-                    try
-                    {
-                        var relationships = (List<object>)mangaDict["relationships"];
-                        
-                        foreach (var rel in relationships)
-                        {
-                            var relDict = (Dictionary<string, object>)rel;
-                            if (!relDict.ContainsKey("type") || !relDict.ContainsKey("id"))
-                                continue;
-                                
-                            string relType = relDict["type"].ToString();
-                            string relId = relDict["id"].ToString();
-                            
-                            // Xử lý tác giả và họa sĩ từ relationships
-                            if (relType == "author" || relType == "artist")
-                            {
-                                // Nếu có attributes chứa tên tác giả/họa sĩ
-                                if (relDict.ContainsKey("attributes") && relDict["attributes"] != null)
-                                {
-                                    var attrs = (Dictionary<string, object>)relDict["attributes"];
-                                    if (attrs.ContainsKey("name") && attrs["name"] != null)
-                                    {
-                                        if (relType == "author")
-                                            author = attrs["name"].ToString();
-                                        else if (relType == "artist")
-                                            artist = attrs["name"].ToString();
-                                    }
-                                }
-                            }
-                            else if (relType == "publisher")
-                            {
-                                // Xử lý nhà xuất bản
-                                if (relDict.ContainsKey("attributes") && relDict["attributes"] != null)
-                                {
-                                    var attrs = (Dictionary<string, object>)relDict["attributes"];
-                                    if (attrs.ContainsKey("name") && attrs["name"] != null)
-                                    {
-                                        publisher = attrs["name"].ToString();
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError($"Lỗi khi xử lý relationships: {ex.Message}");
-                    }
-                }
-                
+
+                // Sử dụng MangaRelationshipService để xử lý relationships
+                var result = (ValueTuple<string, string>)_mangaRelationshipService.GetAuthorArtist(mangaDict);
+                var (author, artist) = result;
+
                 // Xử lý trạng thái follow
                 bool isFollowing = false;
                 try
@@ -257,7 +201,6 @@ namespace manga_reader_web.Controllers
                     Tags = tags,
                     Author = author,
                     Artist = artist,
-                    Publisher = publisher,
                     OriginalLanguage = originalLanguage,
                     PublicationDemographic = publicationDemographic,
                     ContentRating = contentRating,

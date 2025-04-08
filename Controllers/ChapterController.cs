@@ -1,14 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Linq;
-using System.Text.Json;
-using System.Threading.Tasks;
 using manga_reader_web.Models;
 using manga_reader_web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Http;
+using System.Text.Json;
 
 namespace manga_reader_web.Controllers
 {
