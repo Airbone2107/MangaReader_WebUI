@@ -1,0 +1,36 @@
+@{
+    ViewData["Title"] = "Đăng nhập";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Đăng nhập</h4>
+                </div>
+                <div class="card-body">
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @TempData["ErrorMessage"]
+                        </div>
+                    }
+
+                    <div class="text-center mb-4">
+                        <p>Đăng nhập để theo dõi và lưu tiến độ đọc manga yêu thích của bạn.</p>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("GoogleLogin", "Auth", new { returnUrl = ViewBag.ReturnUrl })" class="btn btn-danger">
+                            <i class="bi bi-google me-2"></i> Đăng nhập bằng Google
+                        </a>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="@Url.Action("Index", "Home")">Quay lại trang chủ</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

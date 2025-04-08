@@ -1,3 +1,13 @@
+using System;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
+using manga_reader_web.Services.AuthServices;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -17,6 +27,42 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
+// Cấu hình xác thực JWT Bearer token
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false; // Đặt true trong môi trường sản xuất
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(
+            builder.Configuration["Authentication:Jwt:Secret"])),
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+// Cấu hình HttpClient để gọi Backend API
+builder.Services.AddHttpClient("BackendApiClient", client =>
+{
+    var baseUrl = builder.Configuration["BackendApi:BaseUrl"];
+    client.BaseAddress = new Uri(baseUrl);
+    client.DefaultRequestHeaders.Add("User-Agent", "MangaReaderWeb/1.0");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    AllowAutoRedirect = true,
+    MaxAutomaticRedirections = 5,
+    AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+});
+
 // Đăng ký HttpClient với cấu hình nâng cao
 builder.Services.AddHttpClient("MangaDexClient", client =>
 {
@@ -32,6 +78,9 @@ builder.Services.AddHttpClient("MangaDexClient", client =>
     MaxAutomaticRedirections = 5,
     AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
 });
+
+// Đăng ký các service liên quan đến xác thực 
+builder.Services.AddScoped<IUserService, UserService>();
 
 // Đăng ký MangaDexService với HttpClient được cấu hình
 builder.Services.AddScoped<manga_reader_web.Services.MangaDexService>(sp =>
@@ -75,6 +124,9 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+// Thêm middleware xác thực trước khi xử lý authorization
+app.UseAuthentication();
+
 // Sử dụng Session (phải đặt sau UseRouting và trước UseAuthorization)
 app.UseSession();
 
@@ -83,5 +135,11 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// Thêm route đặc biệt cho callback OAuth
+app.MapControllerRoute(
+    name: "auth_callback",
+    pattern: "auth/callback",
+    defaults: new { controller = "Auth", action = "Callback" });
 
 app.Run();

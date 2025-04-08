@@ -1,35 +1,6 @@
 namespace manga_reader_web.Models
 {
     /// <summary>
-    /// Model đại diện cho thông tin người dùng trong hệ thống.
-    /// Được sử dụng trong các controller và service liên quan đến xác thực và quản lý người dùng.
-    /// Lưu trữ thông tin cơ bản của người dùng và theo dõi các manga mà họ đang đọc.
-    /// </summary>
-    public class User
-    {
-        public string Id { get; set; }
-        public string GoogleId { get; set; }
-        public string Email { get; set; }
-        public string DisplayName { get; set; }
-        public string PhotoURL { get; set; }
-        public List<string> Following { get; set; } = new List<string>();
-        public List<ReadingProgress> ReadingProgress { get; set; } = new List<ReadingProgress>();
-        public DateTime CreatedAt { get; set; }
-    }
-
-    /// <summary>
-    /// Model lưu trữ tiến độ đọc của người dùng cho một manga cụ thể.
-    /// Được sử dụng trong class User để theo dõi tiến độ đọc của người dùng cho nhiều manga khác nhau.
-    /// Sử dụng trong các controller và service liên quan đến việc theo dõi tiến độ đọc của người dùng.
-    /// </summary>
-    public class ReadingProgress
-    {
-        public string MangaId { get; set; }
-        public string LastChapter { get; set; }
-        public DateTime LastReadAt { get; set; }
-    }
-
-    /// <summary>
     /// Model đại diện cho một chương của manga.
     /// Được sử dụng trong các service liên quan đến việc quản lý và hiển thị thông tin chương.
     /// Sử dụng chủ yếu trong ChapterService và MangaDexService để xử lý dữ liệu chương từ API MangaDex.

@@ -1,0 +1,168 @@
+@model manga_reader_web.Models.Auth.UserModel
+@{
+    ViewData["Title"] = "Trang cá nhân";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body text-center">
+                    @if (!string.IsNullOrEmpty(Model.PhotoURL))
+                    {
+                        <img src="@Model.PhotoURL" alt="Ảnh đại diện" class="rounded-circle img-fluid mb-3" style="max-width: 150px;" />
+                    }
+                    else
+                    {
+                        <div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 150px; height: 150px;">
+                            <i class="bi bi-person-fill" style="font-size: 4rem;"></i>
+                        </div>
+                    }
+                    <h5 class="mb-1">@Model.DisplayName</h5>
+                    <p class="text-muted">@Model.Email</p>
+                    <a href="@Url.Action("Logout", "Auth")" class="btn btn-outline-danger">
+                        <i class="bi bi-box-arrow-right me-1"></i> Đăng xuất
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="profileTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="following-tab" data-bs-toggle="tab" data-bs-target="#following" type="button" role="tab" aria-controls="following" aria-selected="true">
+                                <i class="bi bi-heart-fill me-1"></i> Đang theo dõi
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab" aria-controls="history" aria-selected="false">
+                                <i class="bi bi-clock-history me-1"></i> Lịch sử đọc
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="profileTabsContent">
+                        <div class="tab-pane fade show active" id="following" role="tabpanel" aria-labelledby="following-tab">
+                            @if (Model.FollowingManga != null && Model.FollowingManga.Count > 0)
+                            {
+                                <div class="row row-cols-1 row-cols-md-2 g-3" id="followingList">
+                                    @foreach (var mangaId in Model.FollowingManga)
+                                    {
+                                        <div class="col manga-item" data-id="@mangaId">
+                                            <div class="card h-100 placeholder-glow">
+                                                <div class="card-body d-flex align-items-center">
+                                                    <div class="placeholder col-4"></div>
+                                                    <div class="ms-3">
+                                                        <h6 class="placeholder col-8"></h6>
+                                                        <p class="placeholder col-6"></p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-5">
+                                    <i class="bi bi-bookmark-heart" style="font-size: 3rem;"></i>
+                                    <h5 class="mt-3">Bạn chưa theo dõi manga nào</h5>
+                                    <p class="text-muted">Hãy tìm và theo dõi các manga yêu thích của bạn.</p>
+                                    <a href="@Url.Action("Index", "Manga")" class="btn btn-primary">
+                                        <i class="bi bi-search me-1"></i> Tìm manga
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                        
+                        <div class="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab">
+                            @if (Model.ReadingManga != null && Model.ReadingManga.Count > 0)
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Manga</th>
+                                                <th>Chương đã đọc</th>
+                                                <th>Thời gian</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="readingProgressList">
+                                            @foreach (var manga in Model.ReadingManga)
+                                            {
+                                                <tr class="manga-progress-item" data-id="@manga.MangaId">
+                                                    <td class="manga-title placeholder-glow">
+                                                        <span class="placeholder col-8"></span>
+                                                    </td>
+                                                    <td>Chương @manga.LastChapter</td>
+                                                    <td>@manga.LastReadAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                                    <td>
+                                                        <a href="#" class="btn btn-sm btn-primary continue-reading-btn" data-id="@manga.MangaId" data-chapter="@manga.LastChapter">
+                                                            <i class="bi bi-book"></i> Tiếp tục
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-5">
+                                    <i class="bi bi-book" style="font-size: 3rem;"></i>
+                                    <h5 class="mt-3">Bạn chưa đọc manga nào</h5>
+                                    <p class="text-muted">Bắt đầu đọc manga để ghi lại tiến độ.</p>
+                                    <a href="@Url.Action("Index", "Manga")" class="btn btn-primary">
+                                        <i class="bi bi-search me-1"></i> Tìm manga
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Tải thông tin manga đang theo dõi
+        document.addEventListener('DOMContentLoaded', function () {
+            loadFollowingMangaDetails();
+            setupContinueReadingButtons();
+        });
+
+        function loadFollowingMangaDetails() {
+            const mangaItems = document.querySelectorAll('.manga-item');
+            mangaItems.forEach(item => {
+                const mangaId = item.dataset.id;
+                
+                // Gọi API để lấy thông tin chi tiết manga (triển khai sau)
+                console.log('Cần tải thông tin chi tiết cho manga: ' + mangaId);
+                
+                // TODO: Sau khi tải thông tin, cập nhật giao diện bằng dữ liệu thực
+            });
+        }
+        
+        function setupContinueReadingButtons() {
+            const continueButtons = document.querySelectorAll('.continue-reading-btn');
+            continueButtons.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const mangaId = this.dataset.id;
+                    const chapter = this.dataset.chapter;
+                    
+                    // Chuyển hướng đến trang đọc chương tương ứng
+                    console.log(`Tiếp tục đọc manga ${mangaId}, chương ${chapter}`);
+                    // TODO: Triển khai chuyển hướng đến trang đọc
+                });
+            });
+        }
+    </script>
+} 
