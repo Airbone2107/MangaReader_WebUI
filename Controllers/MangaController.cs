@@ -16,6 +16,8 @@ namespace manga_reader_web.Controllers
         private readonly MangaTitleService _mangaTitleService;
         private readonly MangaTagService _mangaTagService;
         private readonly MangaRelationshipService _mangaRelationshipService;
+        private readonly MangaFollowService _mangaFollowService;
+        private readonly ChapterService _chapterService;
 
         public MangaController(
             MangaDexService mangaDexService, 
@@ -25,7 +27,9 @@ namespace manga_reader_web.Controllers
             MangaUtilityService mangaUtilityService,
             MangaTitleService mangaTitleService,
             MangaTagService mangaTagService,
-            MangaRelationshipService mangaRelationshipService)
+            MangaRelationshipService mangaRelationshipService,
+            MangaFollowService mangaFollowService,
+            ChapterService chapterService)
         {
             _mangaDexService = mangaDexService;
             _logger = logger;
@@ -35,6 +39,8 @@ namespace manga_reader_web.Controllers
             _mangaTitleService = mangaTitleService;
             _mangaTagService = mangaTagService;
             _mangaRelationshipService = mangaRelationshipService;
+            _mangaFollowService = mangaFollowService;
+            _chapterService = chapterService;
         }
 
         /// <summary>
@@ -173,22 +179,8 @@ namespace manga_reader_web.Controllers
                 var result = (ValueTuple<string, string>)_mangaRelationshipService.GetAuthorArtist(mangaDict);
                 var (author, artist) = result;
 
-                // Xử lý trạng thái follow
-                bool isFollowing = false;
-                try
-                {
-                    // Kiểm tra xem có cookie hoặc session lưu danh sách manga đang theo dõi không
-                    string followedMangaJson = HttpContext.Request.Cookies["followed_manga"];
-                    if (!string.IsNullOrEmpty(followedMangaJson))
-                    {
-                        var followedList = JsonSerializer.Deserialize<List<string>>(followedMangaJson);
-                        isFollowing = followedList != null && followedList.Contains(id);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"Lỗi khi kiểm tra trạng thái follow: {ex.Message}");
-                }
+                // TODO: Triển khai logic kiểm tra trạng thái follow
+                bool isFollowing = false; // Mặc định trả về false
                 
                 // Tạo manga view model với thông tin mở rộng
                 var mangaViewModel = new MangaViewModel
@@ -212,91 +204,19 @@ namespace manga_reader_web.Controllers
                     Views = 0 // MangaDex không cung cấp thông tin số lượt xem
                 };
                 
-                // Tải danh sách chapters
-                var chapters = await _mangaDexService.FetchChaptersAsync(id, "vi,en");
-                var chapterViewModels = new List<ChapterViewModel>();
-                
-                foreach (var chapter in chapters)
-                {
-                    try {
-                        var chapterElement = JsonSerializer.Deserialize<JsonElement>(chapter.ToString());
-                        var chapterDict = _jsonConversionService.ConvertJsonElementToDict(chapterElement);
-                        
-                        if (!chapterDict.ContainsKey("id"))
-                        {
-                            continue; // Bỏ qua chapter này nếu không có ID
-                        }
-                        
-                        if (!chapterDict.ContainsKey("attributes") || chapterDict["attributes"] == null)
-                        {
-                            continue; // Bỏ qua chapter này nếu không có attributes
-                        }
-                        
-                        var chapterAttributesDict = (Dictionary<string, object>)chapterDict["attributes"];
-                        
-                        var chapterNumber = chapterAttributesDict.ContainsKey("chapter") && chapterAttributesDict["chapter"] != null
-                            ? chapterAttributesDict["chapter"].ToString() 
-                            : "?";
-                            
-                        var chapterTitle = chapterAttributesDict.ContainsKey("title") && chapterAttributesDict["title"] != null
-                            ? chapterAttributesDict["title"].ToString() 
-                            : "";
-                            
-                        // Xử lý tên chương theo cách của Flutter: nếu tên chương trùng số chương hoặc rỗng, chỉ hiển thị "Chương X"
-                        var displayTitle = string.IsNullOrEmpty(chapterTitle) || chapterTitle == chapterNumber 
-                            ? $"Chương {chapterNumber}" 
-                            : $"Chương {chapterNumber}: {chapterTitle}";
-                            
-                        var publishedAt = chapterAttributesDict.ContainsKey("publishAt") && chapterAttributesDict["publishAt"] != null
-                            ? DateTime.Parse(chapterAttributesDict["publishAt"].ToString()) 
-                            : DateTime.Now;
-                            
-                        var language = chapterAttributesDict.ContainsKey("translatedLanguage") && chapterAttributesDict["translatedLanguage"] != null
-                            ? chapterAttributesDict["translatedLanguage"].ToString() 
-                            : "unknown";
-                        
-                        chapterViewModels.Add(new ChapterViewModel
-                        {
-                            Id = chapterDict["id"].ToString(),
-                            Title = displayTitle,
-                            Number = chapterNumber,
-                            Language = language,
-                            PublishedAt = publishedAt
-                        });
-                    }
-                    catch (Exception ex) {
-                        _logger.LogError($"Lỗi khi xử lý chapter: {ex.Message}");
-                        continue; // Bỏ qua chapter này và tiếp tục
-                    }
-                }
-                
-                // Sắp xếp chapters theo thứ tự giảm dần
-                chapterViewModels = chapterViewModels.OrderByDescending(c => 
-                {
-                    if (float.TryParse(c.Number, out float number))
-                        return number;
-                    return 0;
-                }).ToList();
+                // Sử dụng ChapterService để lấy danh sách chapters
+                var chapterViewModels = await _chapterService.GetChaptersAsync(id, "vi,en");
                 
                 // Lưu danh sách tất cả chapters vào session storage
                 HttpContext.Session.SetString($"Manga_{id}_AllChapters", JsonSerializer.Serialize(chapterViewModels));
                 _logger.LogInformation($"Đã lưu {chapterViewModels.Count} chapters của manga {id} vào session");
                 
                 // Phân loại chapters theo ngôn ngữ và lưu riêng từng ngôn ngữ
-                var chaptersByLanguage = chapterViewModels.GroupBy(c => c.Language)
-                    .ToDictionary(g => g.Key, g => g.ToList());
+                var chaptersByLanguage = _chapterService.GetChaptersByLanguage(chapterViewModels);
                 
                 foreach (var language in chaptersByLanguage.Keys)
                 {
                     var chaptersInLanguage = chaptersByLanguage[language];
-                    // Sắp xếp chapters theo thứ tự tăng dần của số chương
-                    chaptersInLanguage = chaptersInLanguage.OrderBy(c => 
-                    {
-                        if (float.TryParse(c.Number, out float number))
-                            return number;
-                        return 0;
-                    }).ToList();
-                    
                     HttpContext.Session.SetString($"Manga_{id}_Chapters_{language}", JsonSerializer.Serialize(chaptersInLanguage));
                     _logger.LogInformation($"Đã lưu {chaptersInLanguage.Count} chapters ngôn ngữ {language} của manga {id} vào session");
                 }
@@ -609,6 +529,38 @@ namespace manga_reader_web.Controllers
                         SortBy = sortBy ?? "latest"
                     }
                 });
+            }
+        }
+
+        /// <summary>
+        /// API endpoint để theo dõi/hủy theo dõi manga
+        /// </summary>
+        [HttpPost]
+        [Route("api/manga/toggle-follow")]
+        public IActionResult ToggleFollow(string mangaId)
+        {
+            try
+            {
+                _logger.LogInformation($"Placeholder: Yêu cầu toggle follow cho manga {mangaId}");
+                
+                if (string.IsNullOrEmpty(mangaId))
+                {
+                    return Json(new { success = false, error = "Manga ID không hợp lệ" });
+                }
+                
+                // TODO: Triển khai logic toggle follow
+                bool isFollowing = false; // Mặc định trả về false
+                
+                return Json(new { 
+                    success = true, 
+                    isFollowing = isFollowing,
+                    message = isFollowing ? "Đã theo dõi manga" : "Đã hủy theo dõi manga" 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Lỗi khi toggle follow manga: {ex.Message}", ex);
+                return Json(new { success = false, error = "Không thể cập nhật trạng thái theo dõi manga" });
             }
         }
     }

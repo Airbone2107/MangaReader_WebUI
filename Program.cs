@@ -49,6 +49,11 @@ builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaUtilityS
 builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaTitleService>();
 builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaTagService>();
 builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaRelationshipService>();
+builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaFollowService>();
+builder.Services.AddScoped<manga_reader_web.Services.MangaServices.ChapterService>();
+
+// Đăng ký HttpContextAccessor để các service có thể truy cập HttpContext
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 

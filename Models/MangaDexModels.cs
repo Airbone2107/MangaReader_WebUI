@@ -1,6 +1,10 @@
 namespace manga_reader_web.Models
 {
-    // Các model cho dữ liệu người dùng
+    /// <summary>
+    /// Model đại diện cho thông tin người dùng trong hệ thống.
+    /// Được sử dụng trong các controller và service liên quan đến xác thực và quản lý người dùng.
+    /// Lưu trữ thông tin cơ bản của người dùng và theo dõi các manga mà họ đang đọc.
+    /// </summary>
     public class User
     {
         public string Id { get; set; }
@@ -13,6 +17,11 @@ namespace manga_reader_web.Models
         public DateTime CreatedAt { get; set; }
     }
 
+    /// <summary>
+    /// Model lưu trữ tiến độ đọc của người dùng cho một manga cụ thể.
+    /// Được sử dụng trong class User để theo dõi tiến độ đọc của người dùng cho nhiều manga khác nhau.
+    /// Sử dụng trong các controller và service liên quan đến việc theo dõi tiến độ đọc của người dùng.
+    /// </summary>
     public class ReadingProgress
     {
         public string MangaId { get; set; }
@@ -20,7 +29,11 @@ namespace manga_reader_web.Models
         public DateTime LastReadAt { get; set; }
     }
 
-    // Các model cho dữ liệu Manga
+    /// <summary>
+    /// Model đại diện cho một chương của manga.
+    /// Được sử dụng trong các service liên quan đến việc quản lý và hiển thị thông tin chương.
+    /// Sử dụng chủ yếu trong ChapterService và MangaDexService để xử lý dữ liệu chương từ API MangaDex.
+    /// </summary>
     public class Chapter
     {
         public string MangaId { get; set; }
@@ -29,7 +42,11 @@ namespace manga_reader_web.Models
         public List<object> ChapterList { get; set; } = new List<object>();
     }
 
-    // Model quản lý lọc và sắp xếp Manga
+    /// <summary>
+    /// Model quản lý các tùy chọn lọc và sắp xếp khi tìm kiếm manga.
+    /// Được sử dụng trong MangaDexService để xây dựng các tham số truy vấn khi gọi API MangaDex.
+    /// Sử dụng trong MangaController để xử lý các yêu cầu tìm kiếm và lọc manga từ người dùng.
+    /// </summary>
     public class SortManga
     {
         public string Title { get; set; }
@@ -74,7 +91,10 @@ namespace manga_reader_web.Models
             ExcludedOriginalLanguage = new List<string>();
         }
 
-        // Chuyển đổi thành Dictionary để tạo query parameters
+        /// <summary>
+        /// Chuyển đổi các thuộc tính của model thành Dictionary để tạo query parameters cho API MangaDex.
+        /// Được sử dụng trong MangaDexService khi gọi API để tìm kiếm và lọc manga.
+        /// </summary>
         public Dictionary<string, object> ToParams()
         {
             var parameters = new Dictionary<string, object>();
@@ -212,7 +232,11 @@ namespace manga_reader_web.Models
         }
     }
 
-    // Các model cho việc hiển thị Manga
+    /// <summary>
+    /// Model đại diện cho dữ liệu manga được hiển thị trong giao diện người dùng.
+    /// Được sử dụng trong MangaController để hiển thị thông tin manga cho người dùng.
+    /// Sử dụng trong các view liên quan đến hiển thị thông tin manga như trang danh sách, trang chi tiết.
+    /// </summary>
     public class MangaViewModel
     {
         public string Id { get; set; }
@@ -234,6 +258,11 @@ namespace manga_reader_web.Models
         public int Views { get; set; }
     }
 
+    /// <summary>
+    /// Model đại diện cho dữ liệu chương được hiển thị trong giao diện người dùng.
+    /// Được sử dụng trong ChapterService để hiển thị thông tin chương cho người dùng.
+    /// Sử dụng trong các view liên quan đến hiển thị danh sách chương và thông tin chương.
+    /// </summary>
     public class ChapterViewModel
     {
         public string Id { get; set; }
@@ -241,14 +270,36 @@ namespace manga_reader_web.Models
         public string Number { get; set; }
         public string Language { get; set; }
         public DateTime PublishedAt { get; set; }
+        public List<ChapterRelationship> Relationships { get; set; } = new List<ChapterRelationship>();
     }
 
+    /// <summary>
+    /// Model đại diện cho mối quan hệ giữa một chương và các thực thể khác trong hệ thống MangaDex.
+    /// Được sử dụng trong ChapterViewModel để lưu trữ các mối quan hệ của chương.
+    /// Sử dụng trong ChapterService để xử lý các mối quan hệ giữa chương và manga, scanlation group, v.v.
+    /// </summary>
+    public class ChapterRelationship
+    {
+        public string Id { get; set; }
+        public string Type { get; set; }
+    }
+
+    /// <summary>
+    /// Model kết hợp thông tin chi tiết về manga và danh sách các chương của nó.
+    /// Được sử dụng trong MangaController để hiển thị trang chi tiết manga.
+    /// Sử dụng trong view Details.cshtml để hiển thị thông tin đầy đủ về manga và danh sách các chương có sẵn.
+    /// </summary>
     public class MangaDetailViewModel
     {
         public MangaViewModel Manga { get; set; }
         public List<ChapterViewModel> Chapters { get; set; } = new List<ChapterViewModel>();
     }
 
+    /// <summary>
+    /// Model đại diện cho danh sách manga được hiển thị trong giao diện người dùng.
+    /// Được sử dụng trong MangaController để hiển thị danh sách manga cho người dùng.
+    /// Sử dụng trong view Index.cshtml để hiển thị danh sách manga với phân trang và các tùy chọn sắp xếp.
+    /// </summary>
     public class MangaListViewModel
     {
         public List<MangaViewModel> Mangas { get; set; } = new List<MangaViewModel>();
@@ -259,6 +310,11 @@ namespace manga_reader_web.Models
         public SortManga SortOptions { get; set; } = new SortManga();
     }
 
+    /// <summary>
+    /// Model đại diện cho dữ liệu cần thiết để hiển thị một chương để đọc.
+    /// Được sử dụng trong ChapterController để hiển thị trang đọc chương cho người dùng.
+    /// Sử dụng trong view Read.cshtml để hiển thị nội dung chương và điều hướng giữa các chương.
+    /// </summary>
     public class ChapterReadViewModel
     {
         public string MangaId { get; set; }
