@@ -42,6 +42,12 @@ builder.Services.AddScoped<manga_reader_web.Services.MangaDexService>(sp =>
     return new manga_reader_web.Services.MangaDexService(httpClient, logger);
 });
 
+// Đăng ký các service mới tách từ MangaController
+builder.Services.AddScoped<manga_reader_web.Services.MangaServices.LocalizationService>();
+builder.Services.AddScoped<manga_reader_web.Services.MangaServices.JsonConversionService>();
+builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaUtilityService>();
+builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaTitleService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

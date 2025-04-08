@@ -336,7 +336,7 @@
                                 <h5 class="card-title mt-4 mb-3">Tên khác</h5>
                                 <div class="card-text details-manga-alt-titles">
                                     @{
-                                        var altTitlesByLanguage = (Dictionary<string, string>)ViewData["AlternativeTitlesByLanguage"];
+                                        var altTitlesByLanguage = (Dictionary<string, List<string>>)ViewData["AlternativeTitlesByLanguage"];
                                         // Sắp xếp các ngôn ngữ, đưa tiếng Việt và tiếng Anh lên đầu
                                         var altTitleLangs = altTitlesByLanguage.Keys
                                             .OrderBy(lang => lang == "vi" ? 0 : (lang == "en" ? 1 : 2))
@@ -345,7 +345,7 @@
 
                                         foreach (var lang in altTitleLangs)
                                         {
-                                            var titles = altTitlesByLanguage[lang].Split(" | ");
+                                            var titles = altTitlesByLanguage[lang];
                                             foreach (var title in titles)
                                             {
                                                 <div class="mb-1 alt-title-item">

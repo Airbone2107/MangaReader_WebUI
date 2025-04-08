@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using manga_reader_web.Models;
 using manga_reader_web.Services;
+using manga_reader_web.Services.MangaServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
@@ -16,11 +17,25 @@ namespace manga_reader_web.Controllers
     {
         private readonly MangaDexService _mangaDexService;
         private readonly ILogger<MangaController> _logger;
+        private readonly LocalizationService _localizationService;
+        private readonly JsonConversionService _jsonConversionService;
+        private readonly MangaUtilityService _mangaUtilityService;
+        private readonly MangaTitleService _mangaTitleService;
 
-        public MangaController(MangaDexService mangaDexService, ILogger<MangaController> logger)
+        public MangaController(
+            MangaDexService mangaDexService, 
+            ILogger<MangaController> logger,
+            LocalizationService localizationService,
+            JsonConversionService jsonConversionService,
+            MangaUtilityService mangaUtilityService,
+            MangaTitleService mangaTitleService)
         {
             _mangaDexService = mangaDexService;
             _logger = logger;
+            _localizationService = localizationService;
+            _jsonConversionService = jsonConversionService;
+            _mangaUtilityService = mangaUtilityService;
+            _mangaTitleService = mangaTitleService;
         }
 
         /// <summary>
@@ -42,225 +57,7 @@ namespace manga_reader_web.Controllers
                 return Json(new { success = false, error = "Không thể tải danh sách tags từ MangaDex" });
             }
         }
-
-        // GET: Manga
-        public async Task<IActionResult> Index(string title = "", int page = 1, int pageSize = 24)
-        {
-            try
-            {
-                // Thiết lập page type để chọn CSS phù hợp (trang liệt kê sử dụng CSS như trang chủ)
-                ViewData["PageType"] = "home";
-                
-                var sortManga = new SortManga
-                {
-                    Title = title,
-                    SortBy = "latest"
-                };
-
-                // Lấy kết quả từ API và tổng số manga từ API
-                // Xử lý giới hạn 10000 kết quả từ API
-                const int MAX_API_RESULTS = 10000;
-                int offset = (page - 1) * pageSize;
-                int limit = pageSize;
-
-                // Kiểm tra nếu đang truy cập trang cuối cùng gần với giới hạn 10000
-                if (offset + limit > MAX_API_RESULTS)
-                {
-                    // Tính lại limit để không vượt quá 10000 kết quả
-                    if (offset < MAX_API_RESULTS)
-                    {
-                        limit = MAX_API_RESULTS - offset;
-                        _logger.LogInformation($"Đã điều chỉnh limit: {limit} cho trang cuối (offset: {offset})");
-                    }
-                    else
-                    {
-                        // Trường hợp offset đã vượt quá 10000, không thể lấy kết quả
-                        _logger.LogWarning($"Offset {offset} vượt quá giới hạn API 10000 kết quả, không thể lấy dữ liệu");
-                        limit = 0;
-                    }
-                }
-
-                var result = await _mangaDexService.FetchMangaAsync(limit: limit, offset: offset, sortManga: sortManga);
-                
-                // Xử lý đặc biệt cho trường hợp limit = 0 (offset vượt quá 10000)
-                if (limit == 0)
-                {
-                    ViewBag.ErrorMessage = "Không thể hiển thị kết quả vì đã vượt quá giới hạn 10000 kết quả từ API.";
-                    return View(new MangaListViewModel
-                    {
-                        Mangas = new List<MangaViewModel>(),
-                        CurrentPage = page,
-                        PageSize = 24, // Giá trị cố định cho pageSize
-                        TotalCount = 10000,
-                        MaxPages = 0,
-                        SortOptions = sortManga
-                    });
-                }
-                
-                // Lấy tổng số manga từ kết quả API (nếu có)
-                int totalCount = 0;
-                
-                // Kiểm tra nếu kết quả trả về là JsonElement (có thể chứa thông tin totalCount)
-                if (result != null && result.Count > 0)
-                {
-                    try 
-                    {
-                        // Thử lấy totalCount từ response metadata
-                        var firstItem = result[0];
-                        if (firstItem is JsonElement element)
-                        {
-                            // Kiểm tra xem có property total không
-                            if (element.TryGetProperty("total", out JsonElement totalElement))
-                            {
-                                totalCount = totalElement.GetInt32();
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError($"Lỗi khi lấy tổng số manga: {ex.Message}");
-                    }
-                }
-                
-                // Nếu không lấy được tổng số, sử dụng số lượng kết quả nhân với tỷ lệ page hiện tại
-                if (totalCount <= 0)
-                {
-                    // Ước tính tổng số manga dựa trên số lượng kết quả và offset
-                    totalCount = Math.Max(result.Count * 10, (page - 1) * pageSize + result.Count + pageSize);
-                }
-                
-                // Tính toán số trang tối đa dựa trên giới hạn 10000 kết quả của API
-                int maxPages = (int)Math.Ceiling(Math.Min(totalCount, MAX_API_RESULTS) / (double)pageSize);
-
-                var mangaViewModels = new List<MangaViewModel>();
-                foreach (var manga in result)
-                {
-                    try
-                    {
-                        // Sử dụng JsonSerializer để chuyển đổi chính xác
-                        var mangaElement = JsonSerializer.Deserialize<JsonElement>(manga.ToString());
-                        // Chuyển đổi JsonElement thành Dictionary
-                        var mangaDict = ConvertJsonElementToDict(mangaElement);
-                        
-                        if (!mangaDict.ContainsKey("id") || mangaDict["id"] == null)
-                        {
-                            _logger.LogWarning("Manga không có ID");
-                            continue;
-                        }
-                        
-                        var id = mangaDict["id"].ToString();
-                        
-                        // Kiểm tra attributes tồn tại
-                        if (!mangaDict.ContainsKey("attributes") || mangaDict["attributes"] == null)
-                        {
-                            _logger.LogWarning($"Manga ID {id} thiếu thông tin attributes");
-                            continue;
-                        }
-                        
-                        // Chuyển đổi attributes thành Dictionary
-                        var attributesDict = (Dictionary<string, object>)mangaDict["attributes"];
-                        
-                        // Kiểm tra title tồn tại
-                        if (!attributesDict.ContainsKey("title") || attributesDict["title"] == null)
-                        {
-                            _logger.LogWarning($"Manga ID {id} thiếu thông tin title");
-                            continue;
-                        }
-                        
-                        // Lấy title từ attributesDict
-                        var titleObj = attributesDict["title"];
-                        string mangaTitle = "Không có tiêu đề";
-                        
-                        // Phương pháp xử lý đúng cách title
-                        if (titleObj is Dictionary<string, object> titleDict)
-                        {
-                            // Ưu tiên tiếng Việt
-                            if (titleDict.ContainsKey("vi"))
-                                mangaTitle = titleDict["vi"].ToString();
-                            // Nếu không có tiếng Việt, lấy tiếng Anh
-                            else if (titleDict.ContainsKey("en"))
-                                mangaTitle = titleDict["en"].ToString();
-                            // Hoặc lấy giá trị đầu tiên nếu không có các ngôn ngữ ưu tiên
-                            else if (titleDict.Count > 0)
-                                mangaTitle = titleDict.FirstOrDefault().Value?.ToString() ?? "Không có tiêu đề";
-                        }
-                        else
-                        {
-                            // Thử phương pháp khác nếu title không phải là Dictionary
-                            mangaTitle = GetLocalizedTitle(JsonSerializer.Serialize(titleObj)) ?? "Không có tiêu đề";
-                        }
-                        
-                        var description = "";
-                        if (attributesDict.ContainsKey("description") && attributesDict["description"] != null)
-                        {
-                            description = GetLocalizedDescription(attributesDict["description"].ToString()) ?? "";
-                        }
-                        
-                        // Tải ảnh bìa
-                        string coverUrl = "";
-                        try
-                        {
-                            coverUrl = await _mangaDexService.FetchCoverUrlAsync(id);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError($"Không tải được ảnh bìa cho manga {id}: {ex.Message}");
-                        }
-
-                        mangaViewModels.Add(new MangaViewModel
-                        {
-                            Id = id,
-                            Title = mangaTitle,
-                            Description = description,
-                            CoverUrl = coverUrl,
-                            Status = attributesDict.ContainsKey("status") ? attributesDict["status"].ToString() : "unknown"
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError($"Lỗi khi xử lý manga: {ex.Message}");
-                        // Ghi log nhưng vẫn tiếp tục với manga tiếp theo
-                    }
-                }
-
-                var viewModel = new MangaListViewModel
-                {
-                    Mangas = mangaViewModels,
-                    CurrentPage = page,
-                    PageSize = pageSize,
-                    TotalCount = totalCount,
-                    MaxPages = maxPages,
-                    SortOptions = sortManga
-                };
-
-                // Nếu là HTMX request, chỉ trả về nội dung một phần
-                if (Request.Headers.ContainsKey("HX-Request"))
-                {
-                    return PartialView("_MangaList", viewModel);
-                }
-
-                return View(viewModel);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Lỗi khi tải danh sách manga: {ex.Message}");
-                ViewBag.ErrorMessage = "Không thể tải danh sách manga. Vui lòng thử lại sau.";
-                return View(new MangaListViewModel
-                {
-                    Mangas = new List<MangaViewModel>(),
-                    CurrentPage = 1,
-                    PageSize = 24,
-                    TotalCount = 0,
-                    MaxPages = 0,
-                    SortOptions = new SortManga { 
-                        Title = "",
-                        SortBy = "popular",
-                        Status = new List<string>()
-                    }
-                });
-            }
-        }
-
+        
         // GET: Manga/Details/5
         public async Task<IActionResult> Details(string id)
         {
@@ -271,7 +68,7 @@ namespace manga_reader_web.Controllers
                 
                 var manga = await _mangaDexService.FetchMangaDetailsAsync(id);
                 var mangaElement = JsonSerializer.Deserialize<JsonElement>(manga.ToString());
-                var mangaDict = ConvertJsonElementToDict(mangaElement);
+                var mangaDict = _jsonConversionService.ConvertJsonElementToDict(mangaElement);
                 
                 // Kiểm tra attributes tồn tại
                 if (!mangaDict.ContainsKey("attributes") || mangaDict["attributes"] == null)
@@ -282,41 +79,16 @@ namespace manga_reader_web.Controllers
                 
                 var attributesDict = (Dictionary<string, object>)mangaDict["attributes"];
                 
-                // Xử lý title
-                string title = "Không có tiêu đề";
-                if (attributesDict.ContainsKey("title") && attributesDict["title"] != null)
+                // Sử dụng MangaTitleService để xử lý tiêu đề
+                // Chuẩn bị dữ liệu altTitles nếu có
+                object altTitlesObj = null;
+                if (attributesDict.ContainsKey("altTitles") && attributesDict["altTitles"] != null)
                 {
-                    // Thử lấy title từ attributesDict
-                    var titleObj = attributesDict["title"];
-                    
-                    if (titleObj is Dictionary<string, object> titleDict)
-                    {
-                        // Ưu tiên tiếng Việt
-                        if (titleDict.ContainsKey("vi"))
-                            title = titleDict["vi"].ToString();
-                        // Nếu không có tiếng Việt, lấy tiếng Anh
-                        else if (titleDict.ContainsKey("en"))
-                            title = titleDict["en"].ToString();
-                        // Hoặc lấy giá trị đầu tiên nếu không có các ngôn ngữ ưu tiên
-                        else if (titleDict.Count > 0)
-                            title = titleDict.FirstOrDefault().Value?.ToString() ?? "Không có tiêu đề";
-                    }
-                    else
-                    {
-                        // Thử phương pháp khác nếu title không phải là Dictionary
-                        try
-                        {
-                            // Sử dụng hàm GetLocalizedTitle với JSON serialized của title
-                            string titleJson = JsonSerializer.Serialize(titleObj);
-                            title = GetLocalizedTitle(titleJson);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError($"Lỗi khi xử lý title manga: {ex.Message}");
-                            title = "Không có tiêu đề";
-                        }
-                    }
+                    altTitlesObj = attributesDict["altTitles"];
                 }
+                
+                // Gọi phương thức mới với cả title và altTitles
+                string mangaTitle = _mangaTitleService.GetMangaTitle(attributesDict["title"], altTitlesObj);
                 
                 // Xử lý mô tả
                 var description = "";
@@ -344,7 +116,7 @@ namespace manga_reader_web.Controllers
                         {
                             // Sử dụng hàm GetLocalizedDescription với JSON serialized của description
                             string descriptionJson = JsonSerializer.Serialize(descriptionObj);
-                            description = GetLocalizedDescription(descriptionJson);
+                            description = _localizationService.GetLocalizedDescription(descriptionJson);
                         }
                         catch (Exception ex)
                         {
@@ -359,100 +131,19 @@ namespace manga_reader_web.Controllers
                 string publicationDemographic = attributesDict.ContainsKey("publicationDemographic") ? attributesDict["publicationDemographic"]?.ToString() : "";
                 string contentRating = attributesDict.ContainsKey("contentRating") ? attributesDict["contentRating"]?.ToString() : "";
                 
-                // Xử lý tiêu đề thay thế
+                // Sử dụng MangaTitleService để xử lý tiêu đề thay thế
                 string alternativeTitles = "";
-                var altTitlesDictionary = new Dictionary<string, string>();
+                var altTitlesDictionary = new Dictionary<string, List<string>>();
 
                 if (attributesDict.ContainsKey("altTitles") && attributesDict["altTitles"] != null)
                 {
                     try
                     {
-                        // Xử lý cấu trúc altTitles mới trong API
-                        var altTitlesObj = attributesDict["altTitles"];
+                        // Sử dụng MangaTitleService để xử lý tiêu đề thay thế
+                        altTitlesDictionary = _mangaTitleService.GetAlternativeTitles(attributesDict["altTitles"]);
                         
-                        // Trường hợp 1: altTitles là một mảng các đối tượng có additionalProp
-                        if (altTitlesObj is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var altTitleElement in jsonElement.EnumerateArray())
-                            {
-                                // Chuyển đổi từng đối tượng trong mảng thành Dictionary
-                                var altTitleDict = ConvertJsonElementToDict(altTitleElement);
-                                
-                                // Lấy tất cả các giá trị của additionalProp và lưu cả key và value
-                                foreach (var prop in altTitleDict.Keys)
-                                {
-                                    if (altTitleDict[prop] != null && !string.IsNullOrWhiteSpace(altTitleDict[prop].ToString()))
-                                    {
-                                        // Nếu đã có ngôn ngữ này, thêm giá trị mới vào cuối với dấu ngăn cách
-                                        string langKey = prop;
-                                        string titleText = altTitleDict[prop].ToString();
-                                        
-                                        if (altTitlesDictionary.ContainsKey(langKey))
-                                        {
-                                            altTitlesDictionary[langKey] += " | " + titleText;
-                                        }
-                                        else
-                                        {
-                                            altTitlesDictionary[langKey] = titleText;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        // Trường hợp 2: altTitles là một mảng đối tượng
-                        else if (altTitlesObj is List<object> altTitlesList)
-                        {
-                            foreach (var altTitle in altTitlesList)
-                            {
-                                // Nếu đối tượng là Dictionary
-                                if (altTitle is Dictionary<string, object> altTitleDict)
-                                {
-                                    // Lấy tất cả các giá trị của additionalProp và lưu cả key và value
-                                    foreach (var prop in altTitleDict.Keys)
-                                    {
-                                        if (altTitleDict[prop] != null && !string.IsNullOrWhiteSpace(altTitleDict[prop].ToString()))
-                                        {
-                                            string langKey = prop;
-                                            string titleText = altTitleDict[prop].ToString();
-                                            
-                                            if (altTitlesDictionary.ContainsKey(langKey))
-                                            {
-                                                altTitlesDictionary[langKey] += " | " + titleText;
-                                            }
-                                            else
-                                            {
-                                                altTitlesDictionary[langKey] = titleText;
-                                            }
-                                        }
-                                    }
-                                }
-                                // Nếu đối tượng là chuỗi hoặc kiểu nguyên thủy khác
-                                else if (altTitle != null && !string.IsNullOrWhiteSpace(altTitle.ToString()))
-                                {
-                                    // Nếu không có thông tin ngôn ngữ, lưu vào key "unknown"
-                                    string titleText = altTitle.ToString();
-                                    if (altTitlesDictionary.ContainsKey("unknown"))
-                                    {
-                                        altTitlesDictionary["unknown"] += " | " + titleText;
-                                    }
-                                    else
-                                    {
-                                        altTitlesDictionary["unknown"] = titleText;
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Ưu tiên tiêu đề tiếng Anh cho hiển thị bên cạnh tiêu đề chính
-                        if (altTitlesDictionary.ContainsKey("en"))
-                        {
-                            alternativeTitles = altTitlesDictionary["en"];
-                        }
-                        else if (altTitlesDictionary.Count > 0)
-                        {
-                            // Lấy tiêu đề đầu tiên từ bất kỳ ngôn ngữ nào
-                            alternativeTitles = altTitlesDictionary.Values.FirstOrDefault() ?? "";
-                        }
+                        // Lấy tiêu đề thay thế ưu tiên
+                        alternativeTitles = _mangaTitleService.GetPreferredAlternativeTitle(altTitlesDictionary);
                         
                         // Lưu từ điển tiêu đề phụ vào ViewData để sử dụng trong View
                         ViewData["AlternativeTitlesByLanguage"] = altTitlesDictionary;
@@ -487,42 +178,45 @@ namespace manga_reader_web.Controllers
                             
                             foreach (var tagElem in tagsElement.EnumerateArray())
                             {
-                                tagsList.Add(ConvertJsonElementToDict(tagElem));
+                                tagsList.Add(_jsonConversionService.ConvertJsonElementToDict(tagElem));
                             }
                         
-                        foreach (var tagDict in tagsList)
-                        {
-                            if (tagDict.ContainsKey("attributes") && tagDict["attributes"] != null)
+                            foreach (var tagDict in tagsList)
                             {
-                                var tagAttrs = (Dictionary<string, object>)tagDict["attributes"];
-                                if (tagAttrs.ContainsKey("name") && tagAttrs["name"] != null)
+                                if (tagDict.ContainsKey("attributes") && tagDict["attributes"] != null)
                                 {
+                                    var tagAttrs = (Dictionary<string, object>)tagDict["attributes"];
+                                    if (tagAttrs.ContainsKey("name") && tagAttrs["name"] != null)
+                                    {
                                         // Xử lý tên tag theo các ngôn ngữ
                                         Dictionary<string, string> tagNameDict;
-                                        var nameObj = tagAttrs["name"];
                                         
-                                        if (nameObj is Dictionary<string, object> existingDict)
+                                        if (tagAttrs["name"] is Dictionary<string, object> existingDict)
                                         {
                                             tagNameDict = existingDict.ToDictionary(
                                                 kv => kv.Key,
                                                 kv => kv.Value?.ToString() ?? ""
                                             );
                                         }
+                                        else if (tagAttrs["name"] is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Object)
+                                        {
+                                            // Xử lý trường hợp nameObj là JsonElement
+                                            tagNameDict = _jsonConversionService.ConvertJsonElementToDict(jsonElement)
+                                                .ToDictionary(kv => kv.Key, kv => kv.Value?.ToString() ?? "");
+                                        }
                                         else
                                         {
-                                            // Cố gắng chuyển đổi từ JsonElement nếu cần
-                                            tagNameDict = JsonSerializer.Deserialize<Dictionary<string, string>>(
-                                                nameObj.ToString(),
-                                                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                                            );
+                                            // Trường hợp không thể xác định, sử dụng dictionary trống
+                                            tagNameDict = new Dictionary<string, string>();
+                                            _logger.LogWarning($"Không thể xử lý nameObj có kiểu {tagAttrs["name"]?.GetType().Name ?? "null"}");
                                         }
-                                    
-                                    // Ưu tiên tên tag tiếng Việt, sau đó đến tiếng Anh
+                                        
+                                        // Ưu tiên tên tag tiếng Việt, sau đó đến tiếng Anh
                                         if (tagNameDict.ContainsKey("vi") && !string.IsNullOrEmpty(tagNameDict["vi"]))
-                                        tags.Add(tagNameDict["vi"]);
+                                            tags.Add(tagNameDict["vi"]);
                                         else if (tagNameDict.ContainsKey("en") && !string.IsNullOrEmpty(tagNameDict["en"]))
-                                        tags.Add(tagNameDict["en"]);
-                                    else if (tagNameDict.Count > 0)
+                                            tags.Add(tagNameDict["en"]);
+                                        else if (tagNameDict.Count > 0)
                                             tags.Add(tagNameDict.FirstOrDefault(t => !string.IsNullOrEmpty(t.Value)).Value ?? "Không rõ");
                                     }
                                     
@@ -561,12 +255,17 @@ namespace manga_reader_web.Controllers
                                                 kv => kv.Value?.ToString() ?? ""
                                             );
                                         }
+                                        else if (nameObj is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Object)
+                                        {
+                                            // Xử lý trường hợp nameObj là JsonElement
+                                            tagNameDict = _jsonConversionService.ConvertJsonElementToDict(jsonElement)
+                                                .ToDictionary(kv => kv.Key, kv => kv.Value?.ToString() ?? "");
+                                        }
                                         else
                                         {
-                                            tagNameDict = JsonSerializer.Deserialize<Dictionary<string, string>>(
-                                                nameObj.ToString(),
-                                                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                                            );
+                                            // Trường hợp không thể xác định, sử dụng dictionary trống
+                                            tagNameDict = new Dictionary<string, string>();
+                                            _logger.LogWarning($"Không thể xử lý nameObj có kiểu {nameObj?.GetType().Name ?? "null"}");
                                         }
                                         
                                         // Ưu tiên tên tag tiếng Việt, sau đó đến tiếng Anh
@@ -597,7 +296,7 @@ namespace manga_reader_web.Controllers
                         
                         if (relationships is JsonElement relElement && relElement.ValueKind == JsonValueKind.Array)
                         {
-                            relationshipsList = ConvertJsonElementToList(relElement);
+                            relationshipsList = _jsonConversionService.ConvertJsonElementToList(relElement);
                         }
                         else
                         {
@@ -625,12 +324,17 @@ namespace manga_reader_web.Controllers
                                             kv => kv.Value?.ToString() ?? ""
                                         );
                                     }
+                                    else if (nameObj is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Object)
+                                    {
+                                        // Xử lý trường hợp nameObj là JsonElement
+                                        tagNameDict = _jsonConversionService.ConvertJsonElementToDict(jsonElement)
+                                            .ToDictionary(kv => kv.Key, kv => kv.Value?.ToString() ?? "");
+                                    }
                                     else
                                     {
-                                        tagNameDict = JsonSerializer.Deserialize<Dictionary<string, string>>(
-                                            nameObj.ToString(),
-                                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                                        );
+                                        // Trường hợp không thể xác định, sử dụng dictionary trống
+                                        tagNameDict = new Dictionary<string, string>();
+                                        _logger.LogWarning($"Không thể xử lý nameObj có kiểu {nameObj?.GetType().Name ?? "null"}");
                                     }
                                     
                                     // Ưu tiên tên tag tiếng Việt, sau đó đến tiếng Anh
@@ -733,7 +437,7 @@ namespace manga_reader_web.Controllers
                 var mangaViewModel = new MangaViewModel
                 {
                     Id = id,
-                    Title = title,
+                    Title = mangaTitle,
                     Description = description,
                     CoverUrl = coverUrl,
                     Status = attributesDict.ContainsKey("status") ? attributesDict["status"].ToString() : "unknown",
@@ -748,7 +452,7 @@ namespace manga_reader_web.Controllers
                     LastUpdated = lastUpdated,
                     IsFollowing = isFollowing,
                     // Các thông tin hiển thị phụ trợ
-                    Rating = GetMangaRating(id),
+                    Rating = _mangaUtilityService.GetMangaRating(id),
                     Views = 0 // MangaDex không cung cấp thông tin số lượt xem
                 };
                 
@@ -760,7 +464,7 @@ namespace manga_reader_web.Controllers
                 {
                     try {
                         var chapterElement = JsonSerializer.Deserialize<JsonElement>(chapter.ToString());
-                        var chapterDict = ConvertJsonElementToDict(chapterElement);
+                        var chapterDict = _jsonConversionService.ConvertJsonElementToDict(chapterElement);
                         
                         if (!chapterDict.ContainsKey("id"))
                         {
@@ -863,245 +567,7 @@ namespace manga_reader_web.Controllers
             }
         }
         
-        // Method để lấy title theo ngôn ngữ ưu tiên
-        private string GetLocalizedTitle(string titleJson)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(titleJson))
-                    return "Không có tiêu đề";
-                
-                // Thử deserialize trực tiếp
-                try
-                {
-                    var titles = JsonSerializer.Deserialize<Dictionary<string, string>>(titleJson);
-                    
-                    if (titles == null || titles.Count == 0)
-                        return "Không có tiêu đề";
-                        
-                    // Ưu tiên tiếng Việt, sau đó đến tiếng Anh
-                    if (titles.ContainsKey("vi"))
-                        return titles["vi"];
-                    if (titles.ContainsKey("en"))
-                        return titles["en"];
-                        
-                    // Nếu không có, lấy giá trị đầu tiên
-                    var firstItem = titles.FirstOrDefault();
-                    return firstItem.Equals(default(KeyValuePair<string, string>)) ? "Không có tiêu đề" : firstItem.Value;
-                }
-                catch (JsonException)
-                {
-                    // Nếu deserialization lỗi, có thể JSON không đúng định dạng mong đợi
-                    // Trường hợp đặc biệt khi JSON là object thay vì string
-                    try
-                    {
-                        var jsonElement = JsonSerializer.Deserialize<JsonElement>(titleJson);
-                        if (jsonElement.ValueKind == JsonValueKind.Object)
-                        {
-                            // Ưu tiên tiếng Việt, sau đó đến tiếng Anh
-                            if (jsonElement.TryGetProperty("vi", out var viTitle))
-                                return viTitle.GetString() ?? "Không có tiêu đề";
-                            if (jsonElement.TryGetProperty("en", out var enTitle))
-                                return enTitle.GetString() ?? "Không có tiêu đề";
-                            
-                            // Nếu không có, lấy property đầu tiên
-                            using (var properties = jsonElement.EnumerateObject())
-                            {
-                                if (properties.MoveNext())
-                                {
-                                    return properties.Current.Value.GetString() ?? "Không có tiêu đề";
-                                }
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        // Bỏ qua lỗi của phương pháp thứ hai
-                    }
-                }
-                
-                // Nếu không thể parse, trả về giá trị mặc định
-                return "Không có tiêu đề";
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Lỗi khi xử lý tiêu đề truyện: {ex.Message}");
-                return "Không có tiêu đề";
-            }
-        }
-        
-        private string GetLocalizedDescription(string descriptionJson)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(descriptionJson))
-                    return "";
-                
-                // Thử deserialize trực tiếp
-                try
-                {
-                    var descriptions = JsonSerializer.Deserialize<Dictionary<string, string>>(descriptionJson);
-                    
-                    if (descriptions == null || descriptions.Count == 0)
-                        return "";
-                        
-                    // Ưu tiên tiếng Việt, sau đó đến tiếng Anh
-                    if (descriptions.ContainsKey("vi"))
-                        return descriptions["vi"];
-                    if (descriptions.ContainsKey("en"))
-                        return descriptions["en"];
-                        
-                    // Nếu không có, lấy giá trị đầu tiên
-                    var firstItem = descriptions.FirstOrDefault();
-                    return firstItem.Equals(default(KeyValuePair<string, string>)) ? "" : firstItem.Value;
-                }
-                catch (JsonException)
-                {
-                    // Nếu deserialization lỗi, có thể JSON không đúng định dạng mong đợi
-                    // Trường hợp đặc biệt khi JSON là object thay vì string
-                    try
-                    {
-                        var jsonElement = JsonSerializer.Deserialize<JsonElement>(descriptionJson);
-                        if (jsonElement.ValueKind == JsonValueKind.Object)
-                        {
-                            // Ưu tiên tiếng Việt, sau đó đến tiếng Anh
-                            if (jsonElement.TryGetProperty("vi", out var viDescription))
-                                return viDescription.GetString() ?? "";
-                            if (jsonElement.TryGetProperty("en", out var enDescription))
-                                return enDescription.GetString() ?? "";
-                            
-                            // Nếu không có, lấy property đầu tiên
-                            using (var properties = jsonElement.EnumerateObject())
-                            {
-                                if (properties.MoveNext())
-                                {
-                                    return properties.Current.Value.GetString() ?? "";
-                                }
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        // Bỏ qua lỗi của phương pháp thứ hai
-                    }
-                }
-                
-                // Nếu không thể parse, trả về chuỗi rỗng
-                return "";
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Lỗi khi xử lý mô tả truyện: {ex.Message}");
-                return "";
-            }
-        }
-
-        // Thêm phương thức mới này vào class MangaController để chuyển đổi JsonElement thành Dictionary
-        private Dictionary<string, object> ConvertJsonElementToDict(JsonElement element)
-        {
-            var dict = new Dictionary<string, object>();
-            if (element.ValueKind != JsonValueKind.Object)
-            {
-                return dict;
-            }
-
-            foreach (var property in element.EnumerateObject())
-            {
-                switch (property.Value.ValueKind)
-                {
-                    case JsonValueKind.Object:
-                        dict[property.Name] = ConvertJsonElementToDict(property.Value);
-                        break;
-                    case JsonValueKind.Array:
-                        dict[property.Name] = ConvertJsonElementToList(property.Value);
-                        break;
-                    case JsonValueKind.String:
-                        dict[property.Name] = property.Value.GetString();
-                        break;
-                    case JsonValueKind.Number:
-                        if (property.Value.TryGetInt32(out int intValue))
-                        {
-                            dict[property.Name] = intValue;
-                        }
-                        else if (property.Value.TryGetInt64(out long longValue))
-                        {
-                            dict[property.Name] = longValue;
-                        }
-                        else
-                        {
-                            dict[property.Name] = property.Value.GetDouble();
-                        }
-                        break;
-                    case JsonValueKind.True:
-                        dict[property.Name] = true;
-                        break;
-                    case JsonValueKind.False:
-                        dict[property.Name] = false;
-                        break;
-                    case JsonValueKind.Null:
-                        dict[property.Name] = null;
-                        break;
-                    default:
-                        dict[property.Name] = property.Value.ToString();
-                        break;
-                }
-            }
-            return dict;
-        }
-
-        private List<object> ConvertJsonElementToList(JsonElement element)
-        {
-            var list = new List<object>();
-            if (element.ValueKind != JsonValueKind.Array)
-            {
-                return list;
-            }
-
-            foreach (var item in element.EnumerateArray())
-            {
-                switch (item.ValueKind)
-                {
-                    case JsonValueKind.Object:
-                        list.Add(ConvertJsonElementToDict(item));
-                        break;
-                    case JsonValueKind.Array:
-                        list.Add(ConvertJsonElementToList(item));
-                        break;
-                    case JsonValueKind.String:
-                        list.Add(item.GetString());
-                        break;
-                    case JsonValueKind.Number:
-                        if (item.TryGetInt32(out int intValue))
-                        {
-                            list.Add(intValue);
-                        }
-                        else if (item.TryGetInt64(out long longValue))
-                        {
-                            list.Add(longValue);
-                        }
-                        else
-                        {
-                            list.Add(item.GetDouble());
-                        }
-                        break;
-                    case JsonValueKind.True:
-                        list.Add(true);
-                        break;
-                    case JsonValueKind.False:
-                        list.Add(false);
-                        break;
-                    case JsonValueKind.Null:
-                        list.Add(null);
-                        break;
-                    default:
-                        list.Add(item.ToString());
-                        break;
-                }
-            }
-            return list;
-        }
-
-        // Các action khác liên quan đến danh sách, search, filter
+        // GET: Manga/Search
         public async Task<IActionResult> Search(
             string title = "", 
             List<string> status = null, 
@@ -1267,7 +733,7 @@ namespace manga_reader_web.Controllers
                         // Sử dụng JsonSerializer để chuyển đổi chính xác
                         var mangaElement = JsonSerializer.Deserialize<JsonElement>(manga.ToString());
                         // Chuyển đổi JsonElement thành Dictionary
-                        var mangaDict = ConvertJsonElementToDict(mangaElement);
+                        var mangaDict = _jsonConversionService.ConvertJsonElementToDict(mangaElement);
                         
                         if (!mangaDict.ContainsKey("id") || mangaDict["id"] == null)
                         {
@@ -1294,33 +760,21 @@ namespace manga_reader_web.Controllers
                             continue;
                         }
                         
-                        // Lấy title từ attributesDict
-                        var titleObj = attributesDict["title"];
-                        string mangaTitle = "Không có tiêu đề";
+                        // Sử dụng MangaTitleService để xử lý tiêu đề
+                        // Chuẩn bị dữ liệu altTitles nếu có
+                        object altTitlesObj = null;
+                        if (attributesDict.ContainsKey("altTitles") && attributesDict["altTitles"] != null)
+                        {
+                            altTitlesObj = attributesDict["altTitles"];
+                        }
                         
-                        // Phương pháp xử lý đúng cách title
-                        if (titleObj is Dictionary<string, object> titleDict)
-                        {
-                            // Ưu tiên tiếng Việt
-                            if (titleDict.ContainsKey("vi"))
-                                mangaTitle = titleDict["vi"].ToString();
-                            // Nếu không có tiếng Việt, lấy tiếng Anh
-                            else if (titleDict.ContainsKey("en"))
-                                mangaTitle = titleDict["en"].ToString();
-                            // Hoặc lấy giá trị đầu tiên nếu không có các ngôn ngữ ưu tiên
-                            else if (titleDict.Count > 0)
-                                mangaTitle = titleDict.FirstOrDefault().Value?.ToString() ?? "Không có tiêu đề";
-                        }
-                        else
-                        {
-                            // Thử phương pháp khác nếu title không phải là Dictionary
-                            mangaTitle = GetLocalizedTitle(JsonSerializer.Serialize(titleObj)) ?? "Không có tiêu đề";
-                        }
+                        // Gọi phương thức mới với cả title và altTitles
+                        string mangaTitle = _mangaTitleService.GetMangaTitle(attributesDict["title"], altTitlesObj);
                         
                         var description = "";
                         if (attributesDict.ContainsKey("description") && attributesDict["description"] != null)
                         {
-                            description = GetLocalizedDescription(attributesDict["description"].ToString()) ?? "";
+                            description = _localizationService.GetLocalizedDescription(attributesDict["description"].ToString()) ?? "";
                         }
                         
                         // Tải ảnh bìa
@@ -1399,25 +853,6 @@ namespace manga_reader_web.Controllers
                         SortBy = sortBy ?? "latest"
                     }
                 });
-            }
-        }
-        // Phương thức mô phỏng tính toán rating
-        private double GetMangaRating(string mangaId)
-        {
-            // MangaDex API không cung cấp thông tin rating trực tiếp
-            // Trong thực tế, bạn có thể lưu và tính toán điểm đánh giá từ người dùng
-            // Hoặc lấy từ nguồn API khác
-            
-            // Mô phỏng: Tạo rating giả dựa trên ID manga
-            try
-            {
-                // Tạo một số giả từ 0-10 dựa trên mangaId
-                var idSum = mangaId.Sum(c => c);
-                return Math.Round((idSum % 40 + 60) / 10.0, 2); // Trả về số từ 6.0-10.0
-            }
-            catch
-            {
-                return 7.5; // Giá trị mặc định nếu có lỗi
             }
         }
     }
