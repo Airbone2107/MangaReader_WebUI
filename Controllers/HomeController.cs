@@ -58,7 +58,12 @@ namespace manga_reader_web.Controllers
 
                     // Chuyển đổi thành MangaViewModel
                     var viewModels = new List<MangaViewModel>();
-                    foreach (var manga in recentManga)
+                    
+                    // Bỏ qua phần tử đầu tiên vì nó chỉ chứa thông tin tổng số (metadata)
+                    // không phải đối tượng manga thông thường nên không có thuộc tính id
+                    var mangaListToProcess = recentManga.Count > 1 ? recentManga.Skip(1).ToList() : new List<dynamic>();
+                    
+                    foreach (var manga in mangaListToProcess)
                     {
                         try
                         {

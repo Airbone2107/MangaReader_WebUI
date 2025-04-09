@@ -1,14 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Text.Json;
-using System.Threading.Tasks;
 using manga_reader_web.Models;
-using manga_reader_web.Services;
-using manga_reader_web.Services.MangaServices.MangaInformation;
 using manga_reader_web.Services.MangaServices.ChapterServices;
+using manga_reader_web.Services.MangaServices.MangaInformation;
 using manga_reader_web.Services.UtilityServices;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace manga_reader_web.Services.MangaServices.MangaPageService
 {
@@ -128,6 +122,14 @@ namespace manga_reader_web.Services.MangaServices.MangaPageService
             {    
                 // Lấy title của manga
                 string mangaTitle = _mangaTitleService.GetMangaTitle(attributesDict["title"], attributesDict["altTitles"]);
+                
+                // Lưu tiêu đề manga vào session để tái sử dụng trong ChapterController
+                var httpContext = _httpContextAccessor.HttpContext;
+                if (httpContext != null && !string.IsNullOrEmpty(mangaTitle))
+                {
+                    httpContext.Session.SetString($"Manga_{id}_Title", mangaTitle);
+                    _logger.LogInformation($"Đã lưu tiêu đề manga {id} vào session: {mangaTitle}");
+                }
                 
                 // Lấy mô tả của manga từ dịch vụ MangaDescription
                 string description = _mangaDescription.GetDescription(attributesDict);

@@ -1,6 +1,5 @@
 using manga_reader_web.Models;
 using System.Diagnostics;
-using System.Dynamic;
 using System.Text;
 using System.Text.Json;
 
@@ -19,7 +18,7 @@ namespace manga_reader_web.Services.MangaServices
             _logger = logger;
             
             // Cấu hình timeout dài hơn cho các request
-            _httpClient.Timeout = TimeSpan.FromSeconds(30);
+            _httpClient.Timeout = TimeSpan.FromSeconds(60);
             
             _jsonOptions = new JsonSerializerOptions
             {
@@ -521,26 +520,32 @@ namespace manga_reader_web.Services.MangaServices
         /// </summary>
         /// <param name="chapterId">ID của chapter cần lấy thông tin</param>
         /// <returns>Đối tượng chứa thông tin chapter</returns>
-        public async Task<object> FetchChapterInfoAsync(string chapterId)
+        public async Task<dynamic> FetchChapterInfoAsync(string chapterId)
         {
             try
             {
                 string url = $"{_baseUrl}/chapter/{chapterId}";
-                _logger.LogInformation($"Đang gọi API: {url}");
+                _logger?.LogInformation($"Đang gọi API: {url}");
                 
                 var response = await _httpClient.GetAsync(url);
-                response.EnsureSuccessStatusCode();
-                
                 var content = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<ExpandoObject>(content);
-                
-                return result;
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(content, _jsonOptions);
+                    return JsonSerializer.Deserialize<dynamic>(data["data"].ToString(), _jsonOptions);
+                }
+                else
+                {
+                    LogError("FetchChapterInfoAsync", response, content);
+                    throw new Exception($"Lỗi khi lấy thông tin chapter: {(int)response.StatusCode}");
+                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Ghi log và trả về null nếu xảy ra lỗi
-                _logger?.LogError($"Không thể lấy thông tin chapter {chapterId}");
-                return null;
+                Console.WriteLine($"Lỗi khi lấy thông tin chapter {chapterId}: {ex.Message}");
+                _logger?.LogError($"Không thể lấy thông tin chapter {chapterId}: {ex.Message}");
+                throw new Exception($"Không thể lấy thông tin chapter: {ex.Message}", ex);
             }
         }
     }

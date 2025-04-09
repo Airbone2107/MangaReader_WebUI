@@ -1,11 +1,9 @@
 using manga_reader_web.Models;
-using manga_reader_web.Services;
 using manga_reader_web.Services.MangaServices;
 using manga_reader_web.Services.MangaServices.MangaInformation;
 using manga_reader_web.Services.MangaServices.MangaPageService;
 using manga_reader_web.Services.UtilityServices;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
 
 namespace manga_reader_web.Controllers
 {

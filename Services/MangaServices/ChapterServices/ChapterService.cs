@@ -1,6 +1,4 @@
 using manga_reader_web.Models;
-using manga_reader_web.Services;
-using manga_reader_web.Services.MangaServices;
 using manga_reader_web.Services.UtilityServices;
 using System.Text.Json;
 
@@ -40,68 +38,13 @@ namespace manga_reader_web.Services.MangaServices.ChapterServices
                     try {
                         var chapterElement = JsonSerializer.Deserialize<JsonElement>(chapter.ToString());
                         var chapterDict = _jsonConversionService.ConvertJsonElementToDict(chapterElement);
-                        var chapterAttributesDict = (Dictionary<string, object>)chapterDict["attributes"];
                         
-                        // Lấy chapterNumber, cho phép null
-                        string chapterNumber = null;
-                        if (chapterAttributesDict.ContainsKey("chapter") && chapterAttributesDict["chapter"] != null)
+                        // Xử lý chapter thành ChapterViewModel
+                        var chapterViewModel = ProcessChapter(chapterDict);
+                        if (chapterViewModel != null)
                         {
-                            chapterNumber = chapterAttributesDict["chapter"].ToString();
+                            chapterViewModels.Add(chapterViewModel);
                         }
-                            
-                        // Lấy chapterTitle, cho phép null
-                        string chapterTitle = null;
-                        if (chapterAttributesDict.ContainsKey("title") && chapterAttributesDict["title"] != null)
-                        {
-                            chapterTitle = chapterAttributesDict["title"].ToString();
-                        }
-                            
-                        // Nếu tên chương trùng số chương hoặc rỗng, chỉ hiển thị "Chương X"
-                        var displayTitle = string.IsNullOrEmpty(chapterTitle) || chapterTitle == chapterNumber 
-                            ? $"Chương {chapterNumber ?? "?"}" 
-                            : $"Chương {chapterNumber ?? "?"}: {chapterTitle}";
-                            
-                        var publishedAt = chapterAttributesDict.ContainsKey("publishAt") && chapterAttributesDict["publishAt"] != null
-                            ? DateTime.Parse(chapterAttributesDict["publishAt"].ToString()) 
-                            : DateTime.Now;
-                            
-                        var language = chapterAttributesDict.ContainsKey("translatedLanguage") && chapterAttributesDict["translatedLanguage"] != null
-                            ? chapterAttributesDict["translatedLanguage"].ToString() 
-                            : "unknown";
-                        
-                        // Xử lý relationships
-                        var relationships = new List<ChapterRelationship>();
-                        if (chapterDict.ContainsKey("relationships") && chapterDict["relationships"] != null)
-                        {
-                            var relationshipsArray = chapterDict["relationships"] as List<object>;
-                            if (relationshipsArray != null)
-                            {
-                                foreach (var relationship in relationshipsArray)
-                                {
-                                    var relationshipDict = relationship as Dictionary<string, object>;
-                                    if (relationshipDict != null && 
-                                        relationshipDict.ContainsKey("id") && 
-                                        relationshipDict.ContainsKey("type"))
-                                    {
-                                        relationships.Add(new ChapterRelationship
-                                        {
-                                            Id = relationshipDict["id"].ToString(),
-                                            Type = relationshipDict["type"].ToString()
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                        
-                        chapterViewModels.Add(new ChapterViewModel
-                        {
-                            Id = chapterDict["id"].ToString(),
-                            Title = displayTitle,
-                            Number = chapterNumber,
-                            Language = language,
-                            PublishedAt = publishedAt,
-                            Relationships = relationships
-                        });
                     }
                     catch (Exception ex) {
                         _logger.LogError($"Lỗi khi xử lý chapter: {ex.Message}");
@@ -110,20 +53,184 @@ namespace manga_reader_web.Services.MangaServices.ChapterServices
                 }
                 
                 // Sắp xếp chapters theo thứ tự giảm dần
-                chapterViewModels = chapterViewModels.OrderByDescending(c => 
-                {
-                    if (c.Number != null && float.TryParse(c.Number, out float number))
-                        return number;
-                    return 0;
-                }).ToList();
-                
-                return chapterViewModels;
+                return SortChaptersByNumberDescending(chapterViewModels);
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Lỗi khi lấy danh sách chapters: {ex.Message}");
                 return new List<ChapterViewModel>();
             }
+        }
+
+        /// <summary>
+        /// Xử lý một chapter từ dữ liệu JSON thành ChapterViewModel
+        /// </summary>
+        /// <param name="chapterDict">Dictionary chứa dữ liệu chapter</param>
+        /// <returns>ChapterViewModel đã được xử lý, hoặc null nếu có lỗi</returns>
+        private ChapterViewModel ProcessChapter(Dictionary<string, object> chapterDict)
+        {
+            try
+            {
+                if (!chapterDict.ContainsKey("id"))
+                {
+                    _logger.LogWarning("Chapter không có ID, bỏ qua");
+                    return null;
+                }
+                
+                if (!chapterDict.ContainsKey("attributes") || chapterDict["attributes"] == null)
+                {
+                    _logger.LogWarning($"Chapter {chapterDict["id"]} không có attributes, bỏ qua");
+                    return null;
+                }
+                
+                var chapterAttributesDict = (Dictionary<string, object>)chapterDict["attributes"];
+                
+                // Lấy thông tin hiển thị (số chương, tiêu đề)
+                var (displayTitle, chapterNumber) = GetChapterDisplayInfo(chapterAttributesDict);
+                
+                // Lấy các thông tin khác
+                var language = GetChapterLanguage(chapterAttributesDict);
+                var publishedAt = GetChapterPublishedDate(chapterAttributesDict);
+                
+                // Xử lý relationships
+                var relationships = ProcessChapterRelationships(chapterDict);
+                
+                return new ChapterViewModel
+                {
+                    Id = chapterDict["id"].ToString(),
+                    Title = displayTitle,
+                    Number = chapterNumber,
+                    Language = language,
+                    PublishedAt = publishedAt,
+                    Relationships = relationships
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Lỗi khi xử lý chapter: {ex.Message}");
+                return null;
+            }
+        }
+        
+        /// <summary>
+        /// Lấy thông tin hiển thị của chapter (tiêu đề và số chương)
+        /// </summary>
+        /// <param name="attributesDict">Dictionary chứa thuộc tính của chapter</param>
+        /// <returns>Tuple gồm (displayTitle, chapterNumber)</returns>
+        private (string displayTitle, string chapterNumber) GetChapterDisplayInfo(Dictionary<string, object> attributesDict)
+        {
+            // Lấy chapterNumber, cho phép null
+            string chapterNumber = null;
+            if (attributesDict.ContainsKey("chapter") && attributesDict["chapter"] != null)
+            {
+                chapterNumber = attributesDict["chapter"].ToString();
+            }
+                
+            // Lấy chapterTitle, cho phép null
+            string chapterTitle = null;
+            if (attributesDict.ContainsKey("title") && attributesDict["title"] != null)
+            {
+                chapterTitle = attributesDict["title"].ToString();
+            }
+                
+            // Nếu tên chương trùng số chương hoặc rỗng, chỉ hiển thị "Chương X"
+            var displayTitle = string.IsNullOrEmpty(chapterTitle) || chapterTitle == chapterNumber 
+                ? $"Chương {chapterNumber ?? "?"}" 
+                : $"Chương {chapterNumber ?? "?"}: {chapterTitle}";
+                
+            return (displayTitle, chapterNumber);
+        }
+        
+        /// <summary>
+        /// Lấy ngôn ngữ của chapter
+        /// </summary>
+        /// <param name="attributesDict">Dictionary chứa thuộc tính của chapter</param>
+        /// <returns>Mã ngôn ngữ của chapter</returns>
+        private string GetChapterLanguage(Dictionary<string, object> attributesDict)
+        {
+            return attributesDict.ContainsKey("translatedLanguage") && attributesDict["translatedLanguage"] != null
+                ? attributesDict["translatedLanguage"].ToString() 
+                : "unknown";
+        }
+        
+        /// <summary>
+        /// Lấy ngày xuất bản của chapter
+        /// </summary>
+        /// <param name="attributesDict">Dictionary chứa thuộc tính của chapter</param>
+        /// <returns>Ngày xuất bản của chapter</returns>
+        private DateTime GetChapterPublishedDate(Dictionary<string, object> attributesDict)
+        {
+            return attributesDict.ContainsKey("publishAt") && attributesDict["publishAt"] != null
+                ? DateTime.Parse(attributesDict["publishAt"].ToString()) 
+                : DateTime.Now;
+        }
+        
+        /// <summary>
+        /// Xử lý relationships của chapter
+        /// </summary>
+        /// <param name="chapterDict">Dictionary chứa dữ liệu chapter</param>
+        /// <returns>Danh sách relationships của chapter</returns>
+        private List<ChapterRelationship> ProcessChapterRelationships(Dictionary<string, object> chapterDict)
+        {
+            var relationships = new List<ChapterRelationship>();
+            
+            if (!chapterDict.ContainsKey("relationships") || chapterDict["relationships"] == null)
+            {
+                return relationships;
+            }
+            
+            var relationshipsArray = chapterDict["relationships"] as List<object>;
+            if (relationshipsArray == null)
+            {
+                return relationships;
+            }
+            
+            foreach (var relationship in relationshipsArray)
+            {
+                var relationshipDict = relationship as Dictionary<string, object>;
+                if (relationshipDict != null && 
+                    relationshipDict.ContainsKey("id") && 
+                    relationshipDict.ContainsKey("type"))
+                {
+                    relationships.Add(new ChapterRelationship
+                    {
+                        Id = relationshipDict["id"].ToString(),
+                        Type = relationshipDict["type"].ToString()
+                    });
+                }
+            }
+            
+            return relationships;
+        }
+        
+        /// <summary>
+        /// Sắp xếp chapters theo số chương giảm dần
+        /// </summary>
+        /// <param name="chapters">Danh sách chapters cần sắp xếp</param>
+        /// <returns>Danh sách chapters đã sắp xếp</returns>
+        private List<ChapterViewModel> SortChaptersByNumberDescending(List<ChapterViewModel> chapters)
+        {
+            return chapters.OrderByDescending(c => 
+            {
+                if (c.Number != null && float.TryParse(c.Number, out float number))
+                    return number;
+                return 0;
+            }).ToList();
+        }
+        
+        /// <summary>
+        /// Sắp xếp chapters theo số chương tăng dần
+        /// </summary>
+        /// <param name="chapters">Danh sách chapters cần sắp xếp</param>
+        /// <returns>Danh sách chapters đã sắp xếp</returns>
+        private List<ChapterViewModel> SortChaptersByNumberAscending(List<ChapterViewModel> chapters)
+        {
+            return chapters.OrderBy(c => 
+            {
+                if (c.Number != null && float.TryParse(c.Number, out float number))
+                    return number;
+                return 0;
+            }).ToList();
         }
 
         /// <summary>
@@ -140,13 +247,7 @@ namespace manga_reader_web.Services.MangaServices.ChapterServices
             foreach (var language in chaptersByLanguage.Keys)
             {
                 var chaptersInLanguage = chaptersByLanguage[language];
-                chaptersInLanguage = chaptersInLanguage.OrderBy(c => 
-                {
-                    if (c.Number != null && float.TryParse(c.Number, out float number))
-                        return number;
-                    return 0;
-                }).ToList();
-                
+                chaptersInLanguage = SortChaptersByNumberAscending(chaptersInLanguage);
                 chaptersByLanguage[language] = chaptersInLanguage;
             }
             

@@ -69,10 +69,10 @@
                                         var newestEnglishChapter = newestChapters.FirstOrDefault(c => c.Language == "en");
                                         var newestChapterId = newestVietnameseChapter?.Id ?? newestEnglishChapter?.Id ?? newestChapters.First().Id;
                                         
-                                        <a asp-controller="Chapter" asp-action="Read" asp-route-id="@firstChapterId" asp-route-mangaId="@Model.Manga.Id" class="btn btn-primary">
+                                        <a asp-controller="Chapter" asp-action="Read" asp-route-id="@firstChapterId" class="btn btn-primary">
                                             <i class="bi bi-book-fill me-2"></i>Đọc từ đầu
                                         </a>
-                                        <a asp-controller="Chapter" asp-action="Read" asp-route-id="@newestChapterId" asp-route-mangaId="@Model.Manga.Id" class="btn btn-success">
+                                        <a asp-controller="Chapter" asp-action="Read" asp-route-id="@newestChapterId" class="btn btn-success">
                                             <i class="bi bi-lightning-fill me-2"></i>Đọc mới nhất
                                         </a>
                                     }
@@ -231,8 +231,7 @@
                                                     @foreach (var chapter in volumeChapters)
                                                     {
                                                         <a asp-controller="Chapter" asp-action="Read" 
-                                                           asp-route-id="@chapter.Id" 
-                                                           asp-route-mangaId="@Model.Manga.Id"
+                                                           asp-route-id="@chapter.Id"
                                                            class="custom-chapter-item chapter-link">
                                                             <div class="custom-chapter-info">
                                                                 <h6 class="mb-0">@chapter.Title</h6>

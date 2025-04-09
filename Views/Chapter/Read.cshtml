@@ -44,14 +44,14 @@
                     <div class="d-flex gap-2 mb-3">
                         @if (!string.IsNullOrEmpty(Model.PrevChapterId))
                         {
-                            <a asp-action="Read" asp-route-id="@Model.PrevChapterId" asp-route-mangaId="@Model.MangaId" class="btn btn-theme-outline w-100">
+                            <a asp-action="Read" asp-route-id="@Model.PrevChapterId" class="btn btn-theme-outline w-100">
                                 <i class="bi bi-chevron-left"></i> Chương trước
                             </a>
                         }
                         
                         @if (!string.IsNullOrEmpty(Model.NextChapterId))
                         {
-                            <a asp-action="Read" asp-route-id="@Model.NextChapterId" asp-route-mangaId="@Model.MangaId" class="btn btn-theme-outline w-100">
+                            <a asp-action="Read" asp-route-id="@Model.NextChapterId" class="btn btn-theme-outline w-100">
                                 Chương sau <i class="bi bi-chevron-right"></i>
                             </a>
                         }
@@ -92,7 +92,7 @@
             <div class="my-4 d-flex gap-3 justify-content-center">
                 @if (!string.IsNullOrEmpty(Model.PrevChapterId))
                 {
-                    <a asp-action="Read" asp-route-id="@Model.PrevChapterId" asp-route-mangaId="@Model.MangaId" class="btn btn-primary">
+                    <a asp-action="Read" asp-route-id="@Model.PrevChapterId" class="btn btn-primary">
                         <i class="bi bi-chevron-left"></i> Chương trước
                     </a>
                 }
@@ -103,7 +103,7 @@
                 
                 @if (!string.IsNullOrEmpty(Model.NextChapterId))
                 {
-                    <a asp-action="Read" asp-route-id="@Model.NextChapterId" asp-route-mangaId="@Model.MangaId" class="btn btn-primary">
+                    <a asp-action="Read" asp-route-id="@Model.NextChapterId" class="btn btn-primary">
                         Chương sau <i class="bi bi-chevron-right"></i>
                     </a>
                 }

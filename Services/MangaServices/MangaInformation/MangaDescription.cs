@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Text.Json;
-using Microsoft.Extensions.Logging;
 using manga_reader_web.Services.UtilityServices;
+using System.Text.Json;
 
 namespace manga_reader_web.Services.MangaServices.MangaInformation
 {
