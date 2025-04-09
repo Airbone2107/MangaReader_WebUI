@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace manga_reader_web.Services.MangaServices
+namespace manga_reader_web.Services.UtilityServices
 {
     public class LocalizationService
     {

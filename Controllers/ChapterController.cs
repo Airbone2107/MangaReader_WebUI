@@ -1,5 +1,5 @@
 using manga_reader_web.Models;
-using manga_reader_web.Services;
+using manga_reader_web.Services.MangaServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 

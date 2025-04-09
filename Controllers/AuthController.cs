@@ -1,9 +1,5 @@
-using System;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Http;
 using manga_reader_web.Services.AuthServices;
+using Microsoft.AspNetCore.Mvc;
 
 namespace manga_reader_web.Controllers
 {

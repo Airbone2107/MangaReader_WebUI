@@ -1,7 +1,3 @@
-using Microsoft.AspNetCore.Http;
-using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
-
 namespace manga_reader_web.Services.MangaServices
 {
     public class MangaFollowService

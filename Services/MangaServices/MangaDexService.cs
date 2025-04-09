@@ -1,18 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
 using manga_reader_web.Models;
 using System.Diagnostics;
-using Microsoft.Extensions.Logging;
-using System.Threading;
 using System.Dynamic;
-using System.Linq;
+using System.Text;
+using System.Text.Json;
 
-namespace manga_reader_web.Services
+namespace manga_reader_web.Services.MangaServices
 {
     public class MangaDexService
     {
