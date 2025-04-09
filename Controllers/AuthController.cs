@@ -1,5 +1,9 @@
 using manga_reader_web.Services.AuthServices;
 using Microsoft.AspNetCore.Mvc;
+using manga_reader_web.Models;
+using manga_reader_web.Models.Auth;
+using manga_reader_web.Services.MangaServices;
+using manga_reader_web.Services.MangaServices.MangaPageService;
 
 namespace manga_reader_web.Controllers
 {
@@ -7,13 +11,19 @@ namespace manga_reader_web.Controllers
     {
         private readonly IUserService _userService;
         private readonly ILogger<AuthController> _logger;
+        private readonly IMangaFollowService _mangaFollowService;
+        private readonly MangaDetailsService _mangaDetailsService;
 
         public AuthController(
             IUserService userService,
-            ILogger<AuthController> logger)
+            ILogger<AuthController> logger,
+            IMangaFollowService mangaFollowService,
+            MangaDetailsService mangaDetailsService)
         {
             _userService = userService;
             _logger = logger;
+            _mangaFollowService = mangaFollowService;
+            _mangaDetailsService = mangaDetailsService;
         }
 
         /// <summary>
@@ -177,6 +187,7 @@ namespace manga_reader_web.Controllers
 
             try
             {
+                // Lấy thông tin người dùng
                 var user = await _userService.GetUserInfoAsync();
                 
                 if (user == null)
@@ -185,7 +196,40 @@ namespace manga_reader_web.Controllers
                     return RedirectToAction("Login");
                 }
                 
-                return View(user);
+                // Tạo ProfileViewModel để chứa thông tin người dùng và danh sách manga đang theo dõi
+                var viewModel = new ProfileViewModel
+                {
+                    User = user,
+                    FollowingMangas = new List<MangaViewModel>()
+                };
+                
+                // Lấy danh sách manga đang theo dõi
+                if (user.FollowingManga != null && user.FollowingManga.Count > 0)
+                {
+                    // Lấy chi tiết từng manga
+                    foreach (var mangaId in user.FollowingManga)
+                    {
+                        try
+                        {
+                            // Lấy thông tin chi tiết manga từ MangaDetailsService
+                            var mangaDetails = await _mangaDetailsService.GetMangaDetailsAsync(mangaId);
+                            if (mangaDetails != null && mangaDetails.Manga != null)
+                            {
+                                // Đánh dấu manga này đang được theo dõi
+                                mangaDetails.Manga.IsFollowing = true;
+                                viewModel.FollowingMangas.Add(mangaDetails.Manga);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, $"Lỗi khi lấy thông tin chi tiết của manga {mangaId}");
+                            // Tiếp tục với manga tiếp theo nếu có lỗi
+                            continue;
+                        }
+                    }
+                }
+                
+                return View(viewModel);
             }
             catch (Exception ex)
             {
@@ -194,5 +238,15 @@ namespace manga_reader_web.Controllers
                 return RedirectToAction("Index", "Home");
             }
         }
+    }
+}
+
+// ProfileViewModel để hiển thị thông tin người dùng và danh sách manga đang theo dõi
+namespace manga_reader_web.Models
+{
+    public class ProfileViewModel
+    {
+        public UserModel User { get; set; }
+        public List<MangaViewModel> FollowingMangas { get; set; } = new List<MangaViewModel>();
     }
 } 

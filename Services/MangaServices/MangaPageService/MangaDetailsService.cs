@@ -180,7 +180,7 @@ namespace manga_reader_web.Services.MangaServices.MangaPageService
                 var (author, artist) = result;
 
                 // Kiểm tra trạng thái follow
-                bool isFollowing = _mangaFollowService.IsFollowingManga(id);
+                bool isFollowing = await _mangaFollowService.IsFollowingMangaAsync(id);
                 
                 return new MangaViewModel
                 {

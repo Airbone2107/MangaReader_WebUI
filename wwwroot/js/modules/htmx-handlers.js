@@ -5,7 +5,7 @@
 // Import các hàm từ các module khác (sẽ được sử dụng trong HTMX)
 import { updateActiveSidebarLink } from './sidebar.js';
 import { initTooltips } from './ui.js';
-import { adjustHeaderBackgroundHeight, initMangaDetailsPage } from './manga-details.js';
+import { adjustHeaderBackgroundHeight, initMangaDetailsPage, toggleFollow } from './manga-details.js';
 
 /**
  * Khởi tạo lại các chức năng cần thiết sau khi HTMX cập nhật nội dung
@@ -124,36 +124,13 @@ function reinitializeAfterHtmxSwap() {
     // Khởi tạo lại sự kiện cho nút theo dõi trong Details.cshtml
     const followBtn = document.getElementById('followBtn');
     if (followBtn) {
-        followBtn.addEventListener('click', function() {
-            let isFollowing = this.getAttribute('data-following') === 'true';
-            isFollowing = !isFollowing;
-            this.setAttribute('data-following', isFollowing.toString());
-            
-            // Cập nhật trạng thái và lưu vào localStorage
-            const mangaId = this.getAttribute('data-id');
-            let followedList = JSON.parse(localStorage.getItem('followed_manga') || '[]');
-            
-            if (isFollowing) {
-                if (!followedList.includes(mangaId)) {
-                    followedList.push(mangaId);
-                }
-            } else {
-                const index = followedList.indexOf(mangaId);
-                if (index !== -1) {
-                    followedList.splice(index, 1);
-                }
-            }
-            
-            localStorage.setItem('followed_manga', JSON.stringify(followedList));
-            
-            // Cập nhật UI
-            if (isFollowing) {
-                this.innerHTML = '<i class="bi bi-bookmark-check-fill me-2"></i>Đang theo dõi';
-                window.showToast('Đã thêm vào danh sách theo dõi!', 'success');
-            } else {
-                this.innerHTML = '<i class="bi bi-bookmark-plus me-2"></i>Theo dõi';
-                window.showToast('Đã xóa khỏi danh sách theo dõi!', 'info');
-            }
+        // Xóa bỏ tất cả event listener hiện tại
+        const newFollowBtn = followBtn.cloneNode(true);
+        followBtn.parentNode.replaceChild(newFollowBtn, followBtn);
+        
+        // Sử dụng hàm toggleFollow từ module manga-details.js
+        newFollowBtn.addEventListener('click', function() {
+            toggleFollow(this);
         });
     }
     

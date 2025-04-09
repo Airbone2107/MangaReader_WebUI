@@ -175,6 +175,162 @@ function initChapterItems() {
 }
 
 /**
+ * Khởi tạo nút theo dõi/hủy theo dõi manga
+ */
+function initFollowButton() {
+    const followBtn = document.getElementById('followBtn');
+    if (followBtn) {
+        // Xóa event listener cũ (nếu có) bằng cách clone nút
+        const newFollowBtn = followBtn.cloneNode(true);
+        followBtn.parentNode.replaceChild(newFollowBtn, followBtn);
+        
+        // Thêm lại event listener
+        newFollowBtn.addEventListener('click', function() {
+            toggleFollow(this);
+        });
+        
+        console.log('Đã khởi tạo nút theo dõi/hủy theo dõi');
+    }
+}
+
+/**
+ * Thay đổi trạng thái theo dõi manga
+ */
+function toggleFollow(button) {
+    const mangaId = button.getAttribute('data-id');
+    // Chúng ta không cần isFollowing ở đây nữa,
+    // vì proxy sẽ xác định hành động, nhưng giữ lại để UI được chủ động nếu muốn.
+    // const isCurrentlyFollowing = button.getAttribute('data-following') === 'true';
+
+    // Sử dụng endpoint proxy duy nhất
+    const endpoint = '/api/proxy/toggle-follow';
+
+    // Hiển thị trạng thái đang xử lý
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang xử lý...';
+    button.disabled = true;
+
+    fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            // ** KHÔNG cần header Authorization ở đây - C# proxy xử lý nó **
+        },
+        body: JSON.stringify({ mangaId: mangaId }) // Gửi mangaId trong phần thân
+    })
+    .then(response => {
+        // Kiểm tra unauthorized trước (được trả về bởi proxy)
+        if (response.status === 401) {
+             // Sử dụng showToast toàn cục nếu đã định nghĩa, nếu không thì alert
+             const toastFunc = window.showToast || alert;
+             toastFunc('Lỗi', 'Vui lòng đăng nhập để thực hiện thao tác này.', 'error');
+             setTimeout(() => {
+                 window.location.href = '/Auth/Login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
+             }, 1500);
+             return Promise.reject({ status: 401, message: 'Unauthorized' }); // Từ chối với status
+        }
+        // Kiểm tra nếu response là ok, nếu không thì parse JSON lỗi
+        if (!response.ok) {
+            // Thử phân tích JSON lỗi từ proxy
+            return response.json().then(errorData => Promise.reject(errorData || { message: `Lỗi ${response.status}` }));
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Khôi phục nút
+        button.disabled = false;
+        const toastFunc = window.showToast || alert; // Sử dụng hàm toast toàn cục
+
+        if (data.success) {
+            // Cập nhật UI dựa trên trạng thái MỚI NHẬN ĐƯỢC từ proxy
+            const newFollowingState = data.isFollowing;
+            button.setAttribute('data-following', newFollowingState.toString().toLowerCase());
+
+            if (newFollowingState) {
+                button.innerHTML = '<i class="bi bi-bookmark-check-fill me-2"></i><span>Đang theo dõi</span>';
+                toastFunc('Thành công', data.message || 'Đã theo dõi truyện', 'success');
+            } else {
+                button.innerHTML = '<i class="bi bi-bookmark-plus me-2"></i><span>Theo dõi</span>';
+                toastFunc('Thành công', data.message || 'Đã hủy theo dõi truyện', 'success');
+            }
+        } else {
+            // Khôi phục nút về trạng thái ban đầu
+            button.innerHTML = originalContent;
+            // Hiển thị thông báo lỗi
+            toastFunc('Lỗi', data.message || 'Không thể cập nhật trạng thái theo dõi', 'error');
+        }
+    })
+    .catch(error => {
+        // Xử lý lỗi mạng hoặc lỗi phân tích JSON hoặc các promise bị từ chối
+        button.innerHTML = originalContent;
+        button.disabled = false;
+        const toastFunc = window.showToast || alert; // Sử dụng hàm toast toàn cục
+
+        if (error && error.status === 401) {
+            // Đã xử lý chuyển hướng, chỉ ghi log
+            console.log("Phát hiện truy cập không được ủy quyền.");
+        } else {
+            console.error('Lỗi khi toggle follow:', error);
+            const errorMessage = (error && error.message) ? error.message : 'Đã xảy ra lỗi mạng hoặc lỗi xử lý. Vui lòng thử lại sau.';
+            toastFunc('Lỗi', errorMessage, 'error');
+        }
+    });
+}
+
+/**
+ * Hiển thị toast thông báo
+ */
+function showToast(title, message, type) {
+    // Kiểm tra nếu Bootstrap đã được khởi tạo
+    if (typeof bootstrap === 'undefined') {
+        console.error('Bootstrap chưa được khởi tạo');
+        alert(message);
+        return;
+    }
+    
+    // Tạo toast nếu chưa có
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        toastContainer.style.zIndex = '11';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Tạo phần tử toast
+    const toastId = 'toast_' + Date.now();
+    const toastHtml = `
+        <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header ${type === 'success' ? 'bg-success text-white' : type === 'error' ? 'bg-danger text-white' : 'bg-info text-white'}">
+                <i class="bi ${type === 'success' ? 'bi-check-circle' : type === 'error' ? 'bi-exclamation-triangle' : 'bi-info-circle'} me-2"></i>
+                <strong class="me-auto">${title}</strong>
+                <button type="button" class="btn-close ${type === 'success' || type === 'error' || type === 'info' ? 'btn-close-white' : ''}" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
+        </div>
+    `;
+    
+    // Thêm toast vào container
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    // Lấy phần tử toast
+    const toastElement = document.getElementById(toastId);
+    
+    // Tạo đối tượng Toast của Bootstrap
+    const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+    
+    // Hiển thị toast
+    toast.show();
+    
+    // Xóa toast sau khi ẩn
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        toastElement.remove();
+    });
+}
+
+/**
  * Khởi tạo tất cả chức năng liên quan đến chi tiết manga
  */
 function initMangaDetailsPage() {
@@ -191,6 +347,9 @@ function initMangaDetailsPage() {
         
         // Khởi tạo xử lý cho chapter items
         initChapterItems();
+        
+        // Khởi tạo nút theo dõi/hủy theo dõi
+        initFollowButton();
         
         // Gọi hàm khi trang tải xong và khi cửa sổ thay đổi kích thước
         // Đợi một chút để đảm bảo các element đã được render đầy đủ
@@ -216,9 +375,21 @@ function initAfterHtmxLoad() {
     // Khởi tạo lại xử lý cho chapter items
     initChapterItems();
     
+    // Khởi tạo lại nút theo dõi/hủy theo dõi
+    initFollowButton();
+    
     // Điều chỉnh lại chiều cao background
     setTimeout(adjustHeaderBackgroundHeight, 100);
 }
 
 // Export các hàm để có thể sử dụng ở file khác
-export { adjustHeaderBackgroundHeight, initMangaDetailsPage, initAfterHtmxLoad, initDropdowns, initChapterItems }; 
+export { 
+    adjustHeaderBackgroundHeight, 
+    initMangaDetailsPage, 
+    initAfterHtmxLoad, 
+    initDropdowns, 
+    initChapterItems,
+    initFollowButton,
+    toggleFollow,
+    showToast 
+}; 

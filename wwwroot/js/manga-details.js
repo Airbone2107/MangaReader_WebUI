@@ -4,7 +4,20 @@
  */
 
 // Import các hàm cần thiết từ module
-import { adjustHeaderBackgroundHeight, initMangaDetailsPage, initAfterHtmxLoad } from './modules/manga-details.js';
+import { 
+    adjustHeaderBackgroundHeight, 
+    initMangaDetailsPage, 
+    initAfterHtmxLoad,
+    initDropdowns,
+    initChapterItems,
+    initFollowButton,
+    toggleFollow,
+    showToast 
+} from './modules/manga-details.js';
+
+// Tạo một phiên bản window-level của toggleFollow để có thể truy cập từ các thành phần HTML
+window.toggleFollow = toggleFollow;
+window.showToast = showToast;
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('manga-details.js: Khởi tạo trang chi tiết manga...');

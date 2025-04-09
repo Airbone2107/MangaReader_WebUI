@@ -77,7 +77,7 @@
                                         </a>
                                     }
                                     
-                                    <button class="btn btn-theme-outline" id="followBtn" data-id="@Model.Manga.Id" data-following="@Model.Manga.IsFollowing.ToString().ToLower()">
+                                    <button class="btn btn-theme-outline" id="followBtn" data-id="@Model.Manga.Id" data-following="@Model.Manga.IsFollowing.ToString().ToLower()" onclick="if(typeof toggleFollow === 'function') toggleFollow(this);">
                                         @if (Model.Manga.IsFollowing)
                                         {
                                             <i class="bi bi-bookmark-check-fill me-2"></i><span>Đang theo dõi</span>
