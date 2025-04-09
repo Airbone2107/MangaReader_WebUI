@@ -1,11 +1,15 @@
 /**
- * auth.js - Xử lý xác thực và quản lý thông tin người dùng
+ * auth.js - Xử lý xác thực và quản lý thông tin người dùng (Module ES6)
  */
 
-// Kiểm tra trạng thái đăng nhập khi tải trang
-document.addEventListener('DOMContentLoaded', function() {
+/**
+ * Khởi tạo UI xác thực
+ * Hàm này gọi checkAuthState để kiểm tra trạng thái đăng nhập khi được gọi
+ */
+export function initAuthUI() {
+    console.log('Auth module: Khởi tạo UI xác thực');
     checkAuthState();
-});
+}
 
 /**
  * Kiểm tra trạng thái đăng nhập và cập nhật giao diện
@@ -75,11 +79,16 @@ function updateUserInterface(data) {
 }
 
 // Thêm style cho avatar người dùng
-const style = document.createElement('style');
-style.textContent = `
-    .user-avatar {
-        object-fit: cover;
-        border: 2px solid #fff;
-    }
-`;
-document.head.appendChild(style); 
+function addAvatarStyle() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .user-avatar {
+            object-fit: cover;
+            border: 2px solid #fff;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Gọi hàm thêm style trong quá trình khởi tạo
+addAvatarStyle(); 

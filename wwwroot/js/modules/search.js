@@ -37,20 +37,7 @@ function initQuickSearch() {
 // Đảm bảo code chỉ chạy khi DOM đã sẵn sàng
 document.addEventListener('DOMContentLoaded', initSearchPage);
 
-// Khởi tạo script khi HTMX tải lại nội dung
-document.addEventListener('htmx:afterSwap', function(event) {
-    // Chỉ khởi tạo lại khi nội dung chứa form tìm kiếm
-    if (event.detail.target.id === 'main-content' && document.getElementById('searchForm')) {
-        initSearchPage();
-        
-        // Đảm bảo cập nhật text hiển thị sau khi swap
-        setTimeout(function() {
-            document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
-                updateDropdownText(dropdown);
-            });
-        }, 100); // Đợi 100ms để đảm bảo DOM đã hoàn toàn cập nhật
-    }
-});
+// Lưu ý: Tất cả các sự kiện HTMX được xử lý trong htmx-handlers.js
 
 /**
  * Hàm khởi tạo module
@@ -132,10 +119,10 @@ function checkForActiveFilters() {
     if (yearField && yearField.value.trim()) return true;
     
     // Kiểm tra các checkbox được chọn
-    const statusChecks = document.querySelectorAll('input[name="status[]"]:checked');
+    const statusChecks = document.querySelectorAll('input[name="status"]:checked');
     if (statusChecks.length) return true;
     
-    const demoChecks = document.querySelectorAll('input[name="publicationDemographic[]"]:checked');
+    const demoChecks = document.querySelectorAll('input[name="publicationDemographic"]:checked');
     if (demoChecks.length) return true;
     
     // Kiểm tra ngôn ngữ được chọn
@@ -155,7 +142,7 @@ function checkForActiveFilters() {
     if (pageSize && pageSize.value !== '24') return true;
     
     // Kiểm tra nội dung không mặc định
-    const contentRating = document.querySelectorAll('input[name="contentRating[]"]:checked');
+    const contentRating = document.querySelectorAll('input[name="contentRating"]:checked');
     const defaultRatings = ['safe', 'suggestive', 'erotica'];
     if (contentRating.length !== defaultRatings.length) return true;
     
@@ -575,12 +562,12 @@ function setupResetFilters() {
         });
         
         // Reset các checkbox trạng thái và đối tượng độc giả (unchecked)
-        document.querySelectorAll('input[name="status[]"], input[name="publicationDemographic[]"]').forEach(cb => {
+        document.querySelectorAll('input[name="status"], input[name="publicationDemographic"]').forEach(cb => {
             cb.checked = false;
         });
         
         // Reset các checkbox nội dung (checked)
-        document.querySelectorAll('input[name="contentRating[]"]').forEach(cb => {
+        document.querySelectorAll('input[name="contentRating"]').forEach(cb => {
             cb.checked = ['safe', 'suggestive', 'erotica'].includes(cb.value);
         });
         
@@ -645,5 +632,6 @@ function setupResetFilters() {
 // Xuất API module
 export default {
     init,
-    initSearchPage
+    initSearchPage,
+    initPageGoTo
 };

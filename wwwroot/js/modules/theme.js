@@ -99,7 +99,7 @@ function initThemeSwitcher() {
         
         // Hiển thị thông báo nếu cần
         if (showNotification && window.showToast) {
-            window.showToast(`Đã chuyển sang chế độ ${theme === 'dark' ? 'tối' : 'sáng'}!`, 'info');
+            window.showToast('Thông báo', `Đã chuyển sang chế độ ${theme === 'dark' ? 'tối' : 'sáng'}!`, 'info');
         }
     }
 

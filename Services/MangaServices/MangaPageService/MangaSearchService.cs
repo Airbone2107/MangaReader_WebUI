@@ -234,6 +234,11 @@ namespace manga_reader_web.Services.MangaServices.MangaPageService
                     // Chuyển đổi JsonElement thành Dictionary
                     var mangaDict = _jsonConversionService.ConvertJsonElementToDict(mangaElement);
 
+                    if (mangaDict.ContainsKey("total"))
+                    {
+                        continue;
+                    }
+
                     if (!mangaDict.ContainsKey("id") || mangaDict["id"] == null)
                     {
                         _logger.LogWarning("Manga không có ID");

@@ -207,22 +207,22 @@
                                                 <div class="filter-menu-content">
                                                     <div class="filter-menu-padding">
                                                         <div class="filter-option">
-                                                            <input type="checkbox" name="contentRating[]" id="contentSafe" value="safe" 
+                                                            <input type="checkbox" name="contentRating" id="contentSafe" value="safe" 
                                                                    @(Model.SortOptions.ContentRating == null || Model.SortOptions.ContentRating.Contains("safe") ? "checked" : "")>
                                                             <label class="filter-option-label" for="contentSafe">An Toàn</label>
                                                         </div>
                                                         <div class="filter-option">
-                                                            <input type="checkbox" name="contentRating[]" id="contentSuggestive" value="suggestive" 
+                                                            <input type="checkbox" name="contentRating" id="contentSuggestive" value="suggestive" 
                                                                    @(Model.SortOptions.ContentRating == null || Model.SortOptions.ContentRating.Contains("suggestive") ? "checked" : "")>
                                                             <label class="filter-option-label" for="contentSuggestive">Nhạy cảm</label>
                                                         </div>
                                                         <div class="filter-option">
-                                                            <input type="checkbox" name="contentRating[]" id="contentErotica" value="erotica" 
+                                                            <input type="checkbox" name="contentRating" id="contentErotica" value="erotica" 
                                                                    @(Model.SortOptions.ContentRating == null || Model.SortOptions.ContentRating.Contains("erotica") ? "checked" : "")>
                                                             <label class="filter-option-label" for="contentErotica">R18</label>
                                                         </div>
                                                         <div class="filter-option">
-                                                            <input type="checkbox" name="contentRating[]" id="contentPornographic" value="pornographic" 
+                                                            <input type="checkbox" name="contentRating" id="contentPornographic" value="pornographic" 
                                                                    @(Model.SortOptions.ContentRating != null && Model.SortOptions.ContentRating.Contains("pornographic") ? "checked" : "")>
                                                             <label class="filter-option-label" for="contentPornographic">NSFW</label>
                                                         </div>
@@ -280,19 +280,19 @@
                                                 <div class="filter-menu-content">
                                                     <div class="filter-menu-padding">
                                                         <div class="filter-option">
-                                                            <input type="checkbox" name="publicationDemographic[]" id="demoShounen" value="shounen" @(Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Contains("shounen") ? "checked" : "")>
+                                                            <input type="checkbox" name="publicationDemographic" id="demoShounen" value="shounen" @(Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Contains("shounen") ? "checked" : "")>
                                                             <label class="filter-option-label" for="demoShounen">Shounen</label>
                                                         </div>
                                                         <div class="filter-option">
-                                                            <input type="checkbox" name="publicationDemographic[]" id="demoShoujo" value="shoujo" @(Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Contains("shoujo") ? "checked" : "")>
+                                                            <input type="checkbox" name="publicationDemographic" id="demoShoujo" value="shoujo" @(Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Contains("shoujo") ? "checked" : "")>
                                                             <label class="filter-option-label" for="demoShoujo">Shoujo</label>
                                                         </div>
                                                         <div class="filter-option">
-                                                            <input type="checkbox" name="publicationDemographic[]" id="demoSeinen" value="seinen" @(Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Contains("seinen") ? "checked" : "")>
+                                                            <input type="checkbox" name="publicationDemographic" id="demoSeinen" value="seinen" @(Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Contains("seinen") ? "checked" : "")>
                                                             <label class="filter-option-label" for="demoSeinen">Seinen</label>
                                                         </div>
                                                         <div class="filter-option">
-                                                            <input type="checkbox" name="publicationDemographic[]" id="demoJosei" value="josei" @(Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Contains("josei") ? "checked" : "")>
+                                                            <input type="checkbox" name="publicationDemographic" id="demoJosei" value="josei" @(Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Contains("josei") ? "checked" : "")>
                                                             <label class="filter-option-label" for="demoJosei">Josei</label>
                                                         </div>
                                                     </div>
@@ -313,19 +313,19 @@
                                                 <div class="filter-menu-content">
                                                     <div class="filter-menu-padding">
                                                         <div class="filter-option">
-                                                            <input type="checkbox" name="status[]" id="statusOngoing" value="ongoing" @(Model.SortOptions.Status != null && Model.SortOptions.Status.Contains("ongoing") ? "checked" : "")>
+                                                            <input type="checkbox" name="status" id="statusOngoing" value="ongoing" @(Model.SortOptions.Status != null && Model.SortOptions.Status.Contains("ongoing") ? "checked" : "")>
                                                             <label class="filter-option-label" for="statusOngoing">Đang tiến hành</label>
                                                         </div>
                                                         <div class="filter-option">
-                                                            <input type="checkbox" name="status[]" id="statusCompleted" value="completed" @(Model.SortOptions.Status != null && Model.SortOptions.Status.Contains("completed") ? "checked" : "")>
+                                                            <input type="checkbox" name="status" id="statusCompleted" value="completed" @(Model.SortOptions.Status != null && Model.SortOptions.Status.Contains("completed") ? "checked" : "")>
                                                             <label class="filter-option-label" for="statusCompleted">Hoàn thành</label>
                                                         </div>
                                                         <div class="filter-option">
-                                                            <input type="checkbox" name="status[]" id="statusHiatus" value="hiatus" @(Model.SortOptions.Status != null && Model.SortOptions.Status.Contains("hiatus") ? "checked" : "")>
+                                                            <input type="checkbox" name="status" id="statusHiatus" value="hiatus" @(Model.SortOptions.Status != null && Model.SortOptions.Status.Contains("hiatus") ? "checked" : "")>
                                                             <label class="filter-option-label" for="statusHiatus">Tạm ngưng</label>
                                                         </div>
                                                         <div class="filter-option">
-                                                            <input type="checkbox" name="status[]" id="statusCancelled" value="cancelled" @(Model.SortOptions.Status != null && Model.SortOptions.Status.Contains("cancelled") ? "checked" : "")>
+                                                            <input type="checkbox" name="status" id="statusCancelled" value="cancelled" @(Model.SortOptions.Status != null && Model.SortOptions.Status.Contains("cancelled") ? "checked" : "")>
                                                             <label class="filter-option-label" for="statusCancelled">Đã hủy</label>
                                                         </div>
                                                     </div>

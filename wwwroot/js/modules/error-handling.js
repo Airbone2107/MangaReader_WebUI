@@ -29,20 +29,20 @@ function initErrorHandling() {
     reconnectButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            window.showToast('Đang kết nối lại...', 'info');
+            window.showToast('Thông báo', 'Đang kết nối lại...', 'info');
             
             // Gửi request kiểm tra API
             fetch('/Home/ApiTest')
                 .then(response => {
                     if (response.ok) {
-                        window.showToast('Kết nối thành công!', 'success');
+                        window.showToast('Thành công', 'Kết nối thành công!', 'success');
                         setTimeout(() => window.location.reload(), 1000);
                     } else {
-                        window.showToast('Không thể kết nối đến API', 'error');
+                        window.showToast('Lỗi', 'Không thể kết nối đến API', 'error');
                     }
                 })
                 .catch(() => {
-                    window.showToast('Không thể kết nối đến API', 'error');
+                    window.showToast('Lỗi', 'Không thể kết nối đến API', 'error');
                 });
         });
     });

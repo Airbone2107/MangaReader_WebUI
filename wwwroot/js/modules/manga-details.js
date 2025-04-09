@@ -5,6 +5,7 @@
 
 // Import các hàm từ các module khác
 import { initTooltips } from './ui.js';
+import { showToast } from './toast.js';
 
 /**
  * Tính toán và điều chỉnh chiều cao cho details-manga-header-background
@@ -180,16 +181,41 @@ function initChapterItems() {
 function initFollowButton() {
     const followBtn = document.getElementById('followBtn');
     if (followBtn) {
-        // Xóa event listener cũ (nếu có) bằng cách clone nút
-        const newFollowBtn = followBtn.cloneNode(true);
-        followBtn.parentNode.replaceChild(newFollowBtn, followBtn);
+        // Tìm container cha của nút follow
+        const followBtnContainer = document.querySelector('.details-manga-info-meta');
         
-        // Thêm lại event listener
-        newFollowBtn.addEventListener('click', function() {
-            toggleFollow(this);
-        });
-        
-        console.log('Đã khởi tạo nút theo dõi/hủy theo dõi');
+        if (followBtnContainer) {
+            // Xóa event listener cũ trước khi thêm mới (quan trọng khi re-init)
+            followBtnContainer.removeEventListener('click', handleFollowClick);
+            
+            // Thêm listener mới vào container cha
+            followBtnContainer.addEventListener('click', handleFollowClick);
+            console.log('Event listener for follow button attached via delegation.');
+        } else {
+            console.log('Follow button container not found for event delegation.');
+            
+            // Fallback: Gắn trực tiếp vào nút nếu không tìm thấy container
+            const newFollowBtn = followBtn.cloneNode(true);
+            followBtn.parentNode.replaceChild(newFollowBtn, followBtn);
+            newFollowBtn.addEventListener('click', function() {
+                console.log('Follow button clicked via direct event listener (fallback)');
+                toggleFollow(this);
+            });
+        }
+    } else {
+        console.log('Follow button not found when initializing.');
+    }
+}
+
+/**
+ * Xử lý sự kiện click vào nút theo dõi thông qua event delegation
+ */
+function handleFollowClick(event) {
+    // Chỉ xử lý nếu click trực tiếp vào nút follow hoặc element con của nó
+    const button = event.target.closest('#followBtn');
+    if (button) {
+        console.log('Follow button clicked via delegation');
+        toggleFollow(button);
     }
 }
 
@@ -221,9 +247,8 @@ function toggleFollow(button) {
     .then(response => {
         // Kiểm tra unauthorized trước (được trả về bởi proxy)
         if (response.status === 401) {
-             // Sử dụng showToast toàn cục nếu đã định nghĩa, nếu không thì alert
-             const toastFunc = window.showToast || alert;
-             toastFunc('Lỗi', 'Vui lòng đăng nhập để thực hiện thao tác này.', 'error');
+             // Sử dụng showToast đã import trực tiếp
+             showToast('Lỗi', 'Vui lòng đăng nhập để thực hiện thao tác này.', 'error');
              setTimeout(() => {
                  window.location.href = '/Auth/Login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
              }, 1500);
@@ -239,7 +264,6 @@ function toggleFollow(button) {
     .then(data => {
         // Khôi phục nút
         button.disabled = false;
-        const toastFunc = window.showToast || alert; // Sử dụng hàm toast toàn cục
 
         if (data.success) {
             // Cập nhật UI dựa trên trạng thái MỚI NHẬN ĐƯỢC từ proxy
@@ -248,23 +272,22 @@ function toggleFollow(button) {
 
             if (newFollowingState) {
                 button.innerHTML = '<i class="bi bi-bookmark-check-fill me-2"></i><span>Đang theo dõi</span>';
-                toastFunc('Thành công', data.message || 'Đã theo dõi truyện', 'success');
+                showToast('Thành công', data.message || 'Đã theo dõi truyện', 'success');
             } else {
                 button.innerHTML = '<i class="bi bi-bookmark-plus me-2"></i><span>Theo dõi</span>';
-                toastFunc('Thành công', data.message || 'Đã hủy theo dõi truyện', 'success');
+                showToast('Thành công', data.message || 'Đã hủy theo dõi truyện', 'success');
             }
         } else {
             // Khôi phục nút về trạng thái ban đầu
             button.innerHTML = originalContent;
             // Hiển thị thông báo lỗi
-            toastFunc('Lỗi', data.message || 'Không thể cập nhật trạng thái theo dõi', 'error');
+            showToast('Lỗi', data.message || 'Không thể cập nhật trạng thái theo dõi', 'error');
         }
     })
     .catch(error => {
         // Xử lý lỗi mạng hoặc lỗi phân tích JSON hoặc các promise bị từ chối
         button.innerHTML = originalContent;
         button.disabled = false;
-        const toastFunc = window.showToast || alert; // Sử dụng hàm toast toàn cục
 
         if (error && error.status === 401) {
             // Đã xử lý chuyển hướng, chỉ ghi log
@@ -272,61 +295,8 @@ function toggleFollow(button) {
         } else {
             console.error('Lỗi khi toggle follow:', error);
             const errorMessage = (error && error.message) ? error.message : 'Đã xảy ra lỗi mạng hoặc lỗi xử lý. Vui lòng thử lại sau.';
-            toastFunc('Lỗi', errorMessage, 'error');
+            showToast('Lỗi', errorMessage, 'error');
         }
-    });
-}
-
-/**
- * Hiển thị toast thông báo
- */
-function showToast(title, message, type) {
-    // Kiểm tra nếu Bootstrap đã được khởi tạo
-    if (typeof bootstrap === 'undefined') {
-        console.error('Bootstrap chưa được khởi tạo');
-        alert(message);
-        return;
-    }
-    
-    // Tạo toast nếu chưa có
-    let toastContainer = document.querySelector('.toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-        toastContainer.style.zIndex = '11';
-        document.body.appendChild(toastContainer);
-    }
-    
-    // Tạo phần tử toast
-    const toastId = 'toast_' + Date.now();
-    const toastHtml = `
-        <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header ${type === 'success' ? 'bg-success text-white' : type === 'error' ? 'bg-danger text-white' : 'bg-info text-white'}">
-                <i class="bi ${type === 'success' ? 'bi-check-circle' : type === 'error' ? 'bi-exclamation-triangle' : 'bi-info-circle'} me-2"></i>
-                <strong class="me-auto">${title}</strong>
-                <button type="button" class="btn-close ${type === 'success' || type === 'error' || type === 'info' ? 'btn-close-white' : ''}" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body">
-                ${message}
-            </div>
-        </div>
-    `;
-    
-    // Thêm toast vào container
-    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-    
-    // Lấy phần tử toast
-    const toastElement = document.getElementById(toastId);
-    
-    // Tạo đối tượng Toast của Bootstrap
-    const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
-    
-    // Hiển thị toast
-    toast.show();
-    
-    // Xóa toast sau khi ẩn
-    toastElement.addEventListener('hidden.bs.toast', function() {
-        toastElement.remove();
     });
 }
 
@@ -391,5 +361,5 @@ export {
     initChapterItems,
     initFollowButton,
     toggleFollow,
-    showToast 
+    handleFollowClick
 }; 

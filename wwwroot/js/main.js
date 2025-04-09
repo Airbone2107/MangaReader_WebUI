@@ -22,6 +22,7 @@ import { initReadingState } from './modules/reading-state.js';
 import { initErrorHandling } from './modules/error-handling.js';
 import { initMangaDetailsPage } from './modules/manga-details.js';
 import { initTagsInSearchForm } from './modules/manga-tags.js';
+import { initAuthUI } from './auth.js';
 
 /**
  * Khởi tạo tất cả các module
@@ -54,6 +55,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Khởi tạo chức năng lưu trạng thái đọc
     initReadingState();
     
+    // Khởi tạo UI xác thực
+    initAuthUI();
+    console.log('Auth module registered');
+    
     // Khởi tạo chức năng chuyển đổi chế độ tối/sáng
     initThemeSwitcher();
     
@@ -75,8 +80,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Khởi tạo sidebar menu
     initSidebar();
     
-    // Khởi tạo chức năng trang chi tiết manga
-    initMangaDetailsPage();
+    // Khởi tạo chức năng trang chi tiết manga có điều kiện
+    if (document.querySelector('.details-manga-header-background') || document.querySelector('.details-manga-details-container')) {
+        console.log('Main.js: Đang khởi tạo tính năng trang chi tiết manga khi tải trực tiếp.');
+        initMangaDetailsPage();
+    }
     
     // Khởi tạo xử lý HTMX
     initHtmxHandlers();
@@ -85,24 +93,5 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Manga Reader Web: Tất cả các module đã được khởi tạo thành công.');
 });
 
-// Đảm bảo JavaScript được tải lại sau khi HTMX thực hiện các thao tác
-document.addEventListener('htmx:afterSwap', function(event) {
-    if (event.detail.target.id === 'main-content') {
-        // Khởi tạo lại các module cần thiết cho nội dung mới
-        if (document.getElementById('searchForm')) {
-            // Tải lại CSS nếu cần
-            if (!document.querySelector('link[href*="search.css"]')) {
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = '/css/pages/search.css';
-                document.head.appendChild(link);
-            }
-            
-            // Khởi tạo lại module tìm kiếm
-            SearchModule.initSearchPage();
-            
-            // Khởi tạo lại module quản lý thẻ
-            initTagsInSearchForm();
-        }
-    }
-});
+// Lưu ý: Tất cả các sự kiện HTMX được xử lý trong htmx-handlers.js
+// Không xử lý trùng lặp ở đây

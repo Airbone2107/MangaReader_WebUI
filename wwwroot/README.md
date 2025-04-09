@@ -26,18 +26,17 @@ Thư mục `wwwroot` là thư mục gốc công khai (web root) cho ứng dụng
 - **`js/`**: Chứa các file JavaScript xử lý logic phía client.
   - **`modules/`**: Các file JavaScript được tổ chức thành module theo chức năng.
     - `sidebar.js`: Xử lý đóng/mở sidebar, cập nhật link active.
-    - `htmx-handlers.js`: Xử lý các sự kiện và khởi tạo lại JS sau khi HTMX tải nội dung.
+    - `htmx-handlers.js`: Xử lý các sự kiện và khởi tạo lại JS sau khi HTMX tải nội dung. Đảm bảo các chức năng JS vẫn hoạt động với nội dung động được tải qua HTMX.
     - `ui.js`: Các chức năng UI chung (tooltips, lazy loading, back-to-top, responsive adjustments).
     - `theme.js`: Xử lý chuyển đổi chế độ sáng/tối.
-    - `toast.js`: Hiển thị thông báo toast.
+    - `toast.js`: Hiển thị thông báo toast. Cung cấp hàm `showToast` toàn cục.
     - `search.js`: Logic cho trang tìm kiếm (filter dropdowns, quick search).
     - `manga-tags.js`: Logic xử lý việc chọn và hiển thị tags manga trong form tìm kiếm.
     - `reading-state.js`: Quản lý trạng thái đọc (lưu/lấy từ localStorage).
     - `error-handling.js`: Xử lý lỗi phía client (lỗi ảnh, lỗi API).
-    - `manga-details.js`: Logic riêng cho trang chi tiết manga (điều chỉnh background, dropdown chapter).
-  - `main.js`: File JavaScript chính, import và khởi tạo các module cần thiết. **Đây là file JS chính được link vào layout.**
-  - `auth.js`: Xử lý logic xác thực phía client (kiểm tra trạng thái đăng nhập, cập nhật UI).
-  - `manga-details.js`: (File riêng lẻ) Được load trực tiếp từ view `Manga/Details.cshtml` để khởi tạo các module liên quan.
+    - `manga-details.js`: Logic riêng cho trang chi tiết manga (điều chỉnh background, dropdown chapter, theo dõi/hủy theo dõi manga).
+  - `main.js`: File JavaScript chính, import và khởi tạo các module cần thiết. Đây là điểm nhập duy nhất cho tất cả các script toàn cục, đảm bảo khởi tạo một cách có điều kiện dựa trên nội dung trang hiện tại.
+  - `auth.js`: Module xử lý logic xác thực phía client (kiểm tra trạng thái đăng nhập, cập nhật UI).
 - **`lib/`**: Chứa các thư viện JavaScript và CSS của bên thứ ba.
   - `bootstrap/`: Bootstrap 5 framework.
   - `jquery/`: Thư viện jQuery.
@@ -45,6 +44,32 @@ Thư mục `wwwroot` là thư mục gốc công khai (web root) cho ứng dụng
   - `jquery-validation/`, `jquery-validation-unobtrusive/`: Thư viện validation (có thể không cần thiết nếu không dùng form validation phía client nhiều).
 - **`images/`**: Chứa các file hình ảnh tĩnh được sử dụng trong giao diện (ví dụ: ảnh placeholder).
 - **`favicon.png`**: Biểu tượng hiển thị trên tab trình duyệt.
+
+## Kiến trúc JavaScript
+
+### Luồng Khởi tạo
+
+1. **Khởi tạo ban đầu (DOMContentLoaded):**
+   - `main.js` là điểm khởi đầu chính, được tải trong layout và import tất cả các module cần thiết.
+   - Trong sự kiện `DOMContentLoaded`, các module được khởi tạo có điều kiện dựa trên nội dung trang hiện tại.
+   - Một số module như `toast.js` cung cấp hàm global (`window.showToast`) cho tiện ích.
+
+2. **Khởi tạo lại sau HTMX swap:**
+   - Module `htmx-handlers.js` đăng ký sự kiện `htmx:afterSwap` để theo dõi khi HTMX cập nhật nội dung.
+   - Khi phát hiện swap, hàm `reinitializeAfterHtmxSwap(targetElement)` được gọi, nhận phần tử đích đã được swap.
+   - Hàm này khởi tạo lại các chức năng JS cần thiết *chỉ* cho phần tử đã swap, dựa trên các selector đặc biệt.
+   - Đảm bảo các dropdown, tooltip, tab, accordion... được khởi tạo lại chính xác trên nội dung mới.
+
+3. **Xử lý sự kiện:**
+   - Ưu tiên sử dụng event delegation thay vì gắn event listener trực tiếp vào các phần tử có thể thay đổi.
+   - Các event handler được gắn vào các container ổn định (không bị swap) hoặc được khởi tạo lại trong `reinitializeAfterHtmxSwap`.
+
+### Các Kỹ thuật Quan trọng
+
+- **Khởi tạo có điều kiện:** Chỉ khởi tạo các chức năng cần thiết dựa trên nội dung trang hiện tại.
+- **Tránh global scope:** Hầu hết các hàm/biến được đóng gói trong module ES6; chỉ một vài hàm tiện ích như `showToast` được đưa vào global scope.
+- **Event delegation:** Gắn event listener vào các container ổn định, không phải các phần tử có thể thay đổi.
+- **Clean-up trước khi khởi tạo lại:** Luôn làm sạch (dispose) các instance cũ trước khi tạo mới để tránh memory leak.
 
 ## Lưu ý
 

@@ -4,49 +4,70 @@
 
 /**
  * Hiển thị thông báo toast
+ * @param {string} title - Tiêu đề thông báo
  * @param {string} message - Nội dung thông báo
- * @param {string} type - Loại thông báo (success, danger, warning, info)
+ * @param {string} type - Loại thông báo (success, error, warning, info)
  * @param {number} duration - Thời gian hiển thị (ms)
  */
-function showToast(message, type = 'primary', duration = 3000) {
-    // Tạo toast container nếu chưa tồn tại
-    if (!document.getElementById('toastContainer')) {
-        const container = document.createElement('div');
-        container.id = 'toastContainer';
-        container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-        document.body.appendChild(container);
+function showToast(title, message, type = 'info', duration = 3000) {
+    // Kiểm tra nếu Bootstrap đã được khởi tạo
+    if (typeof bootstrap === 'undefined') {
+        console.error('Bootstrap chưa được khởi tạo');
+        alert(message);
+        return;
     }
     
-    // Tạo toast
-    const toastId = 'toast-' + Date.now();
-    const toast = document.createElement('div');
-    toast.id = toastId;
-    toast.className = `toast align-items-center text-white bg-${type} border-0`;
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
+    // Tạo toast container nếu chưa tồn tại
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
+    }
     
-    toast.innerHTML = `
-        <div class="d-flex">
+    // Xác định màu sắc dựa trên loại thông báo
+    const headerClass = type === 'success' ? 'bg-success' : 
+                       type === 'error' ? 'bg-danger' : 
+                       type === 'warning' ? 'bg-warning' : 'bg-info';
+                       
+    // Xác định icon theo loại thông báo
+    const iconClass = type === 'success' ? 'bi-check-circle' : 
+                     type === 'error' ? 'bi-exclamation-triangle' : 
+                     type === 'warning' ? 'bi-exclamation-circle' : 'bi-info-circle';
+    
+    // Xác định nếu cần sử dụng btn-close-white (cho header tối màu)
+    const closeButtonClass = type === 'warning' ? 'btn-close' : 'btn-close btn-close-white';
+    
+    // Tạo phần tử toast
+    const toastId = 'toast_' + Date.now();
+    const toastHtml = `
+        <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header ${headerClass}">
+                <i class="bi ${iconClass} me-2"></i>
+                <strong class="me-auto">${title}</strong>
+                <button type="button" class="${closeButtonClass}" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
             <div class="toast-body">
                 ${message}
             </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     `;
     
     // Thêm toast vào container
-    document.getElementById('toastContainer').appendChild(toast);
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    // Lấy phần tử toast
+    const toastElement = document.getElementById(toastId);
+    
+    // Tạo đối tượng Toast của Bootstrap
+    const toast = new bootstrap.Toast(toastElement, { delay: duration });
     
     // Hiển thị toast
-    const bsToast = new bootstrap.Toast(toast, {
-        delay: duration
-    });
-    bsToast.show();
+    toast.show();
     
-    // Tự động loại bỏ toast sau khi ẩn
-    toast.addEventListener('hidden.bs.toast', function() {
-        this.remove();
+    // Xóa toast sau khi ẩn
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        toastElement.remove();
     });
 }
 
@@ -56,6 +77,7 @@ function showToast(message, type = 'primary', duration = 3000) {
 function initToasts() {
     // Tạo hàm global để các trang có thể sử dụng
     window.showToast = showToast;
+    console.log('Toast module initialized: window.showToast is now available');
 }
 
 export { showToast, initToasts }; 
