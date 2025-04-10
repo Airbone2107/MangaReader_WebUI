@@ -13,37 +13,26 @@
     min-height: 100vh;
     overflow-x: hidden; /* Ngăn thanh cuộn ngang khi sidebar mở */
 }
-
 /* ===== MAIN CONTAINER - Container chính ===== */
 /* Container chính chứa nội dung */
 .main-container {
-    display: flex;
     flex: 1;
     width: 100%;
     position: relative;
     transition: all 0.3s ease; /* Chuyển đổi mượt khi sidebar mở/đóng */
 }
-
 /* ===== CONTENT AREA - Khu vực nội dung ===== */
 /* Nội dung bên phải */
 .content-area {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    width: 100%;
     transition: width 0.3s ease; /* Chuyển đổi mượt khi thay đổi kích thước */
 }
-
 /* Nội dung chính */
 .site-content {
-    flex: 1;
     padding: 1rem;
 }
-
 /* ===== HEADER - Phần đầu trang ===== */
 /* Header */
 .site-header {
-    width: 100%;
     z-index: var(--z-index-navbar); /* Sử dụng biến z-index */
     transition: transform 0.3s ease;
     position: sticky;
@@ -51,85 +40,49 @@
     background-color: var(--header-bg);
     color: var(--header-text);
 }
-
 /* Đảm bảo navbar background là trong suốt */
 .site-header .navbar.bg-primary {
     background-color: transparent !important;
     color: var(--header-text) !important;
 }
-
 /* Header ẩn khi cuộn xuống */
 .site-header.header-hidden {
     transform: translateY(-100%);
 }
-
 /* ===== DARK MODE HEADER - Điều chỉnh header trong chế độ tối ===== */
 /* Đảm bảo dropdown trong navbar hiển thị đúng trong dark mode */
 [data-bs-theme="dark"] .site-header .dropdown-menu {
     background-color: var(--card-bg);
     border: none;
 }
-
 [data-bs-theme="dark"] .site-header .dropdown-item {
     color: var(--body-color);
 }
-
 [data-bs-theme="dark"] .site-header .dropdown-item:hover {
     background-color: var(--hover-bg);
 }
-
-/* ===== LOADING INDICATOR - Chỉ báo đang tải ===== */
-/* Loading spinner */
-#content-loading-spinner {
-    position: fixed;
-    top: 40%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: var(--z-index-fixed);
-    display: none;
-    background-color: rgba(var(--primary-rgb), 0.15);
-    padding: 2rem;
-    border-radius: 50%;
-}
-
-/* Kích thước lớn cho spinner */
-.spinner-border.spinner-lg {
-    width: 3rem;
-    height: 3rem;
-}
-
 /* ===== UI HELPERS - Các thành phần UI hỗ trợ ===== */
 /* Back to top button - Nút trở về đầu trang */
 #backToTopBtn {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    position: fixed;
     bottom: 1.5rem;
     right: 1.5rem;
-    display: none;
     z-index: var(--z-index-fixed) - 15;
     box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
 }
-
 /* Toast container - Khung chứa thông báo dạng toast */
 #toastContainer {
-    position: fixed;
     bottom: 1rem;
     right: 1rem;
 }
-
 /* ===== TRANSITIONS - Các hiệu ứng chuyển đổi ===== */
 /* Chuyển đổi màu chữ */
 .text-transition {
     transition: color 0.3s ease;
 }
-
 /* Chuyển đổi vị trí */
 .position-transition {
     transition: all 0.3s ease;
 }
-
 /* ===== RESPONSIVE LAYOUT - Bố cục đáp ứng ===== */
 /* Màn hình lớn (desktop) */
 @media (min-width: 62rem) { /* 992px */
@@ -148,49 +101,53 @@
         width: calc(100% - 15rem); /* Chiều rộng = 100% - chiều rộng sidebar */
         margin-left: 15rem; /* Margin trái = chiều rộng sidebar */
     }
-    
     /* Đảm bảo nội dung không bị tràn khi sidebar mở */
     body.sidebar-open .content-area {
         width: 100%;
     }
 }
-
 /* Màn hình trung bình (tablet) trở xuống */
 @media (max-width: 61.9375rem) { /* 991.98px */
     /* Không đẩy content khi sidebar mở trên màn hình nhỏ */
-    body.sidebar-open .main-container {
+    .main-container {
         margin-left: 0;
-        width: 100%;
         overflow-x: hidden; /* Ngăn cuộn ngang khi sidebar hiển thị đè lên */
     }
-    
     /* Thu nhỏ padding navbar trên màn hình nhỏ */
     .site-header .navbar {
         padding-left: 0.5rem;
         padding-right: 0.5rem;
     }
 }
-
 /* Màn hình nhỏ (mobile) */
 @media (max-width: 36rem) { /* 576px */
     /* Giới hạn kích thước navbar-brand trên mobile */
     .navbar-brand {
         max-width: 11.25rem;
-        overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 }
-
 /* ===== MOBILE SEARCH - Thanh tìm kiếm trên mobile ===== */
 /* Container thanh tìm kiếm mobile */
 .container.d-block.d-lg-none.py-2.bg-body-tertiary {
     background-color: var(--card-bg) !important;
     border-bottom: 1px solid var(--border-color);
 }
-
 /* Mobile Search Container */
 .mobile-search-container {
-    background-color: var(--card-bg);
     padding: 0.5rem 1rem;
+}
+/* Helper class để ẩn phần tử ngay lập tức trong quá trình HTMX request */
+.htmx-request-hide {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    position: relative;
+}
+
+/* Chỉ giữ lại transition */
+#search-results-and-pagination {
+    transition: all 0.3s ease;
+    position: relative;
 } 

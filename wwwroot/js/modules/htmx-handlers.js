@@ -28,15 +28,12 @@ import SearchModule from './search.js';
  * @param {HTMLElement} targetElement - Phần tử được HTMX swap
  */
 function reinitializeAfterHtmxSwap(targetElement) {
-    console.log('Đang khởi tạo lại chức năng sau HTMX swap cho: ', targetElement.id);
-    
     // Cập nhật active sidebar link - luôn thực hiện khi có swap
     // Đây là một chức năng toàn cục, cần thực hiện bất kể phần tử nào bị swap
     updateActiveSidebarLink();
     
     // Xử lý khi main-content được swap (toàn bộ trang)
     if (targetElement.id === 'main-content') {
-        console.log('[HTMX_HANDLERS] Toàn bộ trang đã được swap bằng HTMX');
         // Khi toàn bộ trang được swap, chúng ta cần khởi tạo lại tất cả
         if (typeof SearchModule.initSearchPage === 'function') {
             SearchModule.initSearchPage();
@@ -45,8 +42,6 @@ function reinitializeAfterHtmxSwap(targetElement) {
     }
     // Xử lý khi search-results-and-pagination được swap (kết quả và phân trang)
     else if (targetElement.id === 'search-results-and-pagination') {
-        console.log('[HTMX_HANDLERS] Khởi tạo lại sau khi swap kết quả và phân trang.');
-        
         // Gọi lại các hàm init cần thiết cho nội dung mới
         if (typeof SearchModule.initPageGoTo === 'function') {
             SearchModule.initPageGoTo(); // Khởi tạo lại nút "..." nếu có
@@ -56,13 +51,11 @@ function reinitializeAfterHtmxSwap(targetElement) {
     }
     // Xử lý khi search-results-container được swap (chuyển đổi chế độ xem)
     else if (targetElement.id === 'search-results-container') {
-        console.log('[HTMX_HANDLERS] Phát hiện search-results-container đã được swap');
         // Không cần gọi applySavedViewMode() vì nội dung mới đã được render với class đúng từ server
     }
     
     // Điều chỉnh kích thước chữ cho tiêu đề manga trong phần tử đã swap
     if (targetElement.querySelector('.details-manga-title')) {
-        console.log('Điều chỉnh kích thước chữ cho tiêu đề manga trong phần tử đã swap');
         adjustMangaTitles(targetElement);
     }
     
@@ -78,7 +71,6 @@ function reinitializeAfterHtmxSwap(targetElement) {
     
     // Khởi tạo lại Bootstrap dropdowns nếu có trong targetElement
     if (targetElement.querySelector('[data-bs-toggle="dropdown"]')) {
-        console.log('Khởi tạo lại dropdown cho targetElement');
         targetElement.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function(dropdownToggle) {
             try {
                 // Nếu đã có dropdown, hủy bỏ nó trước khi tạo mới
@@ -97,13 +89,11 @@ function reinitializeAfterHtmxSwap(targetElement) {
     // Khởi tạo lại tooltips nếu có trong targetElement
     // Lưu ý: initTooltips() là hàm được import từ ui.js
     if (targetElement.querySelector('[data-bs-toggle="tooltip"]')) {
-        console.log('Khởi tạo lại tooltips');
         initTooltips();
     }
     
     // Khởi tạo lại các button Bootstrap như accordion, tabs trong targetElement
     if (targetElement.querySelector('[data-bs-toggle="collapse"], [data-bs-toggle="tab"]')) {
-        console.log('Khởi tạo lại accordion và tabs');
         targetElement.querySelectorAll('[data-bs-toggle]').forEach(function(element) {
             const toggleType = element.getAttribute('data-bs-toggle');
             
@@ -134,7 +124,6 @@ function reinitializeAfterHtmxSwap(targetElement) {
     // Khởi tạo lại trang chi tiết manga nếu đang ở trang đó
     // Nhận diện trang chi tiết manga qua selector '.details-manga-header-background'
     if (targetElement.querySelector('.details-manga-header-background') || targetElement.classList.contains('details-manga-details-container')) {
-        console.log('HTMX Handlers: Khởi tạo lại tính năng trang chi tiết manga');
         // initMangaDetailsPage() sẽ khởi tạo tất cả chức năng cần thiết cho trang chi tiết
         // bao gồm: điều chỉnh header, khởi tạo dropdown chapter, nút theo dõi, v.v.
         initMangaDetailsPage();
@@ -143,7 +132,6 @@ function reinitializeAfterHtmxSwap(targetElement) {
     // Khởi tạo lại trang tìm kiếm
     // Nhận diện trang tìm kiếm qua selector '#searchForm'
     if (targetElement.querySelector('#searchForm')) {
-        console.log('HTMX Handlers: Khởi tạo lại tính năng trang tìm kiếm');
         // Khởi tạo trang tìm kiếm và bộ lọc tags
         SearchModule.initSearchPage();
         initTagsInSearchForm();
@@ -152,7 +140,6 @@ function reinitializeAfterHtmxSwap(targetElement) {
     // Khởi tạo lại phân trang (pagination) nếu có
     // Độc lập với trang, pagination có thể xuất hiện ở nhiều trang khác nhau
     if (targetElement.querySelector('.pagination')) {
-        console.log('HTMX Handlers: Khởi tạo lại tính năng phân trang');
         if (typeof SearchModule.initPageGoTo === 'function') {
             SearchModule.initPageGoTo();
         }
@@ -169,7 +156,6 @@ function reinitializeAfterHtmxSwap(targetElement) {
     // Khởi tạo lại sự kiện cho nút sidebar toggle
     const sidebarToggler = targetElement.querySelector('#sidebarToggler');
     if (sidebarToggler) {
-        console.log('Khởi tạo lại sự kiện nút sidebar toggle');
         // Xóa bỏ tất cả event listener hiện tại bằng cách clone node
         // Đây là kỹ thuật an toàn để tránh duplicate event listeners
         const newSidebarToggler = sidebarToggler.cloneNode(true);
@@ -199,7 +185,6 @@ function reinitializeAfterHtmxSwap(targetElement) {
     // Khởi tạo lại chức năng theme switcher
     const themeSwitch = targetElement.querySelector('#themeSwitch');
     if (themeSwitch) {
-        console.log('Khởi tạo lại sự kiện theme switcher');
         // Cập nhật trạng thái switch dựa vào theme hiện tại
         const theme = document.documentElement.getAttribute('data-bs-theme');
         themeSwitch.checked = theme === 'dark';
@@ -229,7 +214,6 @@ function reinitializeAfterHtmxSwap(targetElement) {
     // Khởi tạo lại nút reset bộ lọc trong Search.cshtml
     const resetFiltersBtn = targetElement.querySelector('#resetFilters');
     if (resetFiltersBtn) {
-        console.log('Khởi tạo lại sự kiện nút reset bộ lọc');
         // Xóa bỏ tất cả event listener hiện tại
         const newResetFiltersBtn = resetFiltersBtn.cloneNode(true);
         resetFiltersBtn.parentNode.replaceChild(newResetFiltersBtn, resetFiltersBtn);
@@ -295,84 +279,95 @@ function reinitializeAfterHtmxSwap(targetElement) {
  * Khởi tạo các sự kiện xử lý HTMX
  */
 function initHtmxHandlers() {
-    // Hiển thị loading spinner khi bắt đầu request HTMX
-    htmx.on('htmx:beforeRequest', function(event) {
-        if (event.detail.target.id === 'main-content') {
-            const mainSpinner = document.getElementById('content-loading-spinner');
-            if (mainSpinner) mainSpinner.style.display = 'block';
+    const searchResultTargetSelector = "#search-results-and-pagination";
+
+    // --- Xóa các listener cũ liên quan đến ẩn/hiện search results ---
+    // (Đã thực hiện ở bước trên)
+
+    // --- Thêm listener mới ---
+
+    // Trước khi gửi request cho khu vực tìm kiếm
+    htmx.on('htmx:beforeRequest', function (event) {
+        // Kiểm tra xem target của request có phải là khu vực kết quả tìm kiếm không
+        const requestTargetElement = event.detail.target;
+        const targetAttribute = event.detail.requestConfig.target; // Lấy selector từ hx-target
+
+        // Kiểm tra xem target của request có phải là searchResultTargetSelector không
+        // Hoặc phần tử kích hoạt request nằm trong searchResultTargetSelector (ví dụ: nút pagination)
+        const isSearchTarget = (targetAttribute && targetAttribute === searchResultTargetSelector) ||
+                               (requestTargetElement && requestTargetElement.closest(searchResultTargetSelector));
+
+        if (isSearchTarget) {
+            const el = document.querySelector(searchResultTargetSelector);
+            if (el) {
+                el.classList.add('htmx-request-hide'); // Ẩn khu vực target
+            }
         }
-        // Không cần xử lý loader của search ở đây nữa, CSS sẽ làm
     });
 
-    // Xử lý trước khi swap nội dung
-    htmx.on('htmx:beforeSwap', function(event) {
-        const targetId = event.detail.target.id;
-        const isSearchResultSwap = (targetId === 'search-results-container' || targetId === 'search-results-and-pagination');
+    // Sau khi swap xong nội dung cho khu vực tìm kiếm
+    htmx.on('htmx:afterSwap', function (event) {
+        const swappedElement = event.detail.target; // Phần tử đã được swap
 
-        if (isSearchResultSwap) {
-            // Chỉ cần log, không cần thay đổi display nữa
-            console.log(`[HTMX BeforeSwap] Target is ${targetId}. CSS will handle hiding/showing.`);
-            console.log(`[HTMX BeforeSwap] Request path: ${event.detail.pathInfo.requestPath}`);
+        // Kiểm tra xem phần tử được swap có phải là khu vực kết quả tìm kiếm không
+        if (swappedElement && swappedElement.id === searchResultTargetSelector.substring(1)) { // Bỏ dấu #
+            // Xóa class ẩn ngay lập tức để hiển thị nội dung mới
+            swappedElement.classList.remove('htmx-request-hide');
         }
+
+        // Khởi tạo lại JS cho nội dung mới (Quan trọng - Giữ lại dòng này)
+        reinitializeAfterHtmxSwap(swappedElement);
     });
 
-    // Ẩn loading spinner khi request hoàn thành (bao gồm cả lỗi)
+    // Listener để xử lý request hoàn tất (thành công hoặc lỗi)
     htmx.on('htmx:afterRequest', function(event) {
-        const mainSpinner = document.getElementById('content-loading-spinner');
-        if (mainSpinner) mainSpinner.style.display = 'none';
-        // Loader của search results sẽ tự ẩn khi class htmx-request bị xóa
+        // Nếu request thất bại, đảm bảo khu vực target không bị ẩn vĩnh viễn
+        if (!event.detail.successful) {
+            const targetAttribute = event.detail.requestConfig.target;
+            const requestTargetElement = event.detail.elt; // Phần tử kích hoạt request
+
+            const isSearchTarget = (targetAttribute && targetAttribute === searchResultTargetSelector) ||
+                                   (requestTargetElement && requestTargetElement.closest(searchResultTargetSelector));
+
+            if (isSearchTarget) {
+                 const el = document.querySelector(searchResultTargetSelector);
+                 if (el) {
+                     el.classList.remove('htmx-request-hide');
+                 }
+            }
+        }
     });
 
-    // Cập nhật và khởi tạo lại các chức năng sau khi nội dung được tải bằng HTMX
-    htmx.on('htmx:afterSwap', function(event) {
-        const targetElement = event.detail.target;
-        const targetId = targetElement.id;
-        console.log('[HTMX_HANDLERS] HTMX afterSwap triggered for target:', targetId);
+    // Xử lý lỗi HTMX (đảm bảo target không bị ẩn)
+    htmx.on('htmx:responseError', function(event) {
+        console.error("HTMX response error:", event.detail.xhr);
 
-        const isSearchResultSwap = (targetId === 'search-results-container' || targetId === 'search-results-and-pagination');
+        // Đảm bảo khu vực target không bị ẩn vĩnh viễn khi có lỗi
+        const targetAttribute = event.detail.requestConfig.target;
+        const requestTargetElement = event.detail.elt; // Phần tử kích hoạt request
 
-        if (isSearchResultSwap) {
-            console.log(`[HTMX AfterSwap] Target is ${targetId}. CSS handled visibility. Re-initializing components.`);
+        const isSearchTarget = (targetAttribute && targetAttribute === searchResultTargetSelector) ||
+                               (requestTargetElement && requestTargetElement.closest(searchResultTargetSelector));
 
-            // *** KHÔNG cần thay đổi display ở đây nữa ***
-
-            // Khởi tạo lại chức năng nhảy trang cho pagination nếu wrapper được swap
-            if (targetId === 'search-results-and-pagination') {
-                if (typeof SearchModule !== 'undefined' && typeof SearchModule.initPageGoTo === 'function') {
-                    console.log('[HTMX AfterSwap] Re-initializing pagination goto function.');
-                    SearchModule.initPageGoTo();
-                } else {
-                    console.warn('[HTMX AfterSwap] SearchModule or initPageGoTo not available for re-initialization.');
-                }
+        if (isSearchTarget) {
+            const el = document.querySelector(searchResultTargetSelector);
+            if (el) {
+                el.classList.remove('htmx-request-hide');
             }
         }
 
-        // Khởi tạo lại tất cả các chức năng cần thiết với targetElement
-        reinitializeAfterHtmxSwap(targetElement); // Hàm này vẫn cần để khởi tạo lại JS cho nội dung mới
-
-        // Kiểm tra sự tồn tại của manga-header-background và gọi hàm điều chỉnh
-        if (targetElement.querySelector('.details-manga-header-background')) {
-            setTimeout(adjustHeaderBackgroundHeight, 100);
+        // Hiển thị toast lỗi (nếu có)
+        if (window.showToast) {
+            window.showToast('Lỗi', 'Đã xảy ra lỗi khi tải nội dung. Vui lòng thử lại.', 'error');
         }
     });
 
-    // Xử lý lỗi HTMX
-    htmx.on('htmx:responseError', function(event) {
-        const mainSpinner = document.getElementById('content-loading-spinner');
-        if (mainSpinner) mainSpinner.style.display = 'none';
-
-        // Loader của search results sẽ tự ẩn khi class htmx-request bị xóa
-
-        console.error("HTMX response error:", event.detail.xhr);
-        window.showToast('Lỗi', 'Đã xảy ra lỗi khi tải nội dung. Vui lòng thử lại.', 'error');
-
-        // Không cần hiển thị lại nội dung cũ bằng JS, vì CSS sẽ tự làm khi htmx-request bị xóa
-    });
-
-    // Bắt sự kiện popstate (khi người dùng nhấn nút back/forward trình duyệt)
+    // Bắt sự kiện popstate (nếu cần cập nhật UI khác)
     window.addEventListener('popstate', function() {
         updateActiveSidebarLink();
     });
+
+    console.log("HTMX Handlers Initialized with simple hide/show for search results.");
 }
 
 // Export các hàm cần thiết

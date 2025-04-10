@@ -18,12 +18,6 @@
                              onerror="this.onerror=null; this.src='/images/cover-placeholder.jpg';">
                         <div class="manga-info-overlay"> @* Giữ nguyên class từ Search.cshtml *@
                             <h5 class="manga-title" title="@manga.Title">@manga.Title</h5>
-                            @if (!string.IsNullOrEmpty(manga.Author))
-                            {
-                                <p class="manga-author"> @* Giữ nguyên class từ Search.cshtml *@
-                                    <i class="bi bi-person"></i> @manga.Author
-                                </p>
-                            }
                         </div>
                     </a>
                 </div>

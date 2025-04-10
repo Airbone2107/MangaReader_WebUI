@@ -162,33 +162,24 @@
 
 /* --- HTMX Loading States for Search Results --- */
 
-/* Mặc định ẩn loader */
-#search-results-loader {
-    display: none;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.2s ease-out, visibility 0s linear 0.2s; /* Transition cho fade out */
-}
-
 /* Ẩn nội dung cũ và phân trang KHI request đang chạy */
-/* Target là wrapper để áp dụng cho cả kết quả và phân trang */
-#search-results-and-pagination.htmx-request #search-results-container,
+/* Target là wrapper để áp dụng cho cả kết quả và phân trang - Không cần nữa vì sử dụng .htmx-request-hide */
+/* #search-results-and-pagination.htmx-request #search-results-container,
 #search-results-and-pagination.htmx-request .pagination,
-#search-results-and-pagination.htmx-request .text-center.mt-2.text-muted /* Info phân trang */
+#search-results-and-pagination.htmx-request .text-center.mt-2.text-muted 
 {
     opacity: 0;
     visibility: hidden;
-    /* Thêm transition để tạo hiệu ứng fade out mượt hơn */
-    transition: opacity 0.2s ease-out, visibility 0s linear 0.2s; /* Delay visibility change */
-}
+    transition: opacity 0.2s ease-out, visibility 0s linear 0.2s;
+} */
 
-/* Hiển thị loader KHI request đang chạy */
-#search-results-and-pagination.htmx-request #search-results-loader {
-    display: block !important; /* Quan trọng để ghi đè display: none ban đầu */
+/* Hiển thị loader KHI request đang chạy - Không cần nữa */
+/* #search-results-and-pagination.htmx-request #search-results-loader {
+    display: block !important;
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.2s ease-in; /* Transition cho fade in */
-}
+    transition: opacity 0.2s ease-in;
+} */
 
 /* Đảm bảo nội dung mới fade in sau khi swap */
 #search-results-container,
@@ -201,11 +192,8 @@
 
 /* --- End HTMX Loading States --- */
 
-/* Đảm bảo loader có style cơ bản nếu chưa có */
-#search-results-loader {
-    /* Thêm các style cần thiết khác nếu chưa có, ví dụ: */
-     text-align: center;
-     padding: 2rem 0;
-     /* background-color: rgba(var(--body-bg-rgb), 0.5); /* Optional: semi-transparent background */
-     /* backdrop-filter: blur(2px); /* Optional: blur effect */
-} 
+/* Đảm bảo loader có style cơ bản nếu chưa có - Không cần nữa */
+/* #search-results-loader {
+    text-align: center;
+    padding: 2rem 0;
+} */ 
