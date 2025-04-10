@@ -1,9 +1,9 @@
 using manga_reader_web.Models;
+using manga_reader_web.Services.AuthServices;
 using manga_reader_web.Services.MangaServices;
 using manga_reader_web.Services.MangaServices.MangaInformation;
 using manga_reader_web.Services.MangaServices.MangaPageService;
 using manga_reader_web.Services.UtilityServices;
-using manga_reader_web.Services.AuthServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
 using System.Text;
@@ -342,6 +342,63 @@ namespace manga_reader_web.Controllers
             {
                 _logger.LogError(ex, "Lỗi trong proxy action {Endpoint} cho manga {MangaId}", backendEndpoint, request.MangaId);
                 return StatusCode(500, new { success = false, message = "Lỗi máy chủ khi xử lý yêu cầu" });
+            }
+        }
+
+        /// <summary>
+        /// Phương thức lấy kết quả tìm kiếm và trả về dạng partial view
+        /// </summary>
+        public async Task<IActionResult> GetSearchResultsPartial(
+            string title = "", 
+            List<string> status = null, 
+            string sortBy = "latest",
+            string authors = "",
+            string artists = "",
+            int? year = null,
+            List<string> availableTranslatedLanguage = null,
+            List<string> publicationDemographic = null,
+            List<string> contentRating = null,
+            string includedTagsMode = "AND",
+            string excludedTagsMode = "OR",
+            List<string> genres = null,
+            string includedTagsStr = "",
+            string excludedTagsStr = "",
+            int page = 1, 
+            int pageSize = 24)
+        {
+            try
+            {
+                // Sử dụng MangaSearchService để chuyển đổi tham số tìm kiếm thành SortManga
+                var sortManga = _mangaSearchService.CreateSortMangaFromParameters(
+                    title, 
+                    status, 
+                    sortBy,
+                    authors, 
+                    artists, 
+                    year, 
+                    availableTranslatedLanguage, 
+                    publicationDemographic, 
+                    contentRating,
+                    includedTagsMode, 
+                    excludedTagsMode, 
+                    genres, 
+                    includedTagsStr, 
+                    excludedTagsStr);
+
+                // Thực hiện tìm kiếm và xử lý kết quả
+                var viewModel = await _mangaSearchService.SearchMangaAsync(page, pageSize, sortManga);
+
+                if (viewModel.Mangas.Count == 0)
+                {
+                    return PartialView("_NoResultsPartial");
+                }
+
+                return PartialView("_MangaGridPartial", viewModel.Mangas);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Lỗi khi tải kết quả tìm kiếm: {ex.Message}");
+                return PartialView("_NoResultsPartial");
             }
         }
     }

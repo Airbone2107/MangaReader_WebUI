@@ -280,6 +280,118 @@ function createDefaultImage() {
     }
 }
 
+/**
+ * Tự động điều chỉnh kích thước chữ cho tiêu đề manga khi vượt quá 2 dòng
+ * @param {HTMLElement|null} container - Container chứa các phần tử cần kiểm tra (hoặc null để kiểm tra toàn bộ trang)
+ */
+function adjustMangaTitles(container = null) {
+    // Lấy tất cả các phần tử tiêu đề manga cần kiểm tra
+    const titleElements = container 
+        ? container.querySelectorAll('.details-manga-title') 
+        : document.querySelectorAll('.details-manga-title');
+    
+    if (!titleElements || titleElements.length === 0) return;
+    
+    console.log(`Đang kiểm tra ${titleElements.length} tiêu đề manga để điều chỉnh kích thước chữ`);
+    
+    titleElements.forEach(titleElement => {
+        // Lấy kích thước chữ ban đầu
+        const computedStyle = window.getComputedStyle(titleElement);
+        const originalFontSize = parseFloat(computedStyle.fontSize);
+        
+        // Tính chiều cao tối đa cho 2 dòng
+        const lineHeight = parseFloat(computedStyle.lineHeight);
+        const maxHeight = lineHeight * 2; // 2 dòng
+        // Thêm dung sai 1px để xử lý sai số làm tròn số
+        const heightTolerance = 1;
+        
+        // Lưu trữ nội dung gốc và độ rộng để xử lý kiểm tra
+        const originalText = titleElement.textContent;
+        const originalWidth = titleElement.offsetWidth;
+        
+        // Tạo một phần tử kiểm tra mà không thêm vào DOM
+        const testDiv = document.createElement('div');
+        // Sao chép các thuộc tính CSS quan trọng từ phần tử gốc
+        testDiv.style.cssText = `
+            position: absolute; 
+            visibility: hidden; 
+            font-family: ${computedStyle.fontFamily};
+            font-weight: ${computedStyle.fontWeight};
+            text-transform: ${computedStyle.textTransform};
+            letter-spacing: ${computedStyle.letterSpacing};
+            white-space: ${computedStyle.whiteSpace};
+            width: ${originalWidth}px;
+            line-height: ${lineHeight}px;
+        `;
+        testDiv.textContent = originalText;
+        document.body.appendChild(testDiv);
+        
+        // Danh sách các kích thước font sẽ thử lần lượt (từ lớn đến nhỏ)
+        // Đảm bảo danh sách chỉ chứa các kích thước từ originalFontSize trở xuống
+        const fontSizesToTry = [
+            originalFontSize,
+            Math.min(originalFontSize, 48),
+            Math.min(originalFontSize, 40),
+            Math.min(originalFontSize, 36),
+            Math.min(originalFontSize, 32),
+            Math.min(originalFontSize, 28),
+            Math.min(originalFontSize, 24),
+            Math.min(originalFontSize, 20),
+            Math.min(originalFontSize, 18),
+            Math.min(originalFontSize, 16),
+            Math.min(originalFontSize, 14),
+            12 // Kích thước nhỏ nhất
+        ].filter((size, index, array) => {
+            // Loại bỏ các giá trị trùng lặp
+            return index === 0 || size < array[index - 1];
+        });
+        
+        // Thông tin debug
+        console.log(`Tiêu đề '${originalText.trim().substring(0, 30)}...': Tối đa ${maxHeight}px, Font-size ban đầu: ${originalFontSize}px`);
+        
+        // Kiểm tra từng kích thước cho đến khi tìm thấy kích thước phù hợp
+        let fontSizeFound = false;
+        let selectedFontSize = 12; // Giá trị mặc định nếu không tìm thấy kích thước phù hợp
+        
+        for (const fontSize of fontSizesToTry) {
+            testDiv.style.fontSize = `${fontSize}px`;
+            const height = testDiv.offsetHeight;
+            
+            console.log(`  Thử kích thước: ${fontSize}px -> Chiều cao: ${height}px (tối đa ${maxHeight}px)`);
+            
+            // Thêm dung sai khi so sánh để xử lý sai số làm tròn số
+            if (height <= maxHeight + heightTolerance) {
+                selectedFontSize = fontSize;
+                fontSizeFound = true;
+                console.log(`  ✓ Tìm thấy kích thước phù hợp: ${fontSize}px (trong dung sai ${heightTolerance}px)`);
+                break;
+            }
+        }
+        
+        // Xóa phần tử kiểm tra sau khi sử dụng
+        document.body.removeChild(testDiv);
+        
+        // Áp dụng kích thước chữ đã tìm thấy vào phần tử thực
+        if (fontSizeFound) {
+            if (selectedFontSize < originalFontSize) {
+                titleElement.style.fontSize = `${selectedFontSize}px`;
+                titleElement.classList.add('title-size-adjusted');
+                console.log(`Đã điều chỉnh font-size từ ${originalFontSize}px xuống ${selectedFontSize}px`);
+            } else {
+                console.log(`Tiêu đề đã vừa vặn với font-size hiện tại: ${originalFontSize}px`);
+                if (titleElement.classList.contains('title-size-adjusted')) {
+                    titleElement.style.fontSize = '';
+                    titleElement.classList.remove('title-size-adjusted');
+                }
+            }
+        } else {
+            console.log(`Không tìm thấy kích thước phù hợp, sử dụng kích thước tối thiểu: 12px`);
+            titleElement.style.fontSize = '12px';
+            titleElement.classList.add('title-size-adjusted');
+        }
+    });
+}
+
 export {
     cleanupActiveLinks,
     initTooltips,
@@ -288,5 +400,6 @@ export {
     initResponsive,
     fixAccordionIssues,
     adjustFooterPosition,
-    createDefaultImage
+    createDefaultImage,
+    adjustMangaTitles
 }; 

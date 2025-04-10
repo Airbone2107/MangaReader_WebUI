@@ -13,7 +13,7 @@
 
 // Import các hàm từ các module khác (sẽ được sử dụng trong HTMX)
 import { updateActiveSidebarLink } from './sidebar.js';
-import { initTooltips } from './ui.js';
+import { initTooltips, adjustMangaTitles } from './ui.js';
 import { adjustHeaderBackgroundHeight, initMangaDetailsPage } from './manga-details.js';
 import { initTagsInSearchForm } from './manga-tags.js';
 import SearchModule from './search.js';
@@ -33,6 +33,12 @@ function reinitializeAfterHtmxSwap(targetElement) {
     // Cập nhật active sidebar link - luôn thực hiện khi có swap
     // Đây là một chức năng toàn cục, cần thực hiện bất kể phần tử nào bị swap
     updateActiveSidebarLink();
+    
+    // Điều chỉnh kích thước chữ cho tiêu đề manga trong phần tử đã swap
+    if (targetElement.querySelector('.details-manga-title')) {
+        console.log('Điều chỉnh kích thước chữ cho tiêu đề manga trong phần tử đã swap');
+        adjustMangaTitles(targetElement);
+    }
     
     // ---------- KHỞI TẠO GIAO DIỆN BOOTSTRAP ----------
     

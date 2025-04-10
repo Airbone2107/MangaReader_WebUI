@@ -13,7 +13,8 @@ import {
     initResponsive, 
     fixAccordionIssues, 
     adjustFooterPosition,
-    createDefaultImage 
+    createDefaultImage,
+    adjustMangaTitles
 } from './modules/ui.js';
 import { initThemeSwitcher } from './modules/theme.js';
 import { initToasts } from './modules/toast.js';
@@ -76,6 +77,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Tự động điều chỉnh vị trí footer
     adjustFooterPosition();
+    
+    // Điều chỉnh kích thước chữ cho tiêu đề manga
+    adjustMangaTitles();
     
     // Khởi tạo sidebar menu
     initSidebar();

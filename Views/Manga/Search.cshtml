@@ -477,33 +477,36 @@
         }
         else
         {
-            <div class="row manga-grid">
-                @foreach (var manga in Model.Mangas)
-                {
-                    <div class="col-6 col-md-4 col-lg-3 col-xl-2 col-xxl-2 mb-4">
-                        <div class="manga-card">
-                            <a asp-action="Details" asp-route-id="@manga.Id" 
-                               hx-get="@Url.Action("Details", "Manga", new { id = manga.Id })" 
-                               hx-target="#main-content" 
-                               hx-push-url="true" 
-                               class="manga-cover-link">
-                                <img src="@(string.IsNullOrEmpty(manga.CoverUrl) ? "/Images/cover-placeholder.jpg" : manga.CoverUrl)" class="manga-cover" alt="@manga.Title" loading="lazy">
-                                <div class="manga-info-overlay">
-                                    <h5 class="manga-title" title="@manga.Title">@manga.Title</h5>
-                                    @if (!string.IsNullOrEmpty(manga.Author))
-                                    {
-                                        <p class="manga-author">
-                                            <i class="bi bi-person"></i> @manga.Author
-                                        </p>
-                                    }
-                                </div>
-                            </a>
-                        </div>
+            <div id="search-results-grid" 
+                 hx-get="@Url.Action("GetSearchResultsPartial", "Manga", new { 
+                     title = Model.SortOptions.Title, 
+                     status = Model.SortOptions.Status, 
+                     sortBy = Model.SortOptions.SortBy,
+                     authors = string.Join(",", Model.SortOptions.Authors ?? new List<string>()),
+                     artists = string.Join(",", Model.SortOptions.Artists ?? new List<string>()),
+                     year = Model.SortOptions.Year,
+                     availableTranslatedLanguage = Model.SortOptions.Languages,
+                     publicationDemographic = Model.SortOptions.Demographic,
+                     contentRating = Model.SortOptions.ContentRating,
+                     includedTagsMode = Model.SortOptions.IncludedTagsMode,
+                     excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
+                     includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
+                     excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>()),
+                     page = Model.CurrentPage, 
+                     pageSize = Model.PageSize 
+                 })" 
+                 hx-trigger="load" 
+                 hx-swap="innerHTML">
+                
+                @* Loading Spinner *@
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải kết quả...</span>
                     </div>
-                }
+                </div>
             </div>
             
-            @if (Math.Ceiling((double)Model.TotalCount / Model.PageSize) > 1)
+            @if (Model.MaxPages > 1)
             {
                 <div class="d-flex justify-content-center mt-4">
                     <nav aria-label="Page navigation">

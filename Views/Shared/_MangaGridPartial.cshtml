@@ -1,0 +1,40 @@
+@model List<manga_reader_web.Models.MangaViewModel>
+
+@if (Model != null && Model.Any())
+{
+    <div class="row manga-grid"> @* Giữ nguyên class từ Search.cshtml *@
+        @foreach (var manga in Model)
+        {
+            <div class="col-6 col-md-4 col-lg-3 col-xl-2 col-xxl-2 mb-4"> @* Giữ nguyên class từ Search.cshtml *@
+                <div class="manga-card"> @* Giữ nguyên class từ Search.cshtml *@
+                    <a asp-action="Details" asp-controller="Manga" asp-route-id="@manga.Id"
+                       hx-get="@Url.Action("Details", "Manga", new { id = manga.Id })"
+                       hx-target="#main-content"
+                       hx-push-url="true"
+                       class="manga-cover-link"> @* Giữ nguyên class từ Search.cshtml *@
+                        <img src="@(string.IsNullOrEmpty(manga.CoverUrl) ? "/images/cover-placeholder.jpg" : manga.CoverUrl)" 
+                             class="manga-cover" @* Giữ nguyên class từ Search.cshtml *@ 
+                             alt="@manga.Title" loading="lazy"
+                             onerror="this.onerror=null; this.src='/images/cover-placeholder.jpg';">
+                        <div class="manga-info-overlay"> @* Giữ nguyên class từ Search.cshtml *@
+                            <h5 class="manga-title" title="@manga.Title">@manga.Title</h5>
+                            @if (!string.IsNullOrEmpty(manga.Author))
+                            {
+                                <p class="manga-author"> @* Giữ nguyên class từ Search.cshtml *@
+                                    <i class="bi bi-person"></i> @manga.Author
+                                </p>
+                            }
+                        </div>
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    @* Có thể thêm partial view _NoResultsPartial hoặc thông báo trực tiếp *@
+    <div class="text-center py-5">
+         <p class="text-muted">Không có truyện nào để hiển thị.</p>
+    </div>
+} 

@@ -38,42 +38,18 @@
 
     <h1 class="mb-4">Truyện mới cập nhật</h1>
     
-    @if (Model.Count > 0)
-    {
-        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-4 manga-card-grid">
-            @foreach (var manga in Model)
-            {
-                <div class="col">
-                    <div class="card h-100 home-manga-card">
-                        <a href="/Manga/Details/@manga.Id" class="card-manga-cover-link" 
-                           hx-get="@Url.Action("Details", "Manga", new { id = manga.Id })" 
-                           hx-target="#main-content" 
-                           hx-push-url="true">
-                            <img src="@manga.CoverUrl" class="card-manga-cover" alt="@manga.Title"
-                                 onerror="this.onerror=null; this.src='/images/cover-placeholder.jpg';" loading="lazy">
-                        </a>
-                        <div class="card-body">
-                            <h5 class="card-title text-truncate" title="@manga.Title">
-                                <a href="/Manga/Details/@manga.Id" class="home-manga-title-link" 
-                                   hx-get="@Url.Action("Details", "Manga", new { id = manga.Id })" 
-                                   hx-target="#main-content" 
-                                   hx-push-url="true">@manga.Title</a>
-                            </h5>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-    }
-    else if (string.IsNullOrEmpty(ViewBag.ErrorMessage))
-    {
+    <div id="latest-manga-grid" 
+         hx-get="@Url.Action("GetLatestMangaPartial", "Home")" 
+         hx-trigger="load" 
+         hx-swap="innerHTML">
+        
+        @* Loading Spinner *@
         <div class="text-center py-5">
-            <div class="spinner-border text-primary mb-3" role="status">
-                <span class="visually-hidden">Đang tải...</span>
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải truyện...</span>
             </div>
-            <h5>Đang tải dữ liệu truyện...</h5>
         </div>
-    }
+    </div>
 </div>
 
 @section Scripts {
@@ -81,13 +57,15 @@
         // JavaScript để xử lý hiệu ứng và chức năng tương tác
         document.addEventListener('DOMContentLoaded', function() {
             // Xử lý hiệu ứng hover cho manga card
-            const mangaCards = document.querySelectorAll('.home-manga-card');
-            mangaCards.forEach(card => {
-                card.addEventListener('mouseenter', function() {
-                    this.classList.add('shadow');
-                });
-                card.addEventListener('mouseleave', function() {
-                    this.classList.remove('shadow');
+            document.addEventListener('htmx:afterSwap', function() {
+                const mangaCards = document.querySelectorAll('.manga-card');
+                mangaCards.forEach(card => {
+                    card.addEventListener('mouseenter', function() {
+                        this.classList.add('shadow');
+                    });
+                    card.addEventListener('mouseleave', function() {
+                        this.classList.remove('shadow');
+                    });
                 });
             });
         });

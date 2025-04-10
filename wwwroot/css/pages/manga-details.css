@@ -51,6 +51,23 @@
     overflow-wrap: break-word;
     word-break: break-word;
     hyphens: auto;
+    line-height: 1.2;
+    max-height: calc(1.2em * 2); /* Giới hạn chiều cao tương đương 2 dòng */
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Giới hạn số dòng */
+    -webkit-box-orient: vertical;
+    transition: font-size 0.2s ease;
+}
+
+/* Class hỗ trợ việc giảm kích thước chữ tự động */
+.details-manga-title.title-size-adjusted {
+    /* Kích thước chữ sẽ được điều chỉnh bằng JavaScript */
+}
+
+/* Class để theo dõi quá trình điều chỉnh */
+.details-manga-title.title-adjusting {
+    opacity: 0.9;
 }
 
 /* Tiêu đề phụ */
