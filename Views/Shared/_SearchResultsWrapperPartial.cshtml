@@ -1,0 +1,10 @@
+@model manga_reader_web.Models.MangaListViewModel
+
+<div id="search-results-container" class="grid-view">
+    <div id="manga-grid-view">
+        <partial name="_MangaGridPartial" model="Model.Mangas" />
+    </div>
+    <div id="manga-list-view">
+        <partial name="_MangaListPartial" model="Model.Mangas" />
+    </div>
+</div> 

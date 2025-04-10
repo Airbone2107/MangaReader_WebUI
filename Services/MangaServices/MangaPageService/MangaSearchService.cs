@@ -12,19 +12,25 @@ namespace manga_reader_web.Services.MangaServices.MangaPageService
         private readonly LocalizationService _localizationService;
         private readonly JsonConversionService _jsonConversionService;
         private readonly MangaTitleService _mangaTitleService;
+        private readonly MangaTagService _mangaTagService;
+        private readonly MangaDescription _mangaDescriptionService;
 
         public MangaSearchService(
             MangaDexService mangaDexService,
             ILogger<MangaSearchService> logger,
             LocalizationService localizationService,
             JsonConversionService jsonConversionService,
-            MangaTitleService mangaTitleService)
+            MangaTitleService mangaTitleService,
+            MangaTagService mangaTagService,
+            MangaDescription mangaDescriptionService)
         {
             _mangaDexService = mangaDexService;
             _logger = logger;
             _localizationService = localizationService;
             _jsonConversionService = jsonConversionService;
             _mangaTitleService = mangaTitleService;
+            _mangaTagService = mangaTagService;
+            _mangaDescriptionService = mangaDescriptionService;
         }
 
         /// <summary>
@@ -275,11 +281,8 @@ namespace manga_reader_web.Services.MangaServices.MangaPageService
                     // Gọi phương thức mới với cả title và altTitles
                     string mangaTitle = _mangaTitleService.GetMangaTitle(attributesDict["title"], altTitlesObj);
 
-                    var description = "";
-                    if (attributesDict.ContainsKey("description") && attributesDict["description"] != null)
-                    {
-                        description = _localizationService.GetLocalizedDescription(attributesDict["description"].ToString()) ?? "";
-                    }
+                    // Sử dụng MangaDescription để lấy description
+                    string description = _mangaDescriptionService.GetDescription(attributesDict);
 
                     // Tải ảnh bìa
                     string coverUrl = "";
@@ -292,13 +295,17 @@ namespace manga_reader_web.Services.MangaServices.MangaPageService
                         _logger.LogError($"Không tải được ảnh bìa cho manga {id}: {ex.Message}");
                     }
 
+                    // Lấy tags thông qua MangaTagService
+                    List<string> tags = _mangaTagService.GetMangaTags(mangaDict);
+
                     mangaViewModels.Add(new MangaViewModel
                     {
                         Id = id,
                         Title = mangaTitle,
                         Description = description,
                         CoverUrl = coverUrl,
-                        Status = attributesDict.ContainsKey("status") ? attributesDict["status"].ToString() : "unknown"
+                        Status = attributesDict.ContainsKey("status") ? attributesDict["status"].ToString() : "unknown",
+                        Tags = tags
                     });
                 }
                 catch (Exception ex)

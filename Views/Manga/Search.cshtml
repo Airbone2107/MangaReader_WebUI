@@ -477,6 +477,13 @@
         }
         else
         {
+            <div class="d-flex justify-content-end mb-2">
+                <div class="btn-group" role="group" id="view-mode-toggle">
+                    <button type="button" class="btn btn-sm btn-outline-primary active" data-view="grid" title="Grid View"><i class="bi bi-grid-fill"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-view="list" title="List View"><i class="bi bi-list-ul"></i></button>
+                </div>
+            </div>
+
             <div id="search-results-grid" 
                  hx-get="@Url.Action("GetSearchResultsPartial", "Manga", new { 
                      title = Model.SortOptions.Title, 
@@ -538,7 +545,7 @@
                                        includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
                                        excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
                                    })" 
-                                   hx-target="#main-content" 
+                                   hx-target="#search-results-container" 
                                    hx-push-url="true" 
                                    aria-label="Previous">
                                     <i class="bi bi-chevron-left"></i>
@@ -564,7 +571,7 @@
                                        includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
                                        excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
                                    })" 
-                                   hx-target="#main-content" 
+                                   hx-target="#search-results-container" 
                                    hx-push-url="true">
                                     1
                                 </a>
@@ -599,7 +606,7 @@
                                            includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
                                            excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
                                        })" 
-                                       hx-target="#main-content" 
+                                       hx-target="#search-results-container" 
                                        hx-push-url="true">
                                         @i
                                     </a>
@@ -635,7 +642,7 @@
                                            includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
                                            excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
                                        })" 
-                                       hx-target="#main-content" 
+                                       hx-target="#search-results-container" 
                                        hx-push-url="true">
                                         @totalPages
                                     </a>
@@ -660,7 +667,7 @@
                                        includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
                                        excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
                                    })" 
-                                   hx-target="#main-content" 
+                                   hx-target="#search-results-container" 
                                    hx-push-url="true" 
                                    aria-label="Next">
                                     <i class="bi bi-chevron-right"></i>

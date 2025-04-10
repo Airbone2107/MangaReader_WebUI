@@ -430,6 +430,12 @@ function initSearchPage() {
     
     // Khởi tạo chức năng nhảy trang từ dấu "..."
     initPageGoTo();
+    
+    // Khởi tạo chức năng chuyển đổi chế độ xem
+    initViewModeToggle();
+    
+    // Áp dụng chế độ xem đã lưu
+    applySavedViewMode();
 }
 
 /**
@@ -629,9 +635,64 @@ function setupResetFilters() {
     });
 }
 
+/**
+ * Khởi tạo nút chuyển đổi chế độ xem (grid/list)
+ */
+function initViewModeToggle() {
+    const toggleContainer = document.getElementById('view-mode-toggle');
+    if (!toggleContainer) return;
+    
+    toggleContainer.addEventListener('click', function(e) {
+        if (e.target.tagName === 'BUTTON' || e.target.parentElement.tagName === 'BUTTON') {
+            const button = e.target.tagName === 'BUTTON' ? e.target : e.target.parentElement;
+            const viewMode = button.dataset.view;
+            
+            if (viewMode) {
+                applyViewMode(viewMode);
+                localStorage.setItem('mangaSearchViewMode', viewMode);
+            }
+        }
+    });
+}
+
+/**
+ * Áp dụng chế độ xem (grid/list)
+ */
+function applyViewMode(viewMode) {
+    const resultsContainer = document.getElementById('search-results-container');
+    const toggleContainer = document.getElementById('view-mode-toggle');
+    
+    if (resultsContainer) {
+        resultsContainer.classList.remove('grid-view', 'list-view');
+        resultsContainer.classList.add(viewMode + '-view');
+    }
+    
+    if (toggleContainer) {
+        // Xóa active từ tất cả các nút
+        toggleContainer.querySelectorAll('button').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Thêm active cho nút được chọn
+        const activeBtn = toggleContainer.querySelector(`button[data-view="${viewMode}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
+    }
+}
+
+/**
+ * Áp dụng chế độ xem đã lưu trong localStorage
+ */
+function applySavedViewMode() {
+    const savedMode = localStorage.getItem('mangaSearchViewMode') || 'grid';
+    applyViewMode(savedMode);
+}
+
 // Xuất API module
 export default {
     init,
     initSearchPage,
-    initPageGoTo
+    initPageGoTo,
+    applySavedViewMode
 };

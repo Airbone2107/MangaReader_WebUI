@@ -34,6 +34,14 @@ function reinitializeAfterHtmxSwap(targetElement) {
     // Đây là một chức năng toàn cục, cần thực hiện bất kể phần tử nào bị swap
     updateActiveSidebarLink();
     
+    // Áp dụng lại chế độ xem (grid/list) nếu đang là search-results-container
+    if (targetElement.id === 'search-results-container') {
+        console.log('HTMX Handlers: Áp dụng lại chế độ xem đã lưu');
+        if (typeof SearchModule.applySavedViewMode === 'function') {
+            SearchModule.applySavedViewMode();
+        }
+    }
+    
     // Điều chỉnh kích thước chữ cho tiêu đề manga trong phần tử đã swap
     if (targetElement.querySelector('.details-manga-title')) {
         console.log('Điều chỉnh kích thước chữ cho tiêu đề manga trong phần tử đã swap');

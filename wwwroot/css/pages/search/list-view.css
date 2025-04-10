@@ -1,0 +1,88 @@
+.manga-list-item {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 15px;
+    background-color: var(--card-bg);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    margin-bottom: 15px;
+}
+
+.manga-list-item:hover {
+    background-color: var(--hover-bg);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.manga-list-cover {
+    max-width: 100%;
+    height: auto;
+    object-fit: cover;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.manga-list-cover:hover {
+    transform: scale(1.03);
+}
+
+.manga-list-details {
+    padding-left: 15px;
+}
+
+.manga-list-title a {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.manga-list-title a:hover {
+    color: var(--primary);
+}
+
+.manga-list-description {
+    color: var(--body-color);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin-bottom: 10px;
+}
+
+.manga-list-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+/* Hiển thị/ẩn grid/list view */
+#search-results-container.grid-view #manga-grid-view {
+    display: block;
+}
+
+#search-results-container.grid-view #manga-list-view {
+    display: none;
+}
+
+#search-results-container.list-view #manga-grid-view {
+    display: none;
+}
+
+#search-results-container.list-view #manga-list-view {
+    display: block;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+    .manga-list-title {
+        font-size: 1rem;
+    }
+    
+    .manga-list-description {
+        font-size: 0.8rem;
+        -webkit-line-clamp: 2;
+    }
+    
+    .manga-list-details {
+        padding-left: 10px;
+    }
+} 

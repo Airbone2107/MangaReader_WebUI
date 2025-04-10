@@ -1,0 +1,54 @@
+@model List<manga_reader_web.Models.MangaViewModel>
+
+@if (Model != null && Model.Any())
+{
+    <div id="manga-list-view">
+        @foreach (var manga in Model)
+        {
+            <div class="manga-list-item row mb-3 align-items-center">
+                <div class="col-md-2 col-3">
+                    <a asp-action="Details" asp-controller="Manga" asp-route-id="@manga.Id"
+                       hx-get="@Url.Action("Details", "Manga", new { id = manga.Id })"
+                       hx-target="#main-content"
+                       hx-push-url="true">
+                        <img src="@(string.IsNullOrEmpty(manga.CoverUrl) ? "/images/cover-placeholder.jpg" : manga.CoverUrl)" 
+                             class="manga-list-cover img-fluid rounded" 
+                             alt="@manga.Title" loading="lazy"
+                             onerror="this.onerror=null; this.src='/images/cover-placeholder.jpg';">
+                    </a>
+                </div>
+                <div class="col-md-10 col-9 manga-list-details">
+                    <h5 class="manga-list-title mb-1">
+                        <a asp-action="Details" asp-controller="Manga" asp-route-id="@manga.Id"
+                           hx-get="@Url.Action("Details", "Manga", new { id = manga.Id })"
+                           hx-target="#main-content"
+                           hx-push-url="true">
+                            @manga.Title
+                        </a>
+                    </h5>
+                    <p class="manga-list-description text-truncate-3 small mb-2">@manga.Description</p>
+                    <div class="manga-list-tags mt-1">
+                        @{
+                            var displayTags = manga.Tags?.Take(5).ToList() ?? new List<string>();
+                            var remainingTags = manga.Tags != null && manga.Tags.Count > 5 ? manga.Tags.Count - 5 : 0;
+                        }
+                        @foreach (var tag in displayTags)
+                        {
+                            <span class="badge details-manga-tag me-1 mb-1 small">@tag</span>
+                        }
+                        @if (remainingTags > 0)
+                        {
+                            <span class="badge details-manga-tag me-1 mb-1 small">+@remainingTags</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="text-center py-5">
+         <p class="text-muted">Không có truyện nào để hiển thị.</p>
+    </div>
+} 

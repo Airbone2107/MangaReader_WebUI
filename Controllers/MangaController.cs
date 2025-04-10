@@ -346,7 +346,7 @@ namespace manga_reader_web.Controllers
         }
 
         /// <summary>
-        /// Phương thức lấy kết quả tìm kiếm và trả về dạng partial view
+        /// Partial view cho kết quả tìm kiếm (được sử dụng bởi HTMX)
         /// </summary>
         public async Task<IActionResult> GetSearchResultsPartial(
             string title = "", 
@@ -393,7 +393,7 @@ namespace manga_reader_web.Controllers
                     return PartialView("_NoResultsPartial");
                 }
 
-                return PartialView("_MangaGridPartial", viewModel.Mangas);
+                return PartialView("_SearchResultsWrapperPartial", viewModel);
             }
             catch (Exception ex)
             {
