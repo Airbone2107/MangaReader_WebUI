@@ -1,10 +1,80 @@
 @model manga_reader_web.Models.MangaListViewModel
 
-<div id="search-results-container" class="grid-view">
-    <div id="manga-grid-view">
-        <partial name="_MangaGridPartial" model="Model.Mangas" />
+@if (Model.Mangas.Count == 0 && ViewBag.ErrorMessage == null)
+{
+     <partial name="_NoResultsPartial" />
+}
+else
+{
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@ViewBag.ErrorMessage
+        </div>
+    }
+    
+    @if (!string.IsNullOrEmpty(Model.SortOptions.Title) || (Model.SortOptions.Status != null && Model.SortOptions.Status.Any()) || (Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Any()) || (Model.SortOptions.Genres != null && Model.SortOptions.Genres.Any()) || (Model.SortOptions.IncludedTags != null && Model.SortOptions.IncludedTags.Any()))
+    {
+        <div class="d-flex align-items-center mb-4">
+            <h5 class="mb-0 me-3">Kết quả tìm kiếm:</h5>
+            <div class="d-flex flex-wrap gap-2">
+                @if (!string.IsNullOrEmpty(Model.SortOptions.Title))
+                {
+                    <span class="badge bg-primary">Tên: @Model.SortOptions.Title</span>
+                }
+                @if (Model.SortOptions.Status != null && Model.SortOptions.Status.Any())
+                {
+                    foreach (var status in Model.SortOptions.Status)
+                    {
+                        <span class="badge bg-info">Trạng thái: @TranslateStatus(status)</span>
+                    }
+                }
+                @if (Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Any())
+                {
+                    foreach (var demo in Model.SortOptions.Demographic)
+                    {
+                        <span class="badge bg-success">Đối tượng: @demo.ToUpperInvariant()</span>
+                    }
+                }
+                @if (Model.SortOptions.Genres != null)
+                {
+                    foreach (var genre in Model.SortOptions.Genres)
+                    {
+                        <span class="badge bg-secondary">@genre</span>
+                    }
+                }
+                @if (Model.SortOptions.IncludedTags != null)
+                {
+                    foreach (var tag in Model.SortOptions.IncludedTags)
+                    {
+                        <span class="badge bg-secondary">Tag: @tag</span>
+                    }
+                }
+            </div>
+        </div>
+    }
+    
+    <div id="search-results-loader" class="text-center py-5" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Danh sách manga đang được tải...</p>
     </div>
-    <div id="manga-list-view">
-        <partial name="_MangaListPartial" model="Model.Mangas" />
-    </div>
-</div> 
+    
+    <partial name="_SearchResultsPartial" model="Model" />
+    <partial name="_SearchPaginationPartial" model="Model" />
+}
+
+@functions {
+    public string TranslateStatus(string status)
+    {
+        return status switch
+        {
+            "ongoing" => "Đang tiến hành",
+            "completed" => "Hoàn thành",
+            "hiatus" => "Tạm ngưng",
+            "cancelled" => "Đã hủy",
+            _ => "Không rõ"
+        };
+    }
+} 

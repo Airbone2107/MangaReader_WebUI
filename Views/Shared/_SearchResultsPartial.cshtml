@@ -1,0 +1,15 @@
+@model manga_reader_web.Models.MangaListViewModel
+
+<div id="search-results-container" class="@(ViewData["InitialViewMode"] ?? "grid")-view">
+    @{
+        string initialViewMode = (ViewData["InitialViewMode"] ?? "grid").ToString();
+        if (initialViewMode == "grid")
+        {
+            <partial name="_MangaGridPartial" model="Model.Mangas" />
+        }
+        else
+        {
+            <partial name="_MangaListPartial" model="Model.Mangas" />
+        }
+    }
+</div> 

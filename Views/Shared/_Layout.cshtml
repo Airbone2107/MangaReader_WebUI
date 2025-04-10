@@ -38,7 +38,8 @@
                 </li>
                 <li class="nav-item mb-2">
                     <a class="nav-link sidebar-nav-link p-2" asp-area="" asp-controller="Manga" asp-action="Search"
-                       hx-get="@Url.Action("Search", "Manga")" hx-target="#main-content" hx-push-url="true">
+                       hx-get="@Url.Action("Search", "Manga")" hx-target="#main-content" hx-push-url="true"
+                       hx-trigger="click">
                         <i class="bi bi-search me-2"></i>Tìm kiếm nâng cao
                     </a>
                 </li>
@@ -97,7 +98,8 @@
                             <!-- Thanh tìm kiếm -->
                             <div class="search-container d-none d-lg-block position-transition me-3">
                                 <form class="d-flex" id="quickSearchForm" action="/Manga/Search" method="get" 
-                                      hx-get="@Url.Action("Search", "Manga")" hx-target="#main-content" hx-push-url="true">
+                                      hx-get="@Url.Action("Search", "Manga")" hx-target="#main-content" hx-push-url="true" 
+                                      hx-trigger="submit">
                                     <div class="input-group">
                                         <input class="form-control" id="quickSearchInput" name="title" type="search" placeholder="Tìm truyện..." aria-label="Search">
                                         <button class="btn btn-light" type="submit"><i class="bi bi-search"></i></button>
@@ -144,7 +146,8 @@
                 <!-- Mobile Search -->
                 <div class="container d-block d-lg-none py-2 mobile-search-container">
                     <form class="d-flex" id="mobileSearchForm" action="/Manga/Search" method="get"
-                          hx-get="@Url.Action("Search", "Manga")" hx-target="#main-content" hx-push-url="true">
+                          hx-get="@Url.Action("Search", "Manga")" hx-target="#main-content" hx-push-url="true"
+                          hx-trigger="submit">
                         <div class="input-group">
                             <input class="form-control" name="title" type="search" placeholder="Tìm truyện..." aria-label="Search">
                             <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>

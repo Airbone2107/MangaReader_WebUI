@@ -1,116 +1,193 @@
-# TODO: Tối ưu hóa Chuyển đổi Grid/List View trong Trang Tìm Kiếm
+Okay, hiểu rồi. Log cho thấy các hàm JavaScript đang được gọi đúng thứ tự và *đang cố gắng* thay đổi `style.display`. Tuy nhiên, việc bạn không thấy hiệu ứng trực quan (ẩn/hiện, loader) thường xảy ra vì một vài lý do:
 
-**Mục tiêu:** Giảm số lần gọi API backend khi người dùng tìm kiếm/lọc/phân trang và khi chuyển đổi giữa chế độ xem Grid và List. Sử dụng Session phía server để lưu trữ tạm thời dữ liệu manga của trang hiện tại, tránh gọi lại API khi chỉ đổi chế độ xem.
+1.  **Thời gian quá nhanh:** Request HTMX (đặc biệt khi phân trang hoặc đổi view mode mà không gọi API mới) có thể hoàn thành quá nhanh. Trình duyệt không kịp render trạng thái trung gian (ẩn nội dung cũ, hiện loader) trước khi nội dung mới được swap vào.
+2.  **HTMX Swap:** Cơ chế swap mặc định của HTMX có thể thay thế nội dung *trước khi* các thay đổi `style.display` trong `beforeSwap` kịp có hiệu lực trên màn hình.
+3.  **CSS Conflicts:** Có thể có CSS khác đang ghi đè `display: none` hoặc `display: block`.
+4.  **Vấn đề với Loader:** Bản thân `#search-results-loader` có thể đang bị ẩn bởi CSS khác hoặc không có kích thước/nội dung để hiển thị.
 
-**Giải pháp:** "Giải pháp cân bằng" - Server render view mặc định ban đầu, lưu dữ liệu vào Session. Khi người dùng chuyển view, gọi một action mới trên server chỉ để render lại partial view khác bằng dữ liệu từ Session.
+**Giải pháp đề xuất: Sử dụng CSS và các lớp trạng thái của HTMX**
 
----
+Đây là cách tiếp cận thường được khuyến nghị và đáng tin cậy hơn để xử lý trạng thái tải với HTMX, vì nó dựa vào các lớp CSS được HTMX tự động thêm/xóa trong quá trình request.
 
-## Backend (ASP.NET Core)
+**Bước 1: Cập nhật CSS**
 
-### 1. Controller (`MangaController.cs`)
+Thêm các quy tắc CSS sau vào một file CSS phù hợp (ví dụ: `wwwroot/css/pages/search/search-card.css` hoặc `wwwroot/css/core/components.css`):
 
--   **Action `Search`:**
-    -   [ ] **Gọi API một lần:** Đảm bảo `_mangaSearchService.SearchMangaAsync()` chỉ được gọi **một lần** trong action này để lấy `MangaListViewModel`.
-    -   [ ] **Lưu dữ liệu vào Session:**
-        -   Sau khi lấy thành công `viewModel.Mangas`, lưu danh sách này vào Session.
-        -   Sử dụng một key cố định và **luôn ghi đè** dữ liệu cũ trong Session mỗi khi action `Search` được thực thi thành công (ví dụ: `HttpContext.Session.SetString("CurrentSearchResultData", JsonSerializer.Serialize(viewModel.Mangas));`).
-        -   Cân nhắc tạo một lớp `SessionKeys` để quản lý các key.
-        -   **Quan trọng:** Chỉ lưu `List<MangaViewModel>`, không lưu toàn bộ `MangaListViewModel` để tiết kiệm dung lượng Session. Thông tin phân trang/sort sẽ được truyền qua tham số request khi cần.
-    -   [ ] **Xác định View Mode ban đầu:**
-        -   Quyết định view mode mặc định (ví dụ: "grid").
-        *   *(Tùy chọn nâng cao)*: Có thể thử đọc cookie/header do client-side JS đặt để ưu tiên chế độ xem người dùng đã lưu, nhưng mặc định "grid" là đủ đơn giản.
-    -   [ ] **Render View ban đầu:**
-        -   Truyền `MangaListViewModel` (bao gồm cả `Mangas` đã lấy) vào view `Search.cshtml`.
-        -   **Không** render cả hai partial view (`_MangaGridPartial` và `_MangaListPartial`) trong `Search.cshtml` nữa. Thay vào đó, `Search.cshtml` sẽ chứa một container (ví dụ: `#search-results-container`) và chỉ render partial view mặc định *bên trong* container đó.
-        -   Ví dụ trong `Search.cshtml`:
-            ```html
-            <div id="search-results-container" class="@(initialViewMode)-view">
-                @if (initialViewMode == "grid") {
-                    <partial name="_MangaGridPartial" model="Model.Mangas" />
-                } else {
-                    <partial name="_MangaListPartial" model="Model.Mangas" />
-                }
-            </div>
-            ```
--   **Action Mới `GetMangaViewPartial`:**
-    -   [ ] Tạo một `IActionResult` mới, ví dụ: `public IActionResult GetMangaViewPartial(string viewMode = "grid")`.
-    -   [ ] **Lấy dữ liệu từ Session:**
-        -   Đọc dữ liệu `List<MangaViewModel>` từ Session bằng key đã định nghĩa.
-        -   `var mangasJson = HttpContext.Session.GetString("CurrentSearchResultData");`
-        -   Deserialize JSON: `var mangas = JsonSerializer.Deserialize<List<MangaViewModel>>(mangasJson ?? "[]");`
-    -   [ ] **Xử lý Session rỗng/hết hạn:** Nếu không có dữ liệu trong Session (trả về `null` hoặc `[]`), trả về một PartialView thông báo lỗi hoặc nội dung trống (`return PartialView("_NoResultsPartial");` hoặc tương tự).
-    -   [ ] **Render Partial View tương ứng:**
-        -   Dựa vào tham số `viewMode`, chọn partial view đúng (`_MangaGridPartial` hoặc `_MangaListPartial`).
-        -   Truyền danh sách `mangas` đã lấy từ Session làm model cho partial view.
-        -   `return PartialView(viewMode == "grid" ? "_MangaGridPartial" : "_MangaListPartial", mangas);`
-    -   [ ] Đảm bảo action này **không** gọi lại `_mangaSearchService.SearchMangaAsync()` hay bất kỳ hàm nào gọi API MangaDex.
+```css
+/* --- HTMX Loading States for Search Results --- */
 
-### 2. Session Configuration (`Program.cs`)
+/* Mặc định ẩn loader */
+#search-results-loader {
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease-out, visibility 0s linear 0.2s; /* Transition cho fade out */
+}
 
--   [ ] Đảm bảo Session đã được cấu hình đúng:
-    ```csharp
-    builder.Services.AddDistributedMemoryCache(); // Hoặc cache khác nếu cần
-    builder.Services.AddSession(options =>
-    {
-        options.IdleTimeout = TimeSpan.FromMinutes(20); // Đặt timeout hợp lý
-        options.Cookie.HttpOnly = true;
-        options.Cookie.IsEssential = true;
+/* Ẩn nội dung cũ và phân trang KHI request đang chạy */
+/* Target là wrapper để áp dụng cho cả kết quả và phân trang */
+#search-results-and-pagination.htmx-request #search-results-container,
+#search-results-and-pagination.htmx-request .pagination,
+#search-results-and-pagination.htmx-request .text-center.mt-2.text-muted /* Info phân trang */
+{
+    opacity: 0;
+    visibility: hidden;
+    /* Thêm transition để tạo hiệu ứng fade out mượt hơn */
+    transition: opacity 0.2s ease-out, visibility 0s linear 0.2s; /* Delay visibility change */
+}
+
+/* Hiển thị loader KHI request đang chạy */
+#search-results-and-pagination.htmx-request #search-results-loader {
+    display: block !important; /* Quan trọng để ghi đè display: none ban đầu */
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.2s ease-in; /* Transition cho fade in */
+}
+
+/* Đảm bảo nội dung mới fade in sau khi swap */
+#search-results-container,
+#search-results-and-pagination .pagination,
+#search-results-and-pagination .text-center.mt-2.text-muted {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease-in 0.1s; /* Fade in hơi trễ một chút */
+}
+
+/* --- End HTMX Loading States --- */
+
+/* Đảm bảo loader có style cơ bản nếu chưa có */
+#search-results-loader {
+    /* Thêm các style cần thiết khác nếu chưa có, ví dụ: */
+     text-align: center;
+     padding: 2rem 0;
+     /* background-color: rgba(var(--body-bg-rgb), 0.5); /* Optional: semi-transparent background */
+     /* backdrop-filter: blur(2px); /* Optional: blur effect */
+}
+```
+
+**Bước 2: Cập nhật JavaScript (`htmx-handlers.js`)**
+
+Xóa bỏ các dòng code thay đổi `style.display` trong `htmx:beforeSwap` và `htmx:afterSwap` cho các phần tử liên quan đến kết quả tìm kiếm. CSS sẽ tự động xử lý việc này dựa trên lớp `.htmx-request`.
+
+```javascript
+// Import các hàm từ các module khác (sẽ được sử dụng trong HTMX)
+import { updateActiveSidebarLink } from './sidebar.js';
+import { initTooltips, adjustMangaTitles } from './ui.js';
+import { adjustHeaderBackgroundHeight, initMangaDetailsPage } from './manga-details.js';
+import { initTagsInSearchForm } from './manga-tags.js';
+import SearchModule from './search.js';
+
+// ... (Các hàm khác giữ nguyên) ...
+
+/**
+ * Khởi tạo các sự kiện xử lý HTMX
+ */
+function initHtmxHandlers() {
+    // Hiển thị loading spinner khi bắt đầu request HTMX
+    htmx.on('htmx:beforeRequest', function(event) {
+        if (event.detail.target.id === 'main-content') {
+            const mainSpinner = document.getElementById('content-loading-spinner');
+            if (mainSpinner) mainSpinner.style.display = 'block';
+        }
+        // Không cần xử lý loader của search ở đây nữa, CSS sẽ làm
     });
-    // ...
-    app.UseSession(); // Đảm bảo gọi UseSession() trước UseEndpoints/MapControllerRoute
-    ```
 
-### 3. Views
+    // Xử lý trước khi swap nội dung
+    htmx.on('htmx:beforeSwap', function(event) {
+        const targetId = event.detail.target.id;
+        const isSearchResultSwap = (targetId === 'search-results-container' || targetId === 'search-results-and-pagination');
 
--   **`Search.cshtml`:**
-    -   [ ] Xóa bỏ `div` có `hx-trigger="load"` gọi `GetSearchResultsPartial`.
-    -   [ ] Thay thế bằng container `#search-results-container` và render partial view mặc định bên trong như mô tả ở mục 1.
-    -   [ ] **Cập nhật nút chuyển đổi View Mode:**
-        -   Sửa thuộc tính `hx-get` của các nút trong `#view-mode-toggle`.
-        -   Nút Grid: `hx-get="@Url.Action("GetMangaViewPartial", "Manga", new { viewMode = "grid" })"`
-        -   Nút List: `hx-get="@Url.Action("GetMangaViewPartial", "Manga", new { viewMode = "list" })"`
-        -   Đặt `hx-target="#search-results-container"` cho cả hai nút.
-        -   Đặt `hx-swap="innerHTML"` (hoặc `outerHTML` nếu muốn thay thế cả container).
-        -   *(Khuyến nghị)*: Thêm `hx-push-url="false"` để không thay đổi URL khi chỉ đổi view.
--   **`_SearchResultsWrapperPartial.cshtml`:**
-    -   [ ] File này có thể **không cần thiết nữa** nếu `Search.cshtml` render trực tiếp partial grid/list vào `#search-results-container`. Xem xét xóa hoặc điều chỉnh nếu vẫn muốn giữ cấu trúc wrapper.
--   **`_MangaGridPartial.cshtml` & `_MangaListPartial.cshtml`:**
-    -   [ ] Đảm bảo chúng nhận `List<MangaViewModel>` làm model và render đúng. Không cần thay đổi gì ở đây.
+        if (isSearchResultSwap) {
+            // Chỉ cần log, không cần thay đổi display nữa
+            console.log(`[HTMX BeforeSwap] Target is ${targetId}. CSS will handle hiding/showing.`);
+            console.log(`[HTMX BeforeSwap] Request path: ${event.detail.pathInfo.requestPath}`);
+        }
+    });
 
----
+    // Ẩn loading spinner khi request hoàn thành (bao gồm cả lỗi)
+    htmx.on('htmx:afterRequest', function(event) {
+        const mainSpinner = document.getElementById('content-loading-spinner');
+        if (mainSpinner) mainSpinner.style.display = 'none';
+        // Loader của search results sẽ tự ẩn khi class htmx-request bị xóa
+    });
 
-## Frontend (JavaScript)
+    // Cập nhật và khởi tạo lại các chức năng sau khi nội dung được tải bằng HTMX
+    htmx.on('htmx:afterSwap', function(event) {
+        const targetElement = event.detail.target;
+        const targetId = targetElement.id;
+        console.log('[HTMX_HANDLERS] HTMX afterSwap triggered for target:', targetId);
 
-### 1. `search.js`
+        const isSearchResultSwap = (targetId === 'search-results-container' || targetId === 'search-results-and-pagination');
 
--   **`initViewModeToggle()`:**
-    -   [ ] **Xóa logic thay đổi class `.grid-view`/`.list-view` trên container:** HTMX sẽ thay thế toàn bộ nội dung của `#search-results-container`, nên không cần JS thay đổi class này nữa.
-    -   [ ] **Giữ lại logic cập nhật trạng thái `active` cho các nút:** Sau khi HTMX swap thành công (sử dụng event `htmx:afterSwap` trong `htmx-handlers.js`), cập nhật class `active` cho nút tương ứng với `viewMode` vừa được tải.
-    -   [ ] **Giữ lại logic lưu `viewMode` vào `localStorage`:** Khi người dùng click nút, lưu lựa chọn của họ.
--   **`applySavedViewMode()`:**
-    -   [ ] **Thay đổi:** Hàm này không cần áp dụng class `.grid-view`/`.list-view` nữa.
-    -   [ ] **Giữ lại:** Chỉ cần cập nhật trạng thái `active` của các nút toggle dựa trên giá trị đã lưu trong `localStorage` khi trang tải. *Không* cần trigger HTMX request ở đây, vì server đã render view mặc định (hoặc view ưu tiên nếu bạn triển khai nâng cao).
+        if (isSearchResultSwap) {
+            console.log(`[HTMX AfterSwap] Target is ${targetId}. CSS handled visibility. Re-initializing components.`);
 
-### 2. `htmx-handlers.js`
+            // *** KHÔNG cần thay đổi display ở đây nữa ***
 
--   **`reinitializeAfterHtmxSwap(targetElement)`:**
-    -   [ ] **Thêm logic cập nhật nút View Mode:**
-        -   Kiểm tra nếu `targetElement` là `#search-results-container`.
-        -   Nếu đúng, đọc `viewMode` từ `localStorage` (hoặc xác định từ nội dung vừa tải nếu dễ dàng hơn).
-        -   Gọi hàm trong `search.js` (hoặc thực hiện trực tiếp) để cập nhật class `active` cho các nút trong `#view-mode-toggle`.
+            // Khởi tạo lại chức năng nhảy trang cho pagination nếu wrapper được swap
+            if (targetId === 'search-results-and-pagination') {
+                if (typeof SearchModule !== 'undefined' && typeof SearchModule.initPageGoTo === 'function') {
+                    console.log('[HTMX AfterSwap] Re-initializing pagination goto function.');
+                    SearchModule.initPageGoTo();
+                } else {
+                    console.warn('[HTMX AfterSwap] SearchModule or initPageGoTo not available for re-initialization.');
+                }
+            }
+        }
 
----
+        // Khởi tạo lại tất cả các chức năng cần thiết với targetElement
+        reinitializeAfterHtmxSwap(targetElement); // Hàm này vẫn cần để khởi tạo lại JS cho nội dung mới
 
-## Kiểm Thử
+        // Kiểm tra sự tồn tại của manga-header-background và gọi hàm điều chỉnh
+        if (targetElement.querySelector('.details-manga-header-background')) {
+            setTimeout(adjustHeaderBackgroundHeight, 100);
+        }
+    });
 
--   [ ] Kiểm tra tải trang Search lần đầu: Server render view mặc định (grid), API chỉ gọi 1 lần.
--   [ ] Kiểm tra chuyển đổi view: Click nút List -> HTMX gọi `GetMangaViewPartial?viewMode=list` -> Server trả về HTML của List View (dùng dữ liệu Session) -> Nội dung container được thay thế. API **không** được gọi lại. Click nút Grid -> tương tự.
--   [ ] Kiểm tra tìm kiếm/lọc: Nhập từ khóa/chọn filter -> Submit form -> Action `Search` chạy -> API gọi 1 lần -> Dữ liệu Session được **ghi đè** -> Server render view mặc định (grid) với dữ liệu mới.
--   [ ] Kiểm tra phân trang: Click link phân trang -> Action `Search` chạy (với tham số `page` mới) -> API gọi 1 lần -> Dữ liệu Session được **ghi đè** -> Server render view mặc định (grid) với dữ liệu trang mới.
--   [ ] Kiểm tra Session Timeout: Để trang Search một lúc cho Session hết hạn -> Click nút chuyển view -> Server nên trả về thông báo lỗi/trống thay vì crash.
--   [ ] Kiểm tra lưu trạng thái view: Chọn List View -> Tải lại trang Search (hoặc tìm kiếm lại) -> View mặc định (Grid) được hiển thị, nhưng nút List View vẫn nên được đánh dấu `active` (do đọc từ `localStorage`). Người dùng có thể click lại nếu muốn List View.
+    // Xử lý lỗi HTMX
+    htmx.on('htmx:responseError', function(event) {
+        const mainSpinner = document.getElementById('content-loading-spinner');
+        if (mainSpinner) mainSpinner.style.display = 'none';
 
----
+        // Loader của search results sẽ tự ẩn khi class htmx-request bị xóa
 
-Hoàn thành các bước trên sẽ giúp tối ưu hiệu suất trang tìm kiếm đáng kể. Chúc bạn thành công!
+        console.error("HTMX response error:", event.detail.xhr);
+        window.showToast('Lỗi', 'Đã xảy ra lỗi khi tải nội dung. Vui lòng thử lại.', 'error');
+
+        // Không cần hiển thị lại nội dung cũ bằng JS, vì CSS sẽ tự làm khi htmx-request bị xóa
+    });
+
+    // Bắt sự kiện popstate (khi người dùng nhấn nút back/forward trình duyệt)
+    window.addEventListener('popstate', function() {
+        updateActiveSidebarLink();
+    });
+}
+
+// Export các hàm cần thiết
+export { reinitializeAfterHtmxSwap, initHtmxHandlers };
+```
+
+**Giải thích:**
+
+1.  **CSS:**
+    *   Chúng ta định nghĩa trạng thái mặc định của loader là ẩn (`display: none`).
+    *   Khi HTMX thêm class `.htmx-request` vào wrapper `#search-results-and-pagination` trong quá trình request:
+        *   CSS sẽ ẩn container kết quả (`#search-results-container`) và phân trang (`.pagination`, `.text-center.mt-2.text-muted`) bằng cách set `opacity: 0` và `visibility: hidden`. Có `transition` để tạo hiệu ứng fade out.
+        *   CSS sẽ hiển thị loader (`#search-results-loader`) bằng cách set `display: block !important` và `opacity: 1`, `visibility: visible`. Có `transition` để tạo hiệu ứng fade in.
+    *   Khi HTMX hoàn thành request và gỡ bỏ class `.htmx-request`:
+        *   Các quy tắc CSS ẩn nội dung cũ/hiện loader sẽ không còn áp dụng.
+        *   Loader sẽ quay về trạng thái mặc định (`display: none`).
+        *   Nội dung mới (đã được swap vào) sẽ có `opacity: 1` và `visibility: visible` (theo style mặc định hoặc style fade-in của chúng ta).
+
+2.  **JavaScript (`htmx-handlers.js`):**
+    *   Đã **xóa bỏ hoàn toàn** các dòng code dùng `element.style.display = 'none'` hoặc `element.style.display = 'block'` cho các phần tử `#search-results-container`, `.pagination`, `.text-center.mt-2.text-muted`, và `#search-results-loader` trong cả `beforeSwap` và `afterSwap`.
+    *   Việc ẩn/hiện giờ hoàn toàn do CSS điều khiển thông qua lớp `.htmx-request`.
+    *   Hàm `reinitializeAfterHtmxSwap` vẫn rất quan trọng để khởi tạo lại các event listener và chức năng JS khác cho nội dung *mới* sau khi nó được swap vào.
+
+**Lợi ích của phương pháp này:**
+
+*   **Đáng tin cậy hơn:** Trạng thái trực quan được gắn trực tiếp với vòng đời request của HTMX.
+*   **Mượt mà hơn:** Sử dụng `opacity` và `transition` của CSS tạo hiệu ứng fade in/out mượt mà hơn là thay đổi `display` đột ngột.
+*   **Tách biệt logic:** Logic hiển thị trạng thái tải nằm trong CSS, logic khởi tạo lại chức năng nằm trong JS.
+
+Hãy thử áp dụng các thay đổi này và kiểm tra lại tất cả các kịch bản HTMX trên trang tìm kiếm.

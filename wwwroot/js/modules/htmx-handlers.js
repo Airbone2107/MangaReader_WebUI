@@ -34,12 +34,30 @@ function reinitializeAfterHtmxSwap(targetElement) {
     // Đây là một chức năng toàn cục, cần thực hiện bất kể phần tử nào bị swap
     updateActiveSidebarLink();
     
-    // Áp dụng lại chế độ xem (grid/list) nếu đang là search-results-container
-    if (targetElement.id === 'search-results-container') {
-        console.log('HTMX Handlers: Áp dụng lại chế độ xem đã lưu');
-        if (typeof SearchModule.applySavedViewMode === 'function') {
-            SearchModule.applySavedViewMode();
+    // Xử lý khi main-content được swap (toàn bộ trang)
+    if (targetElement.id === 'main-content') {
+        console.log('[HTMX_HANDLERS] Toàn bộ trang đã được swap bằng HTMX');
+        // Khi toàn bộ trang được swap, chúng ta cần khởi tạo lại tất cả
+        if (typeof SearchModule.initSearchPage === 'function') {
+            SearchModule.initSearchPage();
         }
+        initTooltips();
+    }
+    // Xử lý khi search-results-and-pagination được swap (kết quả và phân trang)
+    else if (targetElement.id === 'search-results-and-pagination') {
+        console.log('[HTMX_HANDLERS] Khởi tạo lại sau khi swap kết quả và phân trang.');
+        
+        // Gọi lại các hàm init cần thiết cho nội dung mới
+        if (typeof SearchModule.initPageGoTo === 'function') {
+            SearchModule.initPageGoTo(); // Khởi tạo lại nút "..." nếu có
+        }
+        
+        initTooltips(); // Khởi tạo lại tooltip nếu có
+    }
+    // Xử lý khi search-results-container được swap (chuyển đổi chế độ xem)
+    else if (targetElement.id === 'search-results-container') {
+        console.log('[HTMX_HANDLERS] Phát hiện search-results-container đã được swap');
+        // Không cần gọi applySavedViewMode() vì nội dung mới đã được render với class đúng từ server
     }
     
     // Điều chỉnh kích thước chữ cho tiêu đề manga trong phần tử đã swap
@@ -280,44 +298,82 @@ function initHtmxHandlers() {
     // Hiển thị loading spinner khi bắt đầu request HTMX
     htmx.on('htmx:beforeRequest', function(event) {
         if (event.detail.target.id === 'main-content') {
-            document.getElementById('content-loading-spinner').style.display = 'block';
+            const mainSpinner = document.getElementById('content-loading-spinner');
+            if (mainSpinner) mainSpinner.style.display = 'block';
+        }
+        // Không cần xử lý loader của search ở đây nữa, CSS sẽ làm
+    });
+
+    // Xử lý trước khi swap nội dung
+    htmx.on('htmx:beforeSwap', function(event) {
+        const targetId = event.detail.target.id;
+        const isSearchResultSwap = (targetId === 'search-results-container' || targetId === 'search-results-and-pagination');
+
+        if (isSearchResultSwap) {
+            // Chỉ cần log, không cần thay đổi display nữa
+            console.log(`[HTMX BeforeSwap] Target is ${targetId}. CSS will handle hiding/showing.`);
+            console.log(`[HTMX BeforeSwap] Request path: ${event.detail.pathInfo.requestPath}`);
         }
     });
-    
-    // Ẩn loading spinner khi request hoàn thành
-    htmx.on('htmx:afterRequest', function() {
-        document.getElementById('content-loading-spinner').style.display = 'none';
+
+    // Ẩn loading spinner khi request hoàn thành (bao gồm cả lỗi)
+    htmx.on('htmx:afterRequest', function(event) {
+        const mainSpinner = document.getElementById('content-loading-spinner');
+        if (mainSpinner) mainSpinner.style.display = 'none';
+        // Loader của search results sẽ tự ẩn khi class htmx-request bị xóa
     });
-    
+
     // Cập nhật và khởi tạo lại các chức năng sau khi nội dung được tải bằng HTMX
     htmx.on('htmx:afterSwap', function(event) {
-        // Lấy phần tử target đã được swap
         const targetElement = event.detail.target;
-        console.log('HTMX afterSwap triggered for target:', targetElement.id);
-        
+        const targetId = targetElement.id;
+        console.log('[HTMX_HANDLERS] HTMX afterSwap triggered for target:', targetId);
+
+        const isSearchResultSwap = (targetId === 'search-results-container' || targetId === 'search-results-and-pagination');
+
+        if (isSearchResultSwap) {
+            console.log(`[HTMX AfterSwap] Target is ${targetId}. CSS handled visibility. Re-initializing components.`);
+
+            // *** KHÔNG cần thay đổi display ở đây nữa ***
+
+            // Khởi tạo lại chức năng nhảy trang cho pagination nếu wrapper được swap
+            if (targetId === 'search-results-and-pagination') {
+                if (typeof SearchModule !== 'undefined' && typeof SearchModule.initPageGoTo === 'function') {
+                    console.log('[HTMX AfterSwap] Re-initializing pagination goto function.');
+                    SearchModule.initPageGoTo();
+                } else {
+                    console.warn('[HTMX AfterSwap] SearchModule or initPageGoTo not available for re-initialization.');
+                }
+            }
+        }
+
         // Khởi tạo lại tất cả các chức năng cần thiết với targetElement
-        reinitializeAfterHtmxSwap(targetElement);
-        
-        // Kiểm tra sự tồn tại của manga-header-background một lần duy nhất
-        // và chỉ gọi hàm adjustHeaderBackgroundHeight nếu nó tồn tại
+        reinitializeAfterHtmxSwap(targetElement); // Hàm này vẫn cần để khởi tạo lại JS cho nội dung mới
+
+        // Kiểm tra sự tồn tại của manga-header-background và gọi hàm điều chỉnh
         if (targetElement.querySelector('.details-manga-header-background')) {
-            // Đợi một chút để đảm bảo DOM đã được render đầy đủ trước khi điều chỉnh
-            setTimeout(function() {
-                // adjustHeaderBackgroundHeight đã được gọi trong initMangaDetailsPage
-            }, 100);
+            setTimeout(adjustHeaderBackgroundHeight, 100);
         }
     });
-    
+
     // Xử lý lỗi HTMX
-    htmx.on('htmx:responseError', function() {
-        document.getElementById('content-loading-spinner').style.display = 'none';
-        window.showToast('Lỗi', 'Đã xảy ra lỗi khi tải nội dung', 'error');
+    htmx.on('htmx:responseError', function(event) {
+        const mainSpinner = document.getElementById('content-loading-spinner');
+        if (mainSpinner) mainSpinner.style.display = 'none';
+
+        // Loader của search results sẽ tự ẩn khi class htmx-request bị xóa
+
+        console.error("HTMX response error:", event.detail.xhr);
+        window.showToast('Lỗi', 'Đã xảy ra lỗi khi tải nội dung. Vui lòng thử lại.', 'error');
+
+        // Không cần hiển thị lại nội dung cũ bằng JS, vì CSS sẽ tự làm khi htmx-request bị xóa
     });
-    
+
     // Bắt sự kiện popstate (khi người dùng nhấn nút back/forward trình duyệt)
     window.addEventListener('popstate', function() {
         updateActiveSidebarLink();
     });
 }
 
+// Export các hàm cần thiết
 export { reinitializeAfterHtmxSwap, initHtmxHandlers };

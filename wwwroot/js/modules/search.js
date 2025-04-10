@@ -547,7 +547,7 @@ function navigateToPage(pageNumber) {
     const newUrl = `${currentUrl.pathname}?${searchParams.toString()}`;
     
     // Thực hiện chuyển trang bằng HTMX
-    htmx.ajax('GET', newUrl, { target: '#main-content', pushUrl: true });
+    htmx.ajax('GET', newUrl, { target: '#search-results-and-pagination', pushUrl: true });
 }
 
 /**
@@ -639,55 +639,84 @@ function setupResetFilters() {
  * Khởi tạo nút chuyển đổi chế độ xem (grid/list)
  */
 function initViewModeToggle() {
-    const toggleContainer = document.getElementById('view-mode-toggle');
+    const toggleContainer = document.querySelector('.view-mode-toggle');
     if (!toggleContainer) return;
-    
-    toggleContainer.addEventListener('click', function(e) {
-        if (e.target.tagName === 'BUTTON' || e.target.parentElement.tagName === 'BUTTON') {
-            const button = e.target.tagName === 'BUTTON' ? e.target : e.target.parentElement;
-            const viewMode = button.dataset.view;
+
+    toggleContainer.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            const viewMode = e.target.dataset.mode;
+            console.log(`[VIEW_MODE] Người dùng chọn chế độ xem: ${viewMode}`);
             
-            if (viewMode) {
-                applyViewMode(viewMode);
-                localStorage.setItem('mangaSearchViewMode', viewMode);
-            }
+            // Lưu chế độ xem vào localStorage
+            localStorage.setItem('mangaViewMode', viewMode);
+            console.log(`[VIEW_MODE] Đã lưu chế độ xem vào localStorage: ${viewMode}`);
+            
+            // Thiết lập cookie cho chế độ xem
+            setViewModeCookie(viewMode);
+            
+            // Cập nhật trạng thái active cho các nút
+            updateViewModeButtons(viewMode);
         }
     });
 }
 
 /**
- * Áp dụng chế độ xem (grid/list)
+ * Thiết lập cookie chế độ xem để server có thể đọc
+ * @param {string} viewMode - Chế độ xem (grid/list)
  */
-function applyViewMode(viewMode) {
-    const resultsContainer = document.getElementById('search-results-container');
-    const toggleContainer = document.getElementById('view-mode-toggle');
+function setViewModeCookie(viewMode) {
+    const expires = new Date();
+    expires.setFullYear(expires.getFullYear() + 1); // Cookie hết hạn sau 1 năm
+    document.cookie = `MangaViewMode=${viewMode}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
+    console.log(`[VIEW_MODE] Đã thiết lập cookie MangaViewMode=${viewMode}`);
+}
+
+/**
+ * Cập nhật trạng thái active của các nút chuyển đổi chế độ xem
+ */
+function updateViewModeButtons(viewMode) {
+    const toggleContainer = document.querySelector('.view-mode-toggle');
+    if (!toggleContainer) return;
     
-    if (resultsContainer) {
-        resultsContainer.classList.remove('grid-view', 'list-view');
-        resultsContainer.classList.add(viewMode + '-view');
-    }
+    console.log(`[VIEW_MODE] Cập nhật trạng thái nút cho chế độ: ${viewMode}`);
     
-    if (toggleContainer) {
-        // Xóa active từ tất cả các nút
-        toggleContainer.querySelectorAll('button').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        
-        // Thêm active cho nút được chọn
-        const activeBtn = toggleContainer.querySelector(`button[data-view="${viewMode}"]`);
-        if (activeBtn) {
-            activeBtn.classList.add('active');
-        }
+    // Xóa active từ tất cả các nút
+    toggleContainer.querySelectorAll('button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Thêm active cho nút được chọn
+    const activeBtn = toggleContainer.querySelector(`button[data-mode="${viewMode}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+        console.log('[VIEW_MODE] Đã cập nhật nút active');
+    } else {
+        console.warn('[VIEW_MODE] Không tìm thấy nút tương ứng với chế độ xem');
     }
 }
 
 /**
- * Áp dụng chế độ xem đã lưu trong localStorage
+ * Áp dụng chế độ xem đã lưu từ localStorage
  */
 function applySavedViewMode() {
-    const savedMode = localStorage.getItem('mangaSearchViewMode') || 'grid';
-    applyViewMode(savedMode);
+    const savedMode = localStorage.getItem('mangaViewMode') || 'grid';
+    console.log(`[VIEW_MODE] Áp dụng chế độ xem đã lưu: ${savedMode}`);
+    
+    // Thiết lập cookie cho chế độ xem
+    setViewModeCookie(savedMode);
+    
+    // Cập nhật UI của các nút
+    updateViewModeButtons(savedMode);
 }
+
+// Gọi applySavedViewMode khi trang được tải
+document.addEventListener('DOMContentLoaded', function() {
+    const resultsContainer = document.getElementById('search-results-container');
+    if (resultsContainer) {
+        console.log('[VIEW_MODE] Trang tìm kiếm được tải, áp dụng chế độ xem đã lưu');
+        setTimeout(applySavedViewMode, 100); // Chờ một chút để đảm bảo DOM đã được tải hoàn toàn
+    }
+});
 
 // Xuất API module
 export default {
