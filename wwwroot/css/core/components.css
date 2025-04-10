@@ -395,3 +395,70 @@ img[src="/images/cover-placeholder.jpg"] {
     background-color: #f8f9fa;
     border-color: #f8f9fa;
 }
+
+/* Helper class cho phần tử target đang tải HTMX */
+.htmx-loading-target {
+    position: relative; /* Cần thiết cho pseudo-elements */
+    /* KHÔNG đặt min-height để cho phép collapse */
+    transition: none !important; /* Tắt transition khi loading */
+    /* border: 1px dashed var(--border-color); */ /* Bỏ viền nếu không muốn */
+    padding: 3rem 1rem !important; /* Tăng padding để spinner và text có đủ không gian */
+    display: block !important; /* Đảm bảo nó là block */
+    box-sizing: border-box; /* Đảm bảo padding không làm tăng kích thước ngoài mong đợi */
+    overflow: hidden; /* Ẩn bất kỳ nội dung nào tràn ra ngoài khi collapse */
+}
+
+/* Ẩn nội dung con trực tiếp và loại bỏ khỏi layout */
+.htmx-loading-target > * {
+    display: none !important; /* Gây collapse */
+}
+
+/* Spinner (dùng ::after) */
+.htmx-loading-target::after {
+    content: '';
+    position: absolute;
+    box-sizing: border-box;
+    /* Căn giữa spinner */
+    top: calc(50% - 1.5rem - 0.5rem); /* (Nửa chiều cao spinner) - (Nửa khoảng cách text) - Điều chỉnh để spinner lên trên */
+    left: calc(50% - 1.5rem);
+    width: 3rem; /* Kích thước spinner */
+    height: 3rem;
+    border: 0.3em solid rgba(var(--primary-rgb, 13, 110, 253), 0.2); /* Viền mờ */
+    border-top-color: var(--primary-color); /* Màu chính */
+    border-radius: 50%;
+    animation: spinner-border .75s linear infinite;
+    z-index: 11;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* Text "Đang tải dữ liệu..." (dùng ::before) */
+.htmx-loading-target::before {
+    content: "Đang tải dữ liệu...";
+    position: absolute;
+    box-sizing: border-box;
+    /* Căn giữa text và đặt dưới spinner */
+    top: calc(50% + 1.5rem - 0.5rem); /* (Nửa chiều cao spinner) + (Nửa khoảng cách text) - Điều chỉnh để text xuống dưới */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%; /* Giới hạn chiều rộng text để tránh tràn */
+    z-index: 10;
+    color: var(--body-color);
+    font-weight: 500;
+    text-align: center;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    padding: 0 0.5rem; /* Thêm padding nhỏ cho text */
+}
+
+/* Keyframes cho spinner */
+@keyframes spinner-border {
+  to { transform: rotate(360deg); }
+}
+
+/* Xóa bỏ class ẩn cũ nếu còn */
+.htmx-request-hide {
+   /* Không cần định nghĩa gì ở đây nữa */
+}

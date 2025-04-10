@@ -138,14 +138,7 @@
 .mobile-search-container {
     padding: 0.5rem 1rem;
 }
-/* Helper class để ẩn phần tử ngay lập tức trong quá trình HTMX request */
-.htmx-request-hide {
-    display: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    position: relative;
-}
-
+/* ===== TRANSITIONS - Các hiệu ứng chuyển đổi ===== */
 /* Chỉ giữ lại transition */
 #search-results-and-pagination {
     transition: all 0.3s ease;

@@ -279,81 +279,121 @@ function reinitializeAfterHtmxSwap(targetElement) {
  * Khởi tạo các sự kiện xử lý HTMX
  */
 function initHtmxHandlers() {
-    const searchResultTargetSelector = "#search-results-and-pagination";
+    console.log("Initializing generic HTMX handlers with loading state...");
 
-    // --- Xóa các listener cũ liên quan đến ẩn/hiện search results ---
-    // (Đã thực hiện ở bước trên)
+    // Lưu trữ target element đang loading để xử lý lỗi
+    let loadingTargetElement = null;
 
-    // --- Thêm listener mới ---
-
-    // Trước khi gửi request cho khu vực tìm kiếm
+    // Trước khi gửi request
     htmx.on('htmx:beforeRequest', function (event) {
-        // Kiểm tra xem target của request có phải là khu vực kết quả tìm kiếm không
-        const requestTargetElement = event.detail.target;
-        const targetAttribute = event.detail.requestConfig.target; // Lấy selector từ hx-target
+        // Xác định phần tử target
+        const requestConfig = event.detail.requestConfig;
+        let targetElement = null;
 
-        // Kiểm tra xem target của request có phải là searchResultTargetSelector không
-        // Hoặc phần tử kích hoạt request nằm trong searchResultTargetSelector (ví dụ: nút pagination)
-        const isSearchTarget = (targetAttribute && targetAttribute === searchResultTargetSelector) ||
-                               (requestTargetElement && requestTargetElement.closest(searchResultTargetSelector));
-
-        if (isSearchTarget) {
-            const el = document.querySelector(searchResultTargetSelector);
-            if (el) {
-                el.classList.add('htmx-request-hide'); // Ẩn khu vực target
+        // Ưu tiên lấy target từ requestConfig.target
+        if (requestConfig.target) {
+            // Kiểm tra xem requestConfig.target là chuỗi selector hay đối tượng DOM
+            if (typeof requestConfig.target === 'string') {
+                try {
+                    // Cố gắng querySelector với chuỗi target
+                    targetElement = document.querySelector(requestConfig.target);
+                    if (!targetElement) {
+                         console.warn(`[HTMX BeforeRequest] Target element not found for selector: ${requestConfig.target}`);
+                    }
+                } catch (e) {
+                     // Nếu querySelector lỗi (selector không hợp lệ), ghi log và fallback
+                     console.error(`[HTMX BeforeRequest] Invalid selector provided for target: '${requestConfig.target}'`, e);
+                     targetElement = event.detail.elt; // Fallback về phần tử kích hoạt
+                     console.log('[HTMX BeforeRequest] Fallback target to triggering element due to invalid selector:', targetElement);
+                }
+            } else if (requestConfig.target instanceof Element) {
+                // Nếu requestConfig.target đã là một đối tượng DOM
+                targetElement = requestConfig.target;
+                console.log('[HTMX BeforeRequest] Target is already a DOM element:', targetElement);
+            } else {
+                 // Trường hợp target không phải chuỗi cũng không phải Element
+                 console.warn('[HTMX BeforeRequest] requestConfig.target is neither a string nor an Element:', requestConfig.target);
+                 targetElement = event.detail.elt; // Fallback về phần tử kích hoạt
+                 console.log('[HTMX BeforeRequest] Fallback target to triggering element:', targetElement);
             }
+        } else {
+            // Nếu không có target rõ ràng, sử dụng phần tử kích hoạt
+            targetElement = event.detail.elt;
+            console.log('[HTMX BeforeRequest] No explicit target found, using triggering element:', targetElement);
+        }
+
+        // Chỉ thêm class loading nếu targetElement là một Element hợp lệ
+        if (targetElement instanceof Element) {
+            console.log('[HTMX BeforeRequest] Adding loading state to target:', targetElement);
+            targetElement.classList.add('htmx-loading-target');
+            loadingTargetElement = targetElement; // Lưu lại target đang load
+        } else {
+            console.warn('[HTMX BeforeRequest] Could not determine a valid target element for loading state. Target:', targetElement);
+            loadingTargetElement = null;
+        }
+
+        // Xử lý spinner toàn cục (nếu vẫn muốn giữ lại cho main-content)
+        if (targetElement && targetElement.id === 'main-content') {
+             const mainSpinner = document.getElementById('content-loading-spinner');
+             if (mainSpinner) mainSpinner.style.display = 'block';
         }
     });
 
-    // Sau khi swap xong nội dung cho khu vực tìm kiếm
-    htmx.on('htmx:afterSwap', function (event) {
+     // Sau khi swap xong nội dung
+     htmx.on('htmx:afterSwap', function (event) {
         const swappedElement = event.detail.target; // Phần tử đã được swap
 
-        // Kiểm tra xem phần tử được swap có phải là khu vực kết quả tìm kiếm không
-        if (swappedElement && swappedElement.id === searchResultTargetSelector.substring(1)) { // Bỏ dấu #
-            // Xóa class ẩn ngay lập tức để hiển thị nội dung mới
-            swappedElement.classList.remove('htmx-request-hide');
+        if (swappedElement && swappedElement instanceof Element) {
+            console.log('[HTMX AfterSwap] Removing loading state from swapped target:', swappedElement);
+            // Xóa class loading state khỏi phần tử MỚI được swap vào
+            swappedElement.classList.remove('htmx-loading-target');
+        } else {
+             console.warn('[HTMX AfterSwap] Swapped target is not a valid Element:', swappedElement);
         }
 
         // Khởi tạo lại JS cho nội dung mới (Quan trọng - Giữ lại dòng này)
         reinitializeAfterHtmxSwap(swappedElement);
+
+        loadingTargetElement = null; // Reset target đang load
     });
 
-    // Listener để xử lý request hoàn tất (thành công hoặc lỗi)
+    // Sau khi request hoàn tất (thành công hoặc lỗi) - Dọn dẹp nếu swap không xảy ra
     htmx.on('htmx:afterRequest', function(event) {
-        // Nếu request thất bại, đảm bảo khu vực target không bị ẩn vĩnh viễn
-        if (!event.detail.successful) {
-            const targetAttribute = event.detail.requestConfig.target;
-            const requestTargetElement = event.detail.elt; // Phần tử kích hoạt request
+        // Ẩn spinner toàn cục (nếu có)
+        const mainSpinner = document.getElementById('content-loading-spinner');
+        if (mainSpinner) mainSpinner.style.display = 'none';
 
-            const isSearchTarget = (targetAttribute && targetAttribute === searchResultTargetSelector) ||
-                                   (requestTargetElement && requestTargetElement.closest(searchResultTargetSelector));
-
-            if (isSearchTarget) {
-                 const el = document.querySelector(searchResultTargetSelector);
-                 if (el) {
-                     el.classList.remove('htmx-request-hide');
-                 }
-            }
+        // Nếu request không thành công VÀ có target đang loading (swap chưa xảy ra)
+        if (!event.detail.successful && loadingTargetElement && loadingTargetElement instanceof Element) {
+            console.warn('[HTMX AfterRequest - Error] Request failed, removing loading state from:', loadingTargetElement);
+            loadingTargetElement.classList.remove('htmx-loading-target');
         }
+        // Nếu request thành công nhưng không có swap (ví dụ: hx-swap="none")
+        else if (event.detail.successful && loadingTargetElement && loadingTargetElement instanceof Element && !event.detail.xhr.getResponseHeader('HX-Trigger')) {
+             // Kiểm tra xem có swap xảy ra không (cách này có thể không hoàn hảo)
+             // Cách tốt hơn là kiểm tra xem loadingTargetElement có còn class loading không
+             if(loadingTargetElement.classList.contains('htmx-loading-target')) {
+                 console.log('[HTMX AfterRequest] Request successful but no swap detected, removing loading state from:', loadingTargetElement);
+                 loadingTargetElement.classList.remove('htmx-loading-target');
+             }
+        }
+
+         // Reset target đang load nếu request kết thúc (dù thành công hay thất bại)
+         // và target đó không còn class loading (đã được xử lý bởi afterSwap hoặc ở trên)
+         if (loadingTargetElement && loadingTargetElement instanceof Element && !loadingTargetElement.classList.contains('htmx-loading-target')) {
+             loadingTargetElement = null;
+         }
     });
 
-    // Xử lý lỗi HTMX (đảm bảo target không bị ẩn)
+    // Xử lý lỗi response (trước khi swap)
     htmx.on('htmx:responseError', function(event) {
         console.error("HTMX response error:", event.detail.xhr);
 
-        // Đảm bảo khu vực target không bị ẩn vĩnh viễn khi có lỗi
-        const targetAttribute = event.detail.requestConfig.target;
-        const requestTargetElement = event.detail.elt; // Phần tử kích hoạt request
-
-        const isSearchTarget = (targetAttribute && targetAttribute === searchResultTargetSelector) ||
-                               (requestTargetElement && requestTargetElement.closest(searchResultTargetSelector));
-
-        if (isSearchTarget) {
-            const el = document.querySelector(searchResultTargetSelector);
-            if (el) {
-                el.classList.remove('htmx-request-hide');
-            }
+        // Nếu có target đang loading, xóa trạng thái loading
+        if (loadingTargetElement && loadingTargetElement instanceof Element) {
+            console.warn('[HTMX ResponseError] Removing loading state due to response error from:', loadingTargetElement);
+            loadingTargetElement.classList.remove('htmx-loading-target');
+            loadingTargetElement = null; // Reset
         }
 
         // Hiển thị toast lỗi (nếu có)
@@ -362,12 +402,30 @@ function initHtmxHandlers() {
         }
     });
 
+     // Xử lý lỗi swap (sau khi nhận response nhưng trước khi swap)
+     htmx.on('htmx:swapError', function(event) {
+        console.error("HTMX swap error:", event.detail.error);
+
+        // Nếu có target đang loading, xóa trạng thái loading
+        if (loadingTargetElement && loadingTargetElement instanceof Element) {
+            console.warn('[HTMX SwapError] Removing loading state due to swap error from:', loadingTargetElement);
+            loadingTargetElement.classList.remove('htmx-loading-target');
+            loadingTargetElement = null; // Reset
+        }
+
+        // Hiển thị toast lỗi (nếu có)
+         if (window.showToast) {
+             window.showToast('Lỗi', 'Đã xảy ra lỗi khi cập nhật giao diện.', 'error');
+         }
+     });
+
+
     // Bắt sự kiện popstate (nếu cần cập nhật UI khác)
     window.addEventListener('popstate', function() {
         updateActiveSidebarLink();
     });
 
-    console.log("HTMX Handlers Initialized with simple hide/show for search results.");
+    console.log("Generic HTMX Handlers Initialized.");
 }
 
 // Export các hàm cần thiết

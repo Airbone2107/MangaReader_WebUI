@@ -160,27 +160,37 @@
     }
 }
 
-/* --- HTMX Loading States for Search Results --- */
+/* === View Mode Toggle Button Hover Override === */
+.view-mode-toggle .btn-outline-primary:hover {
+    /* Reset to base outline styles */
+    color: var(--bs-primary);
+    background-color: transparent;
+    border-color: var(--bs-primary);
+    box-shadow: none; /* Remove any hover box-shadow if present */
+}
 
-/* Ẩn nội dung cũ và phân trang KHI request đang chạy */
-/* Target là wrapper để áp dụng cho cả kết quả và phân trang - Không cần nữa vì sử dụng .htmx-request-hide */
-/* #search-results-and-pagination.htmx-request #search-results-container,
-#search-results-and-pagination.htmx-request .pagination,
-#search-results-and-pagination.htmx-request .text-center.mt-2.text-muted 
-{
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.2s ease-out, visibility 0s linear 0.2s;
-} */
+/* Ensure active button hover state doesn't get overridden if you want it */
+.view-mode-toggle .btn-outline-primary.active:hover {
+    color: #fff; /* Or var(--bs-btn-active-color) */
+    background-color: var(--bs-primary); /* Or var(--bs-btn-active-bg) */
+    border-color: var(--bs-primary); /* Or var(--bs-btn-active-border-color) */
+    box-shadow: none;
+}
 
-/* Hiển thị loader KHI request đang chạy - Không cần nữa */
-/* #search-results-and-pagination.htmx-request #search-results-loader {
-    display: block !important;
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 0.2s ease-in;
-} */
+/* Dark theme overrides for hover */
+[data-bs-theme="dark"] .view-mode-toggle .btn-outline-primary:hover {
+    color: var(--bs-primary);
+    background-color: transparent;
+    border-color: var(--bs-primary);
+}
 
+[data-bs-theme="dark"] .view-mode-toggle .btn-outline-primary.active:hover {
+    color: #fff; /* Adjust if needed for dark theme active button text */
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+/* --- HTMX Loading States --- */
 /* Đảm bảo nội dung mới fade in sau khi swap */
 #search-results-container,
 #search-results-and-pagination .pagination,

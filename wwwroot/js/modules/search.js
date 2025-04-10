@@ -415,27 +415,27 @@ function updateDropdownText(dropdown) {
 }
 
 /**
- * Khởi tạo trang tìm kiếm
+ * Khởi tạo trang tìm kiếm và các chức năng liên quan
  */
 function initSearchPage() {
-    init();
-    
-    // Thêm sự kiện load để đảm bảo cập nhật sau khi DOM và hình ảnh đã tải hoàn tất
-    window.addEventListener('load', function() {
+    init(); // Calls initQuickSearch, initAdvancedFilter, initFilterDropdowns, setupResetFilters
+
+    // Khởi tạo chức năng nhảy trang từ dấu "..."
+    initPageGoTo();
+
+    // Khởi tạo chức năng chuyển đổi chế độ xem
+    initViewModeToggle(); // Ensure this is called
+
+    // Áp dụng chế độ xem đã lưu
+    applySavedViewMode(); // Apply saved mode on initial load or full page refresh
+
+     // Thêm sự kiện load để đảm bảo cập nhật sau khi DOM và hình ảnh đã tải hoàn tất
+     window.addEventListener('load', function() {
         // Cập nhật lại text hiển thị của tất cả các dropdown sau khi trang đã tải hoàn toàn
         document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
             updateDropdownText(dropdown);
         });
     });
-    
-    // Khởi tạo chức năng nhảy trang từ dấu "..."
-    initPageGoTo();
-    
-    // Khởi tạo chức năng chuyển đổi chế độ xem
-    initViewModeToggle();
-    
-    // Áp dụng chế độ xem đã lưu
-    applySavedViewMode();
 }
 
 /**
@@ -636,28 +636,50 @@ function setupResetFilters() {
 }
 
 /**
+ * Handler function for view mode toggle clicks.
+ * Defined separately to allow adding/removing the listener.
+ */
+function handleViewModeToggleClick(event) {
+    // Use event.target.closest to ensure we handle clicks on the icon inside the button too
+    const button = event.target.closest('button');
+    if (button && button.dataset.mode) {
+        const viewMode = button.dataset.mode;
+        console.log(`[VIEW_MODE] Người dùng chọn chế độ xem: ${viewMode}`);
+
+        // Lưu chế độ xem vào localStorage
+        localStorage.setItem('mangaViewMode', viewMode);
+        console.log(`[VIEW_MODE] Đã lưu chế độ xem vào localStorage: ${viewMode}`);
+
+        // Thiết lập cookie cho chế độ xem
+        setViewModeCookie(viewMode);
+
+        // Cập nhật trạng thái active cho các nút
+        updateViewModeButtons(viewMode);
+
+        // Important: Let HTMX handle the content swap via hx-get etc.
+        // No need to manually trigger htmx.process here unless
+        // the hx attributes are not directly on the button.
+    }
+}
+
+/**
  * Khởi tạo nút chuyển đổi chế độ xem (grid/list)
  */
 function initViewModeToggle() {
     const toggleContainer = document.querySelector('.view-mode-toggle');
-    if (!toggleContainer) return;
+    if (!toggleContainer) {
+        console.warn("View mode toggle container not found during init.");
+        return;
+    }
 
-    toggleContainer.addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON') {
-            const viewMode = e.target.dataset.mode;
-            console.log(`[VIEW_MODE] Người dùng chọn chế độ xem: ${viewMode}`);
-            
-            // Lưu chế độ xem vào localStorage
-            localStorage.setItem('mangaViewMode', viewMode);
-            console.log(`[VIEW_MODE] Đã lưu chế độ xem vào localStorage: ${viewMode}`);
-            
-            // Thiết lập cookie cho chế độ xem
-            setViewModeCookie(viewMode);
-            
-            // Cập nhật trạng thái active cho các nút
-            updateViewModeButtons(viewMode);
-        }
-    });
+    console.log("Initializing view mode toggle listener.");
+
+    // --- CLEANUP ---
+    // Remove the *specific* old listener before adding a new one
+    toggleContainer.removeEventListener('click', handleViewModeToggleClick);
+
+    // --- ADD NEW LISTENER ---
+    toggleContainer.addEventListener('click', handleViewModeToggleClick);
 }
 
 /**
@@ -677,14 +699,14 @@ function setViewModeCookie(viewMode) {
 function updateViewModeButtons(viewMode) {
     const toggleContainer = document.querySelector('.view-mode-toggle');
     if (!toggleContainer) return;
-    
+
     console.log(`[VIEW_MODE] Cập nhật trạng thái nút cho chế độ: ${viewMode}`);
-    
+
     // Xóa active từ tất cả các nút
     toggleContainer.querySelectorAll('button').forEach(btn => {
         btn.classList.remove('active');
     });
-    
+
     // Thêm active cho nút được chọn
     const activeBtn = toggleContainer.querySelector(`button[data-mode="${viewMode}"]`);
     if (activeBtn) {
@@ -701,22 +723,13 @@ function updateViewModeButtons(viewMode) {
 function applySavedViewMode() {
     const savedMode = localStorage.getItem('mangaViewMode') || 'grid';
     console.log(`[VIEW_MODE] Áp dụng chế độ xem đã lưu: ${savedMode}`);
-    
+
     // Thiết lập cookie cho chế độ xem
     setViewModeCookie(savedMode);
-    
+
     // Cập nhật UI của các nút
     updateViewModeButtons(savedMode);
 }
-
-// Gọi applySavedViewMode khi trang được tải
-document.addEventListener('DOMContentLoaded', function() {
-    const resultsContainer = document.getElementById('search-results-container');
-    if (resultsContainer) {
-        console.log('[VIEW_MODE] Trang tìm kiếm được tải, áp dụng chế độ xem đã lưu');
-        setTimeout(applySavedViewMode, 100); // Chờ một chút để đảm bảo DOM đã được tải hoàn toàn
-    }
-});
 
 // Xuất API module
 export default {
