@@ -9,6 +9,20 @@
     </div>
     
     <div class="sidebar-section">
+        <h6>Điều hướng</h6>
+        <div class="nav-item mb-3">
+            <a asp-controller="Manga" asp-action="Details" asp-route-id="@Model.MangaId"
+               class="btn btn-theme-outline w-100"
+               hx-get="@Url.Action("Details", "Manga", new { id = Model.MangaId })"
+               hx-target="#main-content"
+               hx-push-url="true"
+               title="Quay về trang chi tiết manga">
+                <i class="bi bi-list-stars me-2"></i> Danh sách chương
+            </a>
+        </div>
+    </div>
+    
+    <div class="sidebar-section">
         <h6>Chương</h6>
         <div class="chapter-navigation mb-3">
             <div class="d-flex justify-content-between align-items-stretch gap-2 mb-3">
@@ -72,12 +86,14 @@
         <h6>Tùy chỉnh</h6>
         <div class="nav-item mb-3">
             <button id="readingModeBtn" class="btn btn-theme-outline w-100">
-                <i class="bi bi-book"></i> Chế độ đọc
+                <i class="bi bi-book me-2"></i>
+                <span id="readingModeText">Chế độ: Cuộn dọc</span>
             </button>
         </div>
         <div class="nav-item">
             <button id="imageScaleBtn" class="btn btn-theme-outline w-100">
-                <i class="bi bi-aspect-ratio"></i> Tỷ lệ ảnh
+                <i class="bi bi-aspect-ratio me-2"></i>
+                <span id="imageScaleText">Tỷ lệ: Mặc định</span>
             </button>
         </div>
     </div>

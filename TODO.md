@@ -1,464 +1,282 @@
-# TODO List - Cải thiện Trang Đọc Truyện (Read Page)
+# TODO List - Chức năng Lịch sử đọc
 
-Danh sách này mô tả các công việc cần thực hiện để cải thiện chức năng và giao diện của trang đọc truyện.
+Đây là danh sách các công việc cần làm để triển khai tính năng theo dõi và hiển thị lịch sử đọc truyện của người dùng.
 
-## 1. Tải Trang Read Bằng HTMX Khi Điều Hướng Từ Details
+## 1. Backend (Giả định & Chuẩn bị)
 
-**Mục tiêu:** Đảm bảo khi người dùng click vào một chapter trên trang `Details.cshtml`, trang `Read.cshtml` được tải động vào `#main-content` bằng HTMX thay vì tải lại toàn bộ trang.
+*   **Quan trọng:** Đảm bảo rằng backend API đã có sẵn một endpoint (ví dụ: `POST /api/users/reading-progress`) để nhận và lưu trữ thông tin lịch sử đọc.
+*   Endpoint này nên nhận `mangaId` và `chapterId` (chương cuối cùng người dùng đọc) trong request body.
+*   Backend sẽ tự động cập nhật `lastReadAt` khi nhận được request.
+
+## 2. Frontend - Service Lưu Lịch sử đọc
+
+**Mục tiêu:** Tạo một service mới ở frontend để gửi thông tin chương đang đọc lên backend.
+
+**Files cần tạo/sửa:**
+
+1.  `manga_reader_web\Services\MangaServices\IReadingHistoryService.cs` (Tạo mới)
+2.  `manga_reader_web\Services\MangaServices\ReadingHistoryService.cs` (Tạo mới)
+3.  `manga_reader_web\Program.cs` (Sửa)
 
 **Các bước thực hiện:**
 
-1.  **Kiểm tra Links Chapter trên `Details.cshtml`:**
-    *   Mở file `Views/Manga/Details.cshtml`.
-    *   Tìm đến phần hiển thị danh sách chapter (có thể là trong vòng lặp `@foreach (var chapter in ...)` bên trong `.custom-chapter-item`).
-    *   **Xác nhận** rằng các thẻ `<a>` hoặc phần tử kích hoạt việc đọc chapter (ví dụ: `.custom-chapter-item.chapter-link`) **đã có** các thuộc tính HTMX sau:
-        *   `hx-get="@Url.Action("Read", "Chapter", new { id = chapter.Id })"` (Hoặc URL tương tự)
-        *   `hx-target="#main-content"`
-        *   `hx-push-url="true"`
-    *   Nếu chưa có, hãy **thêm** các thuộc tính này.
+1.  **Tạo Interface (`IReadingHistoryService.cs`):**
+    *   Định nghĩa interface `IReadingHistoryService` với một phương thức:
+        ```csharp
+        Task UpdateReadingProgressAsync(string mangaId, string chapterId);
+        ```
 
-2.  **Kiểm tra `ChapterController.cs`:**
-    *   Mở file `Controllers/ChapterController.cs`.
-    *   Xem lại action `Read(string id)`.
-    *   **Xác nhận** rằng action này đang sử dụng `_viewRenderService.RenderViewBasedOnRequest(this, viewModel);`. Điều này đảm bảo nó sẽ trả về `PartialView` cho request HTMX. (Hiện tại code đã đúng).
+2.  **Tạo Implementation (`ReadingHistoryService.cs`):**
+    *   Tạo class `ReadingHistoryService` implement `IReadingHistoryService`.
+    *   Inject `IHttpClientFactory`, `IUserService`, `ILogger<ReadingHistoryService>` vào constructor.
+    *   Triển khai phương thức `UpdateReadingProgressAsync`:
+        *   Kiểm tra người dùng đã đăng nhập chưa (`_userService.IsAuthenticated()`). Nếu chưa, không làm gì cả.
+        *   Lấy JWT token (`_userService.GetToken()`).
+        *   Tạo `HttpClient` từ factory (`_httpClientFactory.CreateClient("BackendApiClient")`).
+        *   Thêm `Authorization` header với token.
+        *   Xác định URL endpoint của backend (ví dụ: `/api/users/reading-progress`).
+        *   Tạo một object chứa `mangaId` và `lastChapter` (giá trị là `chapterId`). *Lưu ý tên thuộc tính `lastChapter` có thể cần khớp với backend*.
+        *   Serialize object thành JSON payload.
+        *   Tạo `StringContent` từ JSON payload.
+        *   Thực hiện request `POST` đến backend endpoint.
+        *   Ghi log kết quả (thành công hoặc lỗi). Xử lý các mã lỗi (ví dụ: 401 Unauthorized thì xóa token).
 
-3.  **Cập nhật `htmx-handlers.js` để Khởi tạo `read-page.js`:**
-    *   Mở file `wwwroot/js/modules/htmx-handlers.js`.
-    *   Tìm đến hàm `reinitializeAfterHtmxSwap(targetElement)`.
-    *   **Thêm** logic kiểm tra xem nội dung vừa được swap có phải là trang Read hay không. Bạn có thể kiểm tra sự tồn tại của một element đặc trưng như `.chapter-reader-container` hoặc `#readingSidebar`.
-    *   Nếu đúng là trang Read, **gọi hàm `initReadPage()`** từ `read-page.js`.
-    *   **Ví dụ:**
-        ```javascript
-        // Bên trong reinitializeAfterHtmxSwap(targetElement)
+3.  **Đăng ký Service (`Program.cs`):**
+    *   Thêm dòng sau vào phần cấu hình services:
+        ```csharp
+        builder.Services.AddScoped<manga_reader_web.Services.MangaServices.IReadingHistoryService, manga_reader_web.Services.MangaServices.ReadingHistoryService>();
+        ```
 
-        // ... các kiểm tra khác ...
+## 3. Frontend - Service Lấy Thông tin Chapter
 
-        // Kiểm tra trang đọc chapter
-        if (targetElement.querySelector('.chapter-reader-container') || targetElement.querySelector('#readingSidebar')) {
-            console.log('[HTMX Swap] Chapter Read page detected, initializing read-page modules');
-            // Đảm bảo đã import initReadPage ở đầu file htmx-handlers.js
-            initReadPage(); 
+**Mục tiêu:** Tạo một service để lấy thông tin hiển thị cơ bản (số chương, tên chương) từ `chapterId`.
+
+**Files cần tạo/sửa:**
+
+1.  `manga_reader_web\Services\MangaServices\ChapterServices\IChapterDetailsService.cs` (Tạo mới)
+2.  `manga_reader_web\Services\MangaServices\ChapterServices\ChapterDetailsService.cs` (Tạo mới)
+3.  `manga_reader_web\Program.cs` (Sửa)
+
+**Các bước thực hiện:**
+
+1.  **Tạo Interface (`IChapterDetailsService.cs`):**
+    *   Định nghĩa interface `IChapterDetailsService` với một phương thức:
+        ```csharp
+        // Trả về Tuple hoặc một class nhỏ chứa Number và Title
+        Task<(string Number, string Title)> GetChapterDisplayInfoAsync(string chapterId);
+        ```
+
+2.  **Tạo Implementation (`ChapterDetailsService.cs`):**
+    *   Tạo class `ChapterDetailsService` implement `IChapterDetailsService`.
+    *   Inject `MangaDexService`, `ILogger<ChapterDetailsService>`, `JsonConversionService`.
+    *   Triển khai phương thức `GetChapterDisplayInfoAsync`:
+        *   Gọi `_mangaDexService.FetchChapterInfoAsync(chapterId)` để lấy dữ liệu chapter thô.
+        *   Sử dụng `_jsonConversionService` để chuyển đổi `JsonElement` thành `Dictionary<string, object>`.
+        *   Trích xuất `attributes.chapter` và `attributes.title`.
+        *   Định dạng lại tiêu đề hiển thị (ví dụ: "Chương X: Tên chương" hoặc "Chương X" nếu không có tên).
+        *   Trả về Tuple `(chapterNumber, displayTitle)`.
+        *   Xử lý các trường hợp lỗi (không tìm thấy chapter, lỗi API).
+
+3.  **Đăng ký Service (`Program.cs`):**
+    *   Thêm dòng sau:
+        ```csharp
+        builder.Services.AddScoped<manga_reader_web.Services.MangaServices.ChapterServices.IChapterDetailsService, manga_reader_web.Services.MangaServices.ChapterServices.ChapterDetailsService>();
+        ```
+
+## 4. Frontend - Controller Trigger Lưu Lịch sử
+
+**Mục tiêu:** Gọi service lưu lịch sử khi người dùng truy cập trang đọc truyện.
+
+**Files cần sửa:**
+
+1.  `manga_reader_web\Controllers\ChapterController.cs`
+
+**Các bước thực hiện:**
+
+1.  **Inject Service:** Thêm `IReadingHistoryService` vào constructor của `ChapterController`.
+    ```csharp
+    private readonly IReadingHistoryService _readingHistoryService;
+
+    public ChapterController(
+        // ... các service khác
+        IReadingHistoryService readingHistoryService)
+    {
+        // ... gán các service khác
+        _readingHistoryService = readingHistoryService;
+    }
+    ```
+2.  **Gọi Service trong Action `Read`:** Trong phương thức `Read(string id)`, sau khi đã lấy được `viewModel` thành công và *trước khi* `return View(viewModel)` hoặc `PartialView(viewModel)`:
+    ```csharp
+    // ... lấy viewModel thành công ...
+
+    // Gọi service để cập nhật lịch sử đọc (không cần đợi kết quả)
+    // Sử dụng Task.Run để chạy ngầm, tránh làm chậm việc hiển thị trang
+    _ = Task.Run(async () => {
+        try
+        {
+            await _readingHistoryService.UpdateReadingProgressAsync(viewModel.MangaId, id);
+            _logger.LogInformation($"Đã gửi yêu cầu cập nhật lịch sử đọc cho manga {viewModel.MangaId}, chapter {id}");
         }
+        catch (Exception historyEx)
+        {
+            _logger.LogError(historyEx, $"Lỗi khi cập nhật lịch sử đọc cho manga {viewModel.MangaId}, chapter {id}");
+        }
+    });
 
-        // ... các khởi tạo khác ...
-        ```
-    *   **Quan trọng:** Đảm bảo bạn đã import `initReadPage` ở đầu file `htmx-handlers.js`:
-        ```javascript
-        // Import các hàm từ các module khác (sẽ được sử dụng trong HTMX)
-        // ... các import khác ...
-        import { initReadPage } from './read-page.js'; // <--- Thêm dòng này
-        ```
+    // Sử dụng ViewRenderService để trả về view phù hợp với loại request
+    return _viewRenderService.RenderViewBasedOnRequest(this, viewModel);
+    ```
+    *   Sử dụng `_ = Task.Run(...)` để chạy tác vụ cập nhật lịch sử đọc ở chế độ "fire-and-forget", không làm chậm quá trình trả về view cho người dùng.
+    *   Thêm `try-catch` bên trong `Task.Run` để ghi log lỗi nếu có vấn đề khi cập nhật lịch sử.
 
-## 2. Ngăn Header Tự Động Ẩn Trên Trang Read
+## 5. Frontend - Chuẩn bị Dữ liệu cho Trang Profile
 
-**Mục tiêu:** Giữ cho `.site-header` luôn hiển thị khi người dùng cuộn trang trên `Read.cshtml`, nhưng vẫn giữ nguyên hành vi tự ẩn trên các trang khác.
+**Mục tiêu:** Lấy và chuẩn bị dữ liệu lịch sử đọc để hiển thị trên trang Profile.
+
+**Files cần tạo/sửa:**
+
+1.  `manga_reader_web\Models\ReadingHistoryViewModel.cs` (Tạo mới)
+2.  `manga_reader_web\Models\ProfileViewModel.cs` (Sửa)
+3.  `manga_reader_web\Controllers\AuthController.cs` (Sửa)
 
 **Các bước thực hiện:**
 
-1.  **Đánh Dấu Trang Read:**
-    *   Mở file `Views/Chapter/Read.cshtml`.
-    *   Thêm một class hoặc data attribute vào thẻ `<body>` hoặc container chính (`#main-content`) để đánh dấu đây là trang Read. Sử dụng `ViewData["PageType"]` đã có là một cách tốt.
-    *   **Ví dụ (thêm class vào body):** Sửa `_ChapterLayout.cshtml` (nếu `Read.cshtml` dùng layout này) hoặc layout chính (`_Layout.cshtml`) để thêm class dựa trên `ViewData`. Cách đơn giản hơn là thêm class vào `#main-content` trong `Read.cshtml` nếu nó được swap vào đó.
-        *   Trong `Read.cshtml`, sửa thẻ div `#main-content` (nếu có) hoặc container cha gần nhất:
-            ```html
-            <div id="main-content" class="page-type-chapter-read"> 
-                @* Nội dung của Read.cshtml *@
-            </div> 
-            ```
-        *   Hoặc nếu `Read.cshtml` dùng layout riêng (`_ChapterLayout.cshtml`), thêm vào thẻ `<body>`:
-            ```html
-             <body class="manga-reader-app page-type-chapter-read"> 
-                @* ... *@
-             </body>
-            ```
-        *   Hoặc nếu dùng layout chung, bạn có thể thêm class vào `body` bằng JavaScript trong `initReadPage()`:
-            ```javascript
-            // Trong initReadPage()
-            document.body.classList.add('page-type-chapter-read'); 
-            // Nhớ xóa class này khi rời trang Read (trong htmx:beforeRequest hoặc khi điều hướng)
-            ```
-            *Lưu ý: Dùng class trên body hoặc #main-content sẽ dễ quản lý hơn.*
-
-2.  **Cập nhật Scroll Listener:**
-    *   Mở file `wwwroot/js/modules/sidebar.js` (Nơi chứa logic ẩn/hiện header khi cuộn).
-    *   Tìm đến `window.addEventListener('scroll', function() { ... });`.
-    *   Bên trong hàm xử lý scroll, **thêm điều kiện kiểm tra** trước khi thêm/xóa class `header-hidden`.
-    *   **Ví dụ:**
-        ```javascript
-        window.addEventListener('scroll', function() {
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            const isReadPage = document.body.classList.contains('page-type-chapter-read') || 
-                               document.getElementById('main-content')?.classList.contains('page-type-chapter-read'); // Kiểm tra class đánh dấu
-
-            // Chỉ ẩn header nếu KHÔNG phải trang Read
-            if (!isReadPage) { 
-                if (scrollTop > lastScrollTop && scrollTop > scrollThreshold) {
-                    siteHeader?.classList.add('header-hidden'); // Thêm ?. để tránh lỗi nếu siteHeader không tồn tại
-                } else if (scrollTop < lastScrollTop || scrollTop <= scrollThreshold) {
-                    siteHeader?.classList.remove('header-hidden');
-                }
-            } else {
-                 // Nếu là trang Read, luôn đảm bảo header không bị ẩn
-                 siteHeader?.classList.remove('header-hidden');
+1.  **Tạo `ReadingHistoryViewModel.cs`:**
+    *   Tạo một class mới để chứa thông tin cần hiển thị cho mỗi mục lịch sử:
+        ```csharp name=ReadingHistoryViewModel.cs
+        namespace manga_reader_web.Models
+        {
+            public class ReadingHistoryViewModel
+            {
+                public string MangaId { get; set; }
+                public string MangaTitle { get; set; }
+                public string MangaCoverUrl { get; set; }
+                public string ChapterId { get; set; }
+                public string ChapterNumber { get; set; }
+                public string ChapterTitle { get; set; } // Tiêu đề đã format
+                public DateTime LastReadAt { get; set; }
             }
-
-            lastScrollTop = scrollTop;
-        });
+        }
         ```
-    *   **Quan trọng:** Đảm bảo biến `siteHeader` được khai báo và lấy đúng phần tử ở đầu hàm `initSidebar()`.
 
-## 3. Sửa Lỗi Click Để Ẩn/Hiện ReadingSidebar
+2.  **Cập nhật `ProfileViewModel.cs`:**
+    *   Thêm một thuộc tính mới để chứa danh sách lịch sử đọc:
+        ```csharp
+        public List<ReadingHistoryViewModel> ReadingHistory { get; set; } = new List<ReadingHistoryViewModel>();
+        ```
 
-**Mục tiêu:** Chức năng click vào vùng nội dung ảnh (`#chapterImagesContainer`) để mở/đóng `ReadingSidebar` cần hoạt động ổn định.
+3.  **Cập nhật `AuthController.cs`:**
+    *   **Inject Service:** Thêm `IChapterDetailsService` vào constructor.
+    *   **Sửa Action `Profile`:**
+        *   Sau khi lấy được `user` và trước khi `return View(viewModel)`.
+        *   Kiểm tra `user.ReadingManga` có dữ liệu không.
+        *   Nếu có, lặp qua từng `readingInfo` trong `user.ReadingManga`.
+        *   Bên trong vòng lặp:
+            *   Gọi `_mangaDetailsService.GetMangaDetailsAsync(readingInfo.MangaId)` để lấy thông tin manga (chỉ cần title và cover). *Tối ưu:* Có thể tạo một phương thức gọn hơn trong `MangaDetailsService` chỉ lấy title và cover nếu cần.
+            *   Gọi `_chapterDetailsService.GetChapterDisplayInfoAsync(readingInfo.LastChapter)` để lấy thông tin chapter (number, title). *Lưu ý:* `readingInfo.LastChapter` thực chất là `chapterId`.
+            *   Tạo một đối tượng `ReadingHistoryViewModel` mới và gán các giá trị đã lấy được.
+            *   Thêm đối tượng này vào `viewModel.ReadingHistory`.
+        *   Xử lý lỗi nếu không lấy được thông tin manga hoặc chapter (có thể bỏ qua mục đó hoặc hiển thị thông báo lỗi).
+
+## 6. Frontend - Hiển thị Lịch sử đọc trên Trang Profile
+
+**Mục tiêu:** Thêm tab "Lịch sử đọc" và hiển thị danh sách các truyện đã đọc gần đây.
+
+**Files cần tạo/sửa:**
+
+1.  `manga_reader_web\Views\Auth\Profile.cshtml` (Sửa)
+2.  `manga_reader_web\Views\Shared\_ReadingHistoryPartial.cshtml` (Tạo mới - tùy chọn)
+3.  CSS liên quan (nếu cần)
 
 **Các bước thực hiện:**
 
-1.  **Kiểm tra và Debug `initContentAreaClickToOpenSidebar()`:**
-    *   Mở file `wwwroot/js/modules/read-page.js`.
-    *   Tìm hàm `initContentAreaClickToOpenSidebar()`.
-    *   **Thêm `console.log`** để debug:
-        ```javascript
-        imageContainer.addEventListener('click', (event) => {
-            console.log('[Read Page] Click detected on image container area.');
-            console.log('[Read Page] Event target:', event.target);
-            console.log('[Read Page] Closest .page-image-container:', event.target.closest('.page-image-container'));
-            console.log('[Read Page] Is target the container itself?', event.target === imageContainer);
-
-            // Đảm bảo click là trực tiếp vào container hoặc vào một ảnh/vùng chứa ảnh
-            const clickedOnImageArea = event.target === imageContainer || event.target.closest('.page-image-container');
-            
-            if (clickedOnImageArea) {
-                console.log('[Read Page] Click target is valid for toggling sidebar.');
-                if (sidebar.classList.contains('open')) {
-                    // Kiểm tra xem có đang ghim không (sẽ thêm ở bước sau)
-                    const isPinned = document.body.classList.contains('sidebar-pinned'); // Giả sử dùng class này
-                    if (!isPinned) {
-                        sidebar.classList.remove('open');
-                        console.log('[Read Page] Sidebar closed by image container click (not pinned).');
-                    } else {
-                         console.log('[Read Page] Sidebar is pinned, click ignored.');
-                    }
-                } else {
-                    sidebar.classList.add('open');
-                    console.log('[Read Page] Sidebar opened by image container click.');
-                }
-            } else {
-                 console.log('[Read Page] Click target is NOT valid for toggling sidebar.');
-            }
-        });
-        ```
-    *   **Phân tích log:** Chạy trang Read, click vào vùng ảnh và xem console log.
-        *   Listener có được kích hoạt không?
-        *   `event.target` là gì? Có phải là ảnh, container ảnh, hay container chính?
-        *   Điều kiện `clickedOnImageArea` có trả về `true` không?
-    *   **Điều chỉnh điều kiện:** Nếu điều kiện `clickedOnImageArea` không đúng, hãy sửa lại selector `event.target.closest(...)` cho phù hợp với cấu trúc HTML thực tế của bạn trong `_ChapterImagesPartial.cshtml`. Có thể bạn chỉ cần `event.target.closest('#chapterImagesContainer')`.
-    *   **Kiểm tra xung đột:** Xem có event listener nào khác trên ảnh hoặc container (ví dụ: zoom ảnh) đang gọi `event.stopPropagation()` và ngăn không cho sự kiện click lan đến `#chapterImagesContainer` không.
-
-## 4. Restyle Chapter Info Row và Nút Mở Sidebar
-
-**Mục tiêu:**
-*   Các phần tử trong `.chapter-info-row` (số chương, tiêu đề, nút controls) nằm trong các `div` riêng biệt, có nền và kiểu chữ riêng.
-*   Nút mở sidebar (`#readingSidebarToggle`) chỉ hiển thị chữ "Menu", không có icon.
-
-**Các bước thực hiện:**
-
-1.  **Cập nhật HTML (`Read.cshtml`):**
-    *   Mở file `Views/Chapter/Read.cshtml`.
-    *   Tìm đến div `.chapter-info-row`.
-    *   **Thay đổi cấu trúc** bên trong nó:
+1.  **Thêm Tab (`Profile.cshtml`):**
+    *   Trong `<ul class="nav nav-tabs" id="profileTabs">`, thêm một `<li>` và `<button>` mới:
         ```html
-         <div class="chapter-info-row">
-             <div class="chapter-info-item chapter-info-number"> @* Div cho số chương *@
-                 <span>Chương @Model.ChapterNumber</span>
-             </div>
-             <div class="chapter-info-item chapter-info-title-wrapper"> @* Div cho tiêu đề *@
-                 <h2>@Model.ChapterTitle</h2>
-             </div>
-             <div class="chapter-info-item chapter-info-controls"> @* Div cho nút controls *@
-                 <button id="readingSidebarToggle" class="btn btn-theme-outline">
-                     Menu @* Chỉ còn text "Menu" *@
-                 </button>
-             </div>
-         </div>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab" aria-controls="history" aria-selected="false">
+                <i class="bi bi-clock-history me-1"></i> Lịch sử đọc
+            </button>
+        </li>
         ```
 
-2.  **Cập nhật CSS (`read.css`):**
-    *   Mở file `wwwroot/css/pages/read.css`.
-    *   **Thêm CSS** để style các `div` mới:
-        ```css
-        .chapter-info-row {
-            display: flex;
-            justify-content: space-between; /* Giữ nguyên hoặc điều chỉnh nếu cần */
-            align-items: center; /* Giữ nguyên hoặc điều chỉnh */
-            background-color: var(--card-bg); /* Nền chung cho cả hàng */
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: var(--card-shadow);
-        }
-
-        .chapter-info-item {
-            /* Có thể thêm padding/margin nếu cần khoảng cách giữa các item */
-             padding: 0.25rem 0.5rem; 
-        }
-
-        .chapter-info-number {
-            /* Style cho số chương */
-            font-weight: bold;
-            color: var(--text-muted);
-            font-size: 1.1rem;
-            text-align: left;
-            flex-basis: 20%; /* Phân chia không gian */
-        }
-
-        .chapter-info-title-wrapper {
-            /* Style cho tiêu đề */
-            text-align: center;
-            flex-grow: 1; /* Cho phép tiêu đề chiếm không gian còn lại */
-        }
-        
-        .chapter-info-title-wrapper h2 {
-             margin-bottom: 0; /* Reset margin mặc định của h2 */
-             font-size: 1.2rem; /* Giữ nguyên hoặc điều chỉnh */
-             color: var(--body-color);
-        }
-
-        .chapter-info-controls {
-            /* Style cho nút controls */
-            text-align: right;
-            flex-basis: 20%; /* Phân chia không gian */
-        }
-        
-        /* Style riêng cho nút Menu nếu cần */
-        #readingSidebarToggle {
-            /* Ví dụ: font-weight: bold; */
-        }
-
-        /* Responsive cho chapter-info-row */
-        @media (max-width: 768px) {
-            .chapter-info-row {
-                flex-direction: column;
-                gap: 0.5rem; /* Thêm khoảng cách giữa các item khi xếp dọc */
-                 padding: 0.5rem;
-            }
-            .chapter-info-number,
-            .chapter-info-title-wrapper,
-            .chapter-info-controls {
-                 text-align: center; /* Căn giữa trên mobile */
-                 flex-basis: auto; /* Reset flex-basis */
-                 width: 100%;
-            }
-             .chapter-info-number {
-                 font-size: 1rem;
-             }
-             .chapter-info-title-wrapper h2 {
-                 font-size: 1.1rem;
-             }
-        }
-        ```
-    *   Điều chỉnh các giá trị `padding`, `font-size`, `flex-basis`, `background-color` (có thể dùng `var(--bs-secondary-bg)` hoặc màu khác) cho phù hợp với thiết kế mong muốn.
-
-## 5. Tăng Kích Thước Font Tiêu Đề Manga
-
-**Mục tiêu:** Làm cho tiêu đề manga (`h1.manga-title`) trên trang Read lớn hơn.
-
-**Các bước thực hiện:**
-
-1.  **Cập nhật CSS (`read.css`):**
-    *   Mở file `wwwroot/css/pages/read.css`.
-    *   **Thêm hoặc sửa** CSS rule cho `h1.manga-title` (có thể cần thêm selector cha `.chapter-reader-container` để đảm bảo chỉ ảnh hưởng trang Read):
-        ```css
-        .chapter-reader-container h1.manga-title {
-            font-size: 2rem; /* Tăng kích thước font (điều chỉnh giá trị nếu cần) */
-            font-weight: bold; /* Có thể thêm độ đậm nếu muốn */
-            margin-bottom: 0.75rem; /* Điều chỉnh khoảng cách dưới */
-        }
+2.  **Thêm Tab Pane (`Profile.cshtml`):**
+    *   Trong `<div class="tab-content" id="profileTabsContent">`, thêm một `<div>` mới:
+        ```html
+        <div class="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab">
+            @* Nội dung lịch sử đọc sẽ được render ở đây *@
+        </div>
         ```
 
-## 6. Đồng Bộ Style Cho Reading Sidebar
-
-**Mục tiêu:** Làm cho nền và viền của `#readingSidebar` giống với `#sidebarMenu`.
-
-**Các bước thực hiện:**
-
-1.  **Kiểm tra Style Sidebar Chính:**
-    *   Mở file `wwwroot/css/core/sidebar.css`.
-    *   Tìm đến rule `#sidebarMenu`.
-    *   Ghi lại các giá trị của `background-color` (ví dụ: `var(--body-bg)`) và `border-right` (ví dụ: `1px solid var(--border-color)`).
-
-2.  **Cập nhật CSS (`read.css`):**
-    *   Mở file `wwwroot/css/pages/read.css`.
-    *   Tìm đến rule `.reading-sidebar` hoặc `#readingSidebar`.
-    *   **Áp dụng** các style tương tự, nhưng đổi `border-right` thành `border-left`:
-        ```css
-        .reading-sidebar {
-            /* ... các style khác ... */
-            background-color: var(--body-bg); /* Áp dụng background từ sidebar chính */
-            border-left: 1px solid var(--border-color); /* Áp dụng border tương tự, nhưng ở bên trái */
-            box-shadow: -5px 0px 15px rgba(0, 0, 0, 0.1); /* Điều chỉnh shadow cho phù hợp khi ở bên phải */
-             color: var(--body-color); /* Đảm bảo màu chữ phù hợp */
-        }
-
-        /* Đảm bảo các thành phần con cũng có màu phù hợp */
-         .reading-sidebar .sidebar-section h6 {
-             color: var(--text-muted);
-         }
-          .reading-sidebar .btn-theme-outline {
-             color: var(--body-color);
-             border-color: var(--border-color);
-         }
-         .reading-sidebar .btn-theme-outline:hover {
-             background-color: var(--hover-bg);
-         }
-         .reading-sidebar .form-select {
-             background-color: var(--input-bg);
-             color: var(--input-color);
-             border-color: var(--input-border);
-         }
-          .reading-sidebar .btn-close {
-              /* Đảm bảo nút close hiển thị đúng theme */
-              filter: var(--bs-btn-close-filter); 
-          }
-        ```
-    *   **Lưu ý:** Sử dụng các biến CSS (`var(...)`) để đảm bảo sidebar này cũng thay đổi theo theme sáng/tối.
-
-## 7. Implement Chức Năng Ghim Sidebar (Pin Sidebar)
-
-**Mục tiêu:**
-*   Nút `#pinSidebarBtn` có thể ghim/bỏ ghim `ReadingSidebar`.
-*   Khi ghim, sidebar luôn mở (trừ khi bấm nút close). Click ra ngoài không đóng sidebar.
-*   Khi ghim, layout chính (`.chapter-reader-container`) tự động co lại để chừa chỗ cho sidebar.
-
-**Các bước thực hiện:**
-
-1.  **Cập nhật JavaScript (`read-page.js`):**
-    *   Mở file `wwwroot/js/modules/read-page.js`.
-    *   **Thêm biến trạng thái:**
-        ```javascript
-        let isSidebarPinned = localStorage.getItem('readingSidebarPinned') === 'true'; // Đọc trạng thái đã lưu
-        ```
-    *   **Cập nhật `initSidebarToggle()`:**
-        *   Trong hàm `closeSidebar()`, thêm kiểm tra:
-            ```javascript
-            function closeSidebar(forceClose = false) { // Thêm tham số forceClose
-                if (!isSidebarPinned || forceClose) { // Chỉ đóng nếu không ghim HOẶC bị buộc đóng
-                    sidebar.classList.remove('open');
-                    // Không cần lưu state ở đây nữa nếu dùng localStorage cho pin
-                } else {
-                    console.log('[Read Page] Sidebar is pinned, close action ignored.');
+3.  **Render Danh sách Lịch sử (trong `#history` tab pane):**
+    *   **Cách 1: Render trực tiếp trong `Profile.cshtml`:**
+        ```html
+        @if (Model.ReadingHistory != null && Model.ReadingHistory.Any())
+        {
+            <div class="list-group">
+                @foreach (var item in Model.ReadingHistory.OrderByDescending(h => h.LastReadAt)) // Sắp xếp theo thời gian đọc mới nhất
+                {
+                    <div class="list-group-item list-group-item-action d-flex align-items-center">
+                        <img src="@item.MangaCoverUrl" alt="@item.MangaTitle" class="me-3 rounded" style="width: 50px; height: 70px; object-fit: cover;" onerror="this.onerror=null; this.src='/images/cover-placeholder.jpg';" />
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <a asp-controller="Manga" asp-action="Details" asp-route-id="@item.MangaId" class="text-decoration-none">
+                                    @item.MangaTitle
+                                </a>
+                            </h6>
+                            <p class="mb-1 small">
+                                Đã đọc: <span class="fw-bold">@item.ChapterTitle</span>
+                            </p>
+                            <small class="text-muted">
+                                <i class="bi bi-clock me-1"></i> @item.LastReadAt.ToString("dd/MM/yyyy HH:mm")
+                            </small>
+                        </div>
+                        <a asp-controller="Chapter" asp-action="Read" asp-route-id="@item.ChapterId"
+                           class="btn btn-sm btn-primary ms-3"
+                           hx-get="@Url.Action("Read", "Chapter", new { id = item.ChapterId })"
+                           hx-target="#main-content"
+                           hx-push-url="true">
+                            <i class="bi bi-book-fill me-1"></i> Đọc tiếp
+                        </a>
+                    </div>
                 }
-            }
-            ```
-        *   Sửa listener của nút close (`#closeSidebarBtn`) để luôn đóng:
-            ```javascript
-            closeBtn.addEventListener('click', () => closeSidebar(true)); // Luôn đóng khi bấm nút X
-            ```
-        *   Sửa listener của phím ESC để luôn đóng:
-            ```javascript
-             document.addEventListener('keydown', (e) => {
-                 if (e.key === 'Escape' && sidebar.classList.contains('open')) {
-                     closeSidebar(true); // Luôn đóng khi bấm ESC
-                 }
-             });
-            ```
-    *   **Cập nhật `initContentAreaClickToOpenSidebar()`:**
-        *   Trong listener `imageContainer.addEventListener('click', ...)`:
-            *   Khi kiểm tra `if (sidebar.classList.contains('open'))`, thêm điều kiện `&& !isSidebarPinned`:
-                ```javascript
-                 if (sidebar.classList.contains('open') && !isSidebarPinned) { // Chỉ đóng nếu đang mở và KHÔNG ghim
-                     sidebar.classList.remove('open');
-                     console.log('[Read Page] Sidebar closed by image container click (not pinned).');
-                 } else if (!sidebar.classList.contains('open')) { // Vẫn mở nếu đang đóng
-                     sidebar.classList.add('open');
-                     console.log('[Read Page] Sidebar opened by image container click.');
-                 } else if (isSidebarPinned) {
-                      console.log('[Read Page] Sidebar is pinned, click on content ignored.');
-                 }
-                ```
-    *   **Thêm hàm xử lý nút Pin:**
-        ```javascript
-        function initPinButton() {
-            const pinBtn = document.getElementById('pinSidebarBtn');
-            const sidebar = document.getElementById('readingSidebar');
-            const body = document.body; // Hoặc container chính nếu cần
-
-            if (!pinBtn || !sidebar) return;
-
-            // Cập nhật trạng thái nút pin ban đầu
-            function updatePinButtonState() {
-                if (isSidebarPinned) {
-                    pinBtn.classList.add('active');
-                    pinBtn.innerHTML = '<i class="bi bi-pin-fill"></i>'; // Icon đã ghim
-                    body.classList.add('sidebar-pinned'); // Thêm class vào body
-                    if (!sidebar.classList.contains('open')) {
-                         sidebar.classList.add('open'); // Mở sidebar nếu đang ghim mà bị đóng
-                    }
-                } else {
-                    pinBtn.classList.remove('active');
-                    pinBtn.innerHTML = '<i class="bi bi-pin"></i>'; // Icon chưa ghim
-                    body.classList.remove('sidebar-pinned'); // Xóa class khỏi body
-                }
-            }
-
-            pinBtn.addEventListener('click', () => {
-                isSidebarPinned = !isSidebarPinned; // Đảo trạng thái
-                localStorage.setItem('readingSidebarPinned', isSidebarPinned); // Lưu trạng thái
-                updatePinButtonState();
-                console.log(`[Read Page] Sidebar pinned state: ${isSidebarPinned}`);
-                 // Mở sidebar nếu vừa ghim
-                 if (isSidebarPinned && !sidebar.classList.contains('open')) {
-                     sidebar.classList.add('open');
-                 }
-            });
-
-            // Áp dụng trạng thái ban đầu khi load
-            updatePinButtonState();
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-book" style="font-size: 3rem;"></i>
+                <h5 class="mt-3">Bạn chưa đọc manga nào</h5>
+                <p class="text-muted">Bắt đầu đọc manga để ghi lại tiến độ.</p>
+                <a href="@Url.Action("Search", "Manga")" class="btn btn-primary">
+                    <i class="bi bi-search me-1"></i> Tìm manga
+                </a>
+            </div>
         }
         ```
-    *   **Gọi hàm `initPinButton()`** bên trong `initReadPage()`.
+    *   **Cách 2: Sử dụng Partial View (Khuyến nghị):**
+        *   Tạo file `_ReadingHistoryPartial.cshtml`.
+        *   Copy nội dung render danh sách (phần `@if ... @else ...`) vào file partial này. Đổi `@Model` thành `@model List<ReadingHistoryViewModel>`.
+        *   Trong `Profile.cshtml`, tại vị trí render, gọi:
+            ```html
+            @Html.Partial("_ReadingHistoryPartial", Model.ReadingHistory)
+            ```
 
-2.  **Cập nhật CSS (`read.css`):**
-    *   Mở file `wwwroot/css/pages/read.css`.
-    *   **Thêm CSS** để xử lý layout khi sidebar được ghim:
-        ```css
-        /* Container chính của trang đọc */
-        .chapter-reader-container {
-            transition: margin-right var(--transition-speed) ease-in-out, width var(--transition-speed) ease-in-out;
-            /* Mặc định không có margin-right */
-            margin-right: 0; 
-             width: 100%; /* Hoặc giá trị max-width ban đầu */
-        }
+4.  **CSS (Nếu cần):** Thêm các style cần thiết cho danh sách lịch sử đọc để đảm bảo giao diện đẹp mắt, có thể tái sử dụng các class từ danh sách theo dõi.
 
-        /* Khi sidebar được ghim (thêm class vào body) */
-        body.sidebar-pinned .chapter-reader-container {
-            /* Đẩy nội dung sang trái để chừa chỗ cho sidebar */
-            margin-right: 300px; /* Bằng chiều rộng của sidebar */
-            /* Giảm chiều rộng của nội dung */
-             width: calc(100% - 300px); /* Điều chỉnh nếu container có max-width */
-             /* Hoặc nếu dùng max-width: 
-                max-width: calc(1000px - 300px); /* Ví dụ max-width ban đầu là 1000px */
-             */
-        }
+## 7. Kiểm tra và Hoàn thiện
 
-        /* Style cho nút pin khi active */
-        #pinSidebarBtn.active {
-            background-color: var(--primary-color);
-            color: white;
-             border-color: var(--primary-color);
-        }
-         #pinSidebarBtn.active:hover {
-             background-color: var(--bs-primary-dark); /* Màu đậm hơn khi hover */
-         }
-        ```
-    *   Điều chỉnh giá trị `300px` (chiều rộng sidebar) và selector `.chapter-reader-container` nếu cần cho phù hợp với cấu trúc HTML và CSS của bạn.
+*   **Kiểm tra chức năng:**
+    *   Đăng nhập.
+    *   Đọc một vài chapter của các manga khác nhau.
+    *   Vào trang Profile, kiểm tra tab "Lịch sử đọc".
+    *   Dữ liệu có hiển thị đúng (ảnh bìa, tên truyện, tên chương, thời gian)?
+    *   Danh sách có được sắp xếp theo thời gian đọc mới nhất không?
+    *   Nút "Đọc tiếp" có chuyển đúng đến chapter đã lưu không?
+    *   Đọc tiếp một chapter khác của cùng một truyện, kiểm tra xem lịch sử có cập nhật đúng chapter mới nhất không?
+    *   Đăng xuất và đăng nhập lại, kiểm tra lịch sử vẫn còn.
+*   **Kiểm tra giao diện:** Đảm bảo hiển thị tốt trên các kích thước màn hình khác nhau.
+*   **Xử lý lỗi:** Kiểm tra các trường hợp lỗi (không lấy được thông tin manga/chapter).
+*   **Tối ưu:** Xem xét việc cache thông tin manga/chapter nếu cần thiết để giảm tải cho API.
 
-3.  **Khởi tạo Trạng thái Ghim:**
-    *   Trong hàm `initReadPage()`, sau khi gọi `initPinButton()`, đảm bảo trạng thái ghim ban đầu được áp dụng đúng cách (hàm `updatePinButtonState` đã xử lý việc này khi đọc từ `localStorage`).
-
----
-
-**Lưu ý:**
-*   Kiểm tra kỹ các selector CSS và ID của element để đảm bảo chúng khớp với code HTML hiện tại.
-*   Sử dụng `console.log` thường xuyên trong quá trình phát triển để theo dõi luồng thực thi và giá trị biến.
-*   Sau mỗi thay đổi, kiểm tra lại trên cả desktop và mobile.
-*   Đảm bảo các thay đổi trong JavaScript được gọi đúng thời điểm, đặc biệt là sau các thao tác HTMX.
+Hoàn thành các bước trên sẽ giúp bạn triển khai thành công chức năng Lịch sử đọc cho ứng dụng.

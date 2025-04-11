@@ -20,7 +20,7 @@ import SearchModule from './search.js';
 import { initThemeSwitcher } from './theme.js';
 import { initAuthUI } from '../auth.js';
 import { initCustomDropdowns } from './custom-dropdown.js';
-import { initReadPage, initImageLoading, initSidebarToggle, initChapterDropdownNav, initContentAreaClickToOpenSidebar } from './read-page.js';
+import { initReadPage, initImageLoading, initSidebarToggle, initChapterDropdownNav, initContentAreaClickToOpenSidebar, initImageScaling, initPlaceholderButtons } from './read-page.js';
 
 /**
  * Khởi tạo lại các chức năng cần thiết sau khi HTMX cập nhật nội dung
@@ -46,7 +46,7 @@ function reinitializeAfterHtmxSwap(targetElement) {
         // Khởi tạo lại trang đọc chapter nếu có
         if (targetElement.querySelector('.chapter-reader-container') || targetElement.querySelector('#readingSidebar')) {
             console.log('[HTMX Swap] Chapter Read page detected, initializing read-page modules');
-            initReadPage();
+            initReadPage(); // Hàm này đã bao gồm initImageScaling và initPlaceholderButtons
         }
         // Khởi tạo lại pagination nếu có trong nội dung mới
         if (targetElement.querySelector('.pagination')) {
@@ -71,6 +71,16 @@ function reinitializeAfterHtmxSwap(targetElement) {
     else if (targetElement.id === 'chapterImagesContainer') {
         console.log('[HTMX Swap] Chapter images container swapped, initializing image loading...');
         initImageLoading('#chapterImagesContainer');
+        // Không cần gọi initImageScaling ở đây vì nút scale không bị swap
+    }
+    // Xử lý khi chỉ sidebar đọc truyện được swap (nếu có)
+    else if (targetElement.id === 'readingSidebar') {
+         console.log('[HTMX Swap] Reading sidebar swapped, reinitializing relevant parts...');
+         // Gọi lại các hàm init cần thiết cho các nút trong sidebar
+         initSidebarToggle(); // Cần gọi lại nếu nút toggle bị swap
+         initChapterDropdownNav(); // Cần gọi lại cho dropdown
+         initPlaceholderButtons(); // Gọi lại cho các nút placeholder
+         initImageScaling(); // Gọi lại để gắn listener cho nút scale
     }
 
     // Luôn khởi tạo lại các component Bootstrap trong phần tử đã swap
@@ -142,7 +152,7 @@ function reinitializeAfterHtmxLoad(targetElement) {
         initMangaDetailsPage(); // Khởi tạo dropdown chapter, nút follow, etc.
     } else if (targetElement.querySelector('.chapter-reader-container') || targetElement.querySelector('#readingSidebar')) {
         console.log('[HTMX Load] Reinitializing Chapter Read Page...');
-        initReadPage(); // Khởi tạo sidebar, lazy loading, dropdown navigation
+        initReadPage(); // Hàm này đã bao gồm initImageScaling và initPlaceholderButtons
     } else {
         // Trang chủ hoặc trang khác? Khởi tạo lại các thành phần cần thiết
         console.log('[HTMX Load] Reinitializing Home Page or other...');

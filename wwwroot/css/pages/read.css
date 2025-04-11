@@ -17,7 +17,7 @@
     text-align: center;
 }
 
-.manga-title {
+.chapter-header .manga-title {
     font-size: 1.8rem;
     margin-bottom: 1.5rem;
     color: var(--text-color);
@@ -79,6 +79,9 @@
 /* Container cho ảnh chapter */
 .chapter-images-container {
     margin-bottom: 2rem;
+    /* Có thể cần thêm overflow: hidden nếu container cha có padding/margin
+       ảnh hưởng đến việc căn giữa 100vw */
+    /* overflow: hidden; */
 }
 
 .chapter-images {
@@ -90,18 +93,34 @@
 
 .page-image-container {
     position: relative;
-    width: 100%;
+    width: 100%; /* Mặc định theo container cha */
     min-height: 200px;
-    background-color: var(--bg-secondary);
+    background-color: var(--card-bg);
     border-radius: 0.5rem;
     overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Thêm transition để thay đổi kích thước mượt hơn */
+    transition: width 0.3s ease, margin-left 0.3s ease, transform 0.3s ease, background-color 0.3s ease, border-radius 0.3s ease;
+    margin-left: auto; /* Cần thiết để căn giữa khi không phải 100vw */
+    margin-right: auto;
+    transform: translateX(0); /* Trạng thái mặc định */
 }
 
 .chapter-page-image {
     display: block;
-    width: 100%;
     height: auto;
-    margin: 0 auto;
+    margin: 0 auto; /* Căn giữa ảnh bên trong container */
+    opacity: 0;
+    transition: opacity 0.3s ease 0.1s, max-width 0.3s ease; /* Thêm transition cho max-width */
+    position: relative;
+    z-index: 1;
+    background-color: transparent;
+    vertical-align: middle;
+    /* Mặc định, ảnh bị giới hạn bởi container */
+    max-width: 100%;
+    width: auto; /* Để giữ tỷ lệ */
 }
 
 /* Loading indicator */
@@ -114,8 +133,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: var(--bg-secondary);
+    background-color: var(--card-bg);
     z-index: 2;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
 }
 
 /* Error overlay */
@@ -129,24 +151,58 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-color: rgba(var(--error-rgb), 0.8);
+    background-color: rgba(var(--danger-rgb, 220, 53, 69), 0.8);
     color: white;
+    text-align: center;
     z-index: 3;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    border-radius: inherit;
 }
 
-.retry-button {
-    margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    background-color: white;
-    color: var(--error);
-    border: none;
-    border-radius: 0.25rem;
-    cursor: pointer;
-    font-weight: bold;
+.error-overlay i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
 }
 
-.retry-button:hover {
-    background-color: #f8f9fa;
+/* Trạng thái đang tải */
+.page-image-container.loading .loading-indicator {
+    opacity: 1;
+    pointer-events: none;
+}
+.page-image-container.loading img.chapter-page-image {
+    opacity: 0 !important;
+}
+.page-image-container.loading .error-overlay {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Trạng thái tải xong */
+.page-image-container.loaded .loading-indicator {
+    opacity: 0;
+    pointer-events: none;
+}
+.page-image-container.loaded img.chapter-page-image {
+    opacity: 1 !important;
+}
+ .page-image-container.loaded .error-overlay {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Trạng thái lỗi */
+.page-image-container.error .loading-indicator {
+    opacity: 0;
+    pointer-events: none;
+}
+.page-image-container.error img.chapter-page-image {
+    opacity: 0 !important;
+}
+.page-image-container.error .error-overlay {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 /* Chapter footer */
@@ -299,4 +355,130 @@
         width: 85%;
         right: -85%;
     }
+}
+
+/* Chế độ căng ngang */
+.chapter-images-container.fit-width-mode .page-image-container {
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 0;
+    background-color: black;
+}
+
+.chapter-images-container.fit-width-mode .chapter-page-image {
+    max-width: 100%;
+}
+
+/* Chế độ mặc định (ghi đè nếu cần) */
+.chapter-images-container:not(.fit-width-mode) .page-image-container {
+    width: 100%;
+    left: auto;
+    transform: translateX(0);
+    border-radius: 0.5rem;
+    background-color: var(--card-bg);
+}
+
+.chapter-images-container:not(.fit-width-mode) .chapter-page-image {
+}
+
+/* === Các quy tắc CSS mới cho image scaling === */
+
+/* Container chính cho ảnh */
+.chapter-images-container {
+    /* Có thể cần thêm overflow: hidden nếu container cha có padding/margin
+       ảnh hưởng đến việc căn giữa 100vw */
+    /* overflow: hidden; */
+}
+
+.page-image-container {
+    position: relative;
+    width: 100%; /* Mặc định theo container cha */
+    min-height: 200px;
+    background-color: var(--card-bg);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Thêm transition để thay đổi kích thước mượt hơn */
+    transition: width 0.3s ease, margin-left 0.3s ease, transform 0.3s ease, background-color 0.3s ease, border-radius 0.3s ease;
+    margin-left: auto; /* Cần thiết để căn giữa khi không phải 100vw */
+    margin-right: auto;
+    transform: translateX(0); /* Trạng thái mặc định */
+}
+
+.chapter-page-image {
+    display: block;
+    height: auto;
+    margin: 0 auto; /* Căn giữa ảnh bên trong container */
+    opacity: 0;
+    transition: opacity 0.3s ease 0.1s, max-width 0.3s ease; /* Thêm transition cho max-width */
+    position: relative;
+    z-index: 1;
+    background-color: transparent;
+    vertical-align: middle;
+    /* Mặc định, ảnh bị giới hạn bởi container */
+    max-width: 100%;
+    width: auto; /* Để giữ tỷ lệ */
+}
+
+/* --- Chế độ căng ngang (Fit Width - Full Viewport) --- */
+.chapter-images-container.fit-width-mode .page-image-container {
+    width: 100vw; /* Quan trọng: Rộng bằng viewport */
+    /* Kỹ thuật căn giữa container 100vw */
+    position: relative; /* Cần thiết cho transform */
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 0; /* Bỏ bo góc khi full width */
+    background-color: black; /* Tùy chọn: đổi nền thành đen */
+}
+
+.chapter-images-container.fit-width-mode .chapter-page-image {
+    max-width: 100%; /* Giới hạn bởi container 100vw */
+    /* width: auto; không cần thay đổi */
+    /* height: auto; không cần thay đổi */
+    /* margin: 0 auto; không cần thay đổi */
+}
+
+/* --- Chế độ Mặc định (Default) --- */
+/* Đảm bảo các style mặc định được áp dụng khi không có class fit-width-mode */
+.chapter-images-container:not(.fit-width-mode) .page-image-container {
+    width: 100%; /* Quay về chiều rộng container cha */
+    left: auto; /* Reset thuộc tính left */
+    transform: translateX(0); /* Reset transform */
+    border-radius: 0.5rem; /* Khôi phục bo góc */
+    background-color: var(--card-bg); /* Khôi phục màu nền */
+}
+
+/* Có thể cần thêm overflow-x: hidden cho body hoặc một wrapper cao hơn
+   nếu gặp vấn đề thanh cuộn ngang do 100vw */
+body {
+    overflow-x: hidden;
+}
+
+/* Xóa hiệu ứng hover cho nút Tỷ lệ ảnh và Chế độ đọc */
+#imageScaleBtn:hover, 
+#readingModeBtn:hover {
+    background-color: inherit;
+    color: inherit;
+    border-color: inherit;
+}
+
+/* Đảm bảo các nút này vẫn giữ nguyên trạng thái ban đầu khi hover */
+.reading-sidebar #imageScaleBtn:hover,
+.reading-sidebar #readingModeBtn:hover {
+    background-color: var(--input-bg);
+    color: var(--body-color);
+    border-color: var(--border-color);
+}
+
+/* Xóa hiệu ứng hover cho nút Tỷ lệ ảnh và Chế độ đọc - sử dụng !important để đảm bảo ghi đè */
+#imageScaleBtn:hover, 
+#readingModeBtn:hover {
+    background-color: var(--input-bg) !important;
+    color: var(--body-color) !important;
+    border-color: var(--border-color) !important;
+    cursor: pointer !important;
 } 

@@ -24,12 +24,15 @@
     display: flex;
     justify-content: space-between;
     margin: 1rem 0;
-    padding: 1rem 0;
     position: sticky;
     top: 0;
     background-color: var(--body-bg);
     z-index: 1000;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.reading-sidebar chapter-navigation {
+    margin-bottom: 0rem !important;
 }
 
 /* Dark mode specific */
@@ -134,7 +137,6 @@ body {
 
 .sidebar-section {
     margin-bottom: 1.5rem;
-    padding-bottom: 1.5rem;
     border-bottom: 1px solid #444;
 }
 

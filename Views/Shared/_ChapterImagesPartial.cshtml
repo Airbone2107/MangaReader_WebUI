@@ -7,11 +7,13 @@
         {
             <div class="page-image-container">
                 <div class="loading-indicator">
-                    <div class="spinner-border"></div>
+                    <div class="spinner-border text-primary" role="status"></div>
                 </div>
-                <img class="chapter-page-image lazy-load" src="" data-src="@imgPage" alt="Trang truyện" />
-                <div class="error-overlay" style="display: none;">
-                    <i class="bi bi-exclamation-triangle"></i> Lỗi tải ảnh <button class="retry-button">Thử lại</button>
+                <img class="chapter-page-image lazy-load" src="" data-src="@imgPage" alt="Trang truyện @(Model.IndexOf(imgPage) + 1)" />
+                <div class="error-overlay">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span>Lỗi tải ảnh</span>
+                    <button class="btn btn-sm btn-light retry-button mt-2">Thử lại</button>
                 </div>
             </div>
         }
