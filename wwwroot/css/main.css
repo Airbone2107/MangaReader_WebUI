@@ -50,3 +50,5 @@
 @import url("./pages/chapter.css");
 @import url("./pages/read.css");
 @import url("./pages/search/index.css");
+@import url("./pages/followed/followed.css"); /* Style cho trang truyện đang theo dõi */
+@import url("./pages/followed-item.css"); /* Style cho từng item truyện đang theo dõi */

@@ -1,4 +1,5 @@
 using manga_reader_web.Models;
+using manga_reader_web.Services.MangaServices.Models;
 using manga_reader_web.Services.UtilityServices;
 using System.Text.Json;
 
@@ -252,6 +253,75 @@ namespace manga_reader_web.Services.MangaServices.ChapterServices
             }
             
             return chaptersByLanguage;
+        }
+
+        /// <summary>
+        /// Lấy danh sách các chapter mới nhất của một manga.
+        /// </summary>
+        /// <param name="mangaId">ID của manga.</param>
+        /// <param name="limit">Số lượng chapter tối đa cần lấy.</param>
+        /// <param name="languages">Danh sách ngôn ngữ ưu tiên, phân tách bằng dấu phẩy.</param>
+        /// <returns>Danh sách các SimpleChapterInfo.</returns>
+        public async Task<List<SimpleChapterInfo>> GetLatestChaptersAsync(string mangaId, int limit, string languages = "vi,en")
+        {
+            if (string.IsNullOrEmpty(mangaId) || limit <= 0)
+            {
+                return new List<SimpleChapterInfo>();
+            }
+
+            try
+            {
+                _logger.LogInformation($"Đang lấy {limit} chapter mới nhất cho manga {mangaId} với ngôn ngữ [{languages}]");
+
+                // Gọi MangaDexService để lấy chapters, yêu cầu sắp xếp theo publishAt giảm dần
+                // Lưu ý: MangaDex API có thể sắp xếp theo 'publishAt' hoặc 'readableAt'
+                // Sử dụng 'publishAt' để lấy theo ngày đăng tải chính thức
+                var chaptersData = await _mangaDexService.FetchChaptersAsync(mangaId, languages, order: "desc", maxChapters: limit);
+
+                var latestChapters = new List<SimpleChapterInfo>();
+
+                foreach (var chapter in chaptersData)
+                {
+                    try
+                    {
+                        var chapterElement = JsonSerializer.Deserialize<JsonElement>(chapter.ToString());
+                        var chapterDict = _jsonConversionService.ConvertJsonElementToDict(chapterElement);
+
+                        if (!chapterDict.ContainsKey("id") || !chapterDict.ContainsKey("attributes")) continue;
+
+                        var attributesDict = (Dictionary<string, object>)chapterDict["attributes"];
+                        var (displayTitle, _) = GetChapterDisplayInfo(attributesDict); // Chỉ cần displayTitle
+                        var publishedAt = GetChapterPublishedDate(attributesDict);
+
+                        latestChapters.Add(new SimpleChapterInfo
+                        {
+                            ChapterId = chapterDict["id"].ToString(),
+                            DisplayTitle = displayTitle,
+                            PublishedAt = publishedAt
+                        });
+
+                        // Dừng lại khi đã đủ số lượng chapter yêu cầu
+                        if (latestChapters.Count >= limit)
+                        {
+                            break;
+                        }
+                    }
+                    catch (Exception exInner)
+                    {
+                        _logger.LogError(exInner, $"Lỗi khi xử lý dữ liệu chapter cho manga {mangaId}");
+                        continue; // Bỏ qua chapter lỗi
+                    }
+                }
+
+                _logger.LogInformation($"Đã lấy được {latestChapters.Count} chapter mới nhất cho manga {mangaId}");
+                // Không cần sắp xếp lại vì đã yêu cầu API sắp xếp
+                return latestChapters;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi lấy chapter mới nhất cho manga {mangaId}");
+                return new List<SimpleChapterInfo>(); // Trả về danh sách rỗng nếu có lỗi
+            }
         }
     }
 }

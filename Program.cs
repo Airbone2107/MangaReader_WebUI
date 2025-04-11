@@ -99,6 +99,8 @@ builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaInformat
 builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaInformation.MangaDescription>();
 // Đăng ký MangaFollowService với interface
 builder.Services.AddScoped<manga_reader_web.Services.MangaServices.IMangaFollowService, manga_reader_web.Services.MangaServices.MangaFollowService>();
+// Đăng ký FollowedMangaService
+builder.Services.AddScoped<manga_reader_web.Services.MangaServices.IFollowedMangaService, manga_reader_web.Services.MangaServices.FollowedMangaService>();
 // Giữ lại đăng ký cũ để tương thích ngược (có thể xóa sau khi đã cập nhật tất cả các thành phần khác)
 builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaFollowService>();
 builder.Services.AddScoped<manga_reader_web.Services.MangaServices.ChapterServices.ChapterService>();

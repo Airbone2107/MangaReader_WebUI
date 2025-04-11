@@ -1,0 +1,60 @@
+@model manga_reader_web.Services.MangaServices.Models.FollowedMangaViewModel
+
+<div class="custom-followed-manga-container mb-4">
+    <!-- Container ảnh bìa -->
+    <div class="Followed-Image-Container">
+        <a asp-action="Details" asp-controller="Manga" asp-route-id="@Model.MangaId"
+            hx-get="@Url.Action("Details", "Manga", new { id = Model.MangaId })"
+            hx-target="#main-content"
+            hx-push-url="true">
+            <img src="@(string.IsNullOrEmpty(Model.CoverUrl) ? "/images/cover-placeholder.jpg" : Model.CoverUrl)"
+                    class="followed-cover"
+                    alt="@Model.MangaTitle" loading="lazy"
+                    onerror="this.onerror=null; this.src='/images/cover-placeholder.jpg';">
+        </a>
+    </div>
+
+    <!-- Thông tin và chapter -->
+    <div class="custom-followed-chapter-container">
+        <!-- Tên manga -->
+        <div class="mb-2">
+            <h5 class="followed-title mb-0">
+                <a asp-action="Details" asp-controller="Manga" asp-route-id="@Model.MangaId"
+                    hx-get="@Url.Action("Details", "Manga", new { id = Model.MangaId })"
+                    hx-target="#main-content"
+                    hx-push-url="true"
+                    class="text-decoration-none">
+                    @Model.MangaTitle
+                </a>
+            </h5>
+        </div>
+
+        <!-- Danh sách chapter -->
+        <div class="latest-chapters-list">
+            @if (Model.LatestChapters != null && Model.LatestChapters.Any())
+            {
+                @foreach (var chapter in Model.LatestChapters)
+                {
+                        <a asp-controller="Chapter" asp-action="Read"
+                        asp-route-id="@chapter.ChapterId"
+                        class="custom-chapter-item chapter-link"
+                        hx-get="@Url.Action("Read", "Chapter", new { id = chapter.ChapterId })"
+                        hx-target="#main-content"
+                        hx-push-url="true">
+                        <div class="custom-chapter-info">
+                            <h6 class="mb-0 chapter-item-title">@chapter.DisplayTitle</h6>
+                            <small class="text-muted chapter-item-date">@chapter.PublishedAt.ToString("dd/MM/yyyy")</small>
+                        </div>
+                        <div class="custom-chapter-actions ms-auto">
+                                <i class="bi bi-chevron-right"></i>
+                        </div>
+                    </a>
+                }
+            }
+            else
+            {
+                <p class="text-muted small mb-0 fst-italic">Chưa có chương mới.</p>
+            }
+        </div>
+    </div>
+</div> 

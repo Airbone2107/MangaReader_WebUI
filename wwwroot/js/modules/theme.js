@@ -42,11 +42,31 @@ function applyTheme(theme) {
  * Khởi tạo chức năng chuyển đổi chế độ tối/sáng
  */
 function initThemeSwitcher() {
-    const themeSwitch = document.getElementById('themeSwitch');
-    const sidebarThemeSwitch = document.getElementById('sidebarThemeSwitch');
-    const themeText = document.getElementById('themeText');
-    const sidebarThemeText = document.getElementById('sidebarThemeText');
+    // Tìm các phần tử DOM cần thiết
+    let themeSwitcherContainer = document.getElementById('themeSwitcher');
+    let themeSwitchInput = document.getElementById('themeSwitch');
+    let themeText = document.getElementById('themeText');
     const htmlElement = document.documentElement;
+
+    // Quan trọng: Xóa listener cũ bằng cách clone và replace container
+    if (themeSwitcherContainer) {
+        const newSwitcherContainer = themeSwitcherContainer.cloneNode(true);
+        themeSwitcherContainer.parentNode.replaceChild(newSwitcherContainer, themeSwitcherContainer);
+        
+        // Cập nhật lại tham chiếu đến container và input mới sau khi clone
+        themeSwitcherContainer = newSwitcherContainer;
+        themeSwitchInput = themeSwitcherContainer.querySelector('#themeSwitch');
+        themeText = themeSwitcherContainer.querySelector('#themeText');
+
+        // Kiểm tra lại xem các phần tử con có tồn tại trong container mới không
+        if (!themeSwitchInput || !themeText) {
+            console.error("Không tìm thấy input hoặc text của theme switcher sau khi clone.");
+            return; // Dừng nếu không tìm thấy
+        }
+    } else {
+        console.error("Không tìm thấy container theme switcher.");
+        return; // Dừng nếu không tìm thấy container
+    }
 
     // Kiểm tra theme đã lưu
     const savedTheme = localStorage.getItem('theme');
@@ -58,18 +78,11 @@ function initThemeSwitcher() {
 
     // Cập nhật trạng thái các switcher
     function updateSwitches(isDark) {
-        if (themeSwitch) themeSwitch.checked = isDark;
-        if (sidebarThemeSwitch) sidebarThemeSwitch.checked = isDark;
+        if (themeSwitchInput) themeSwitchInput.checked = isDark;
         
         // Cập nhật text
         if (themeText) {
             themeText.innerHTML = isDark ? 
-                '<i class="bi bi-sun me-2"></i>Chế độ sáng' : 
-                '<i class="bi bi-moon-stars me-2"></i>Chế độ tối';
-        }
-        
-        if (sidebarThemeText) {
-            sidebarThemeText.innerHTML = isDark ? 
                 '<i class="bi bi-sun me-2"></i>Chế độ sáng' : 
                 '<i class="bi bi-moon-stars me-2"></i>Chế độ tối';
         }
@@ -103,73 +116,32 @@ function initThemeSwitcher() {
         }
     }
 
-    // Đăng ký sự kiện cho theme switch chính
-    if (themeSwitch) {
-        // Thêm sự kiện click thay vì change
-        themeSwitch.addEventListener('click', function(e) {
-            e.stopPropagation(); // Ngăn sự kiện lan ra container
-            changeTheme(this.checked);
-        });
-    }
-    
-    // Đăng ký sự kiện cho sidebar theme switch
-    if (sidebarThemeSwitch) {
-        // Thêm sự kiện click thay vì change
-        sidebarThemeSwitch.addEventListener('click', function(e) {
-            e.stopPropagation(); // Ngăn sự kiện lan ra container
-            changeTheme(this.checked);
-        });
-    }
-    
-    // Đánh dấu theme switcher container khi hover
-    const themeSwitcherContainer = document.getElementById('themeSwitcher');
-    const sidebarThemeSwitcherContainer = document.getElementById('sidebarThemeSwitcher');
-    
-    if (themeSwitcherContainer) {
-        themeSwitcherContainer.addEventListener('mouseenter', function() {
-            this.classList.add('active');
-        });
-        
-        themeSwitcherContainer.addEventListener('mouseleave', function() {
-            this.classList.remove('active');
-        });
-        
-        // Thêm sự kiện click để đổi theme khi nhấp vào container
-        themeSwitcherContainer.addEventListener('click', function(e) {
-            // Ngăn chặn hành vi mặc định của <a>
-            e.preventDefault();
-            
-            // Nếu click vào switch thì bỏ qua để sự kiện click của switch xử lý
-            if (e.target !== themeSwitch && !themeSwitch.contains(e.target)) {
-                // Đảo ngược trạng thái hiện tại
-                themeSwitch.checked = !themeSwitch.checked;
-                changeTheme(themeSwitch.checked);
-            }
-        });
-    }
-    
-    if (sidebarThemeSwitcherContainer) {
-        sidebarThemeSwitcherContainer.addEventListener('mouseenter', function() {
-            this.classList.add('active');
-        });
-        
-        sidebarThemeSwitcherContainer.addEventListener('mouseleave', function() {
-            this.classList.remove('active');
-        });
-        
-        // Thêm sự kiện click để đổi theme khi nhấp vào container
-        sidebarThemeSwitcherContainer.addEventListener('click', function(e) {
-            // Ngăn chặn hành vi mặc định của <a>
-            e.preventDefault();
-            
-            // Nếu click vào switch thì bỏ qua để sự kiện click của switch xử lý
-            if (e.target !== sidebarThemeSwitch && !sidebarThemeSwitch.contains(e.target)) {
-                // Đảo ngược trạng thái hiện tại
-                sidebarThemeSwitch.checked = !sidebarThemeSwitch.checked;
-                changeTheme(sidebarThemeSwitch.checked);
-            }
-        });
-    }
+    // Gắn một listener duy nhất vào themeSwitcherContainer
+    themeSwitcherContainer.addEventListener('click', function(e) {
+        e.preventDefault(); // Ngăn hành vi mặc định của thẻ <a>
+
+        // Lấy trạng thái hiện tại của checkbox *trước khi* thay đổi
+        const isCurrentlyDark = themeSwitchInput.checked;
+        let newIsDark;
+
+        // Xác định trạng thái mới dựa trên việc click vào đâu
+        if (e.target === themeSwitchInput) {
+            // Nếu click trực tiếp vào checkbox, trạng thái mới là trạng thái *sau khi* click
+            // Tuy nhiên, sự kiện click trên container xảy ra trước khi trạng thái checked thay đổi
+            // nên ta cần đảo ngược trạng thái hiện tại để có trạng thái mới
+            newIsDark = !isCurrentlyDark;
+            // Cập nhật trạng thái checked của input một cách thủ công để đồng bộ
+            themeSwitchInput.checked = newIsDark;
+        } else {
+            // Nếu click vào vùng khác của container (<a> hoặc <span>),
+            // thì đảo ngược trạng thái hiện tại và cập nhật checkbox
+            newIsDark = !isCurrentlyDark;
+            themeSwitchInput.checked = newIsDark;
+        }
+
+        // Gọi hàm thay đổi theme một lần duy nhất với trạng thái mới
+        changeTheme(newIsDark);
+    });
     
     // Khởi chạy lần đầu tiên mà không hiển thị thông báo
     changeTheme(savedTheme === 'dark', false);

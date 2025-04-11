@@ -90,7 +90,8 @@ function closeAllDropdowns(excludeDropdown = null) {
  */
 function closeDropdownsOnClickOutside(event) {
     // Kiểm tra xem click có phải bên ngoài dropdown không
-    if (!event.target.closest('.custom-user-dropdown')) {
+    // Bổ sung: không đóng dropdown khi click vào theme switcher
+    if (!event.target.closest('.custom-user-dropdown') && !event.target.closest('#themeSwitcher')) {
         closeAllDropdowns();
     }
 }

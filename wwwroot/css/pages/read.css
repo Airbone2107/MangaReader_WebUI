@@ -117,7 +117,6 @@
     position: relative;
     z-index: 1;
     background-color: transparent;
-    vertical-align: middle;
     /* Mặc định, ảnh bị giới hạn bởi container */
     max-width: 100%;
     width: auto; /* Để giữ tỷ lệ */
@@ -380,17 +379,7 @@
     background-color: var(--card-bg);
 }
 
-.chapter-images-container:not(.fit-width-mode) .chapter-page-image {
-}
-
 /* === Các quy tắc CSS mới cho image scaling === */
-
-/* Container chính cho ảnh */
-.chapter-images-container {
-    /* Có thể cần thêm overflow: hidden nếu container cha có padding/margin
-       ảnh hưởng đến việc căn giữa 100vw */
-    /* overflow: hidden; */
-}
 
 .page-image-container {
     position: relative;
@@ -418,7 +407,6 @@
     position: relative;
     z-index: 1;
     background-color: transparent;
-    vertical-align: middle;
     /* Mặc định, ảnh bị giới hạn bởi container */
     max-width: 100%;
     width: auto; /* Để giữ tỷ lệ */

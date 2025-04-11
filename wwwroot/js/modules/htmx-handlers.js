@@ -93,7 +93,7 @@ function reinitializeAfterHtmxSwap(targetElement) {
     }
     if (targetElement.querySelector('#themeSwitch')) {
         // Re-init theme switcher logic if needed
-        initThemeSwitcher(); // Safe to call again
+        initThemeSwitcher(); // Bây giờ đã an toàn khi gọi lại, vì đã xử lý việc xóa bỏ listener cũ
     }
     if (targetElement.querySelector('.custom-user-dropdown')) {
         // Ensure Custom Dropdown is initialized if the dropdown itself was swapped
@@ -132,7 +132,7 @@ function reinitializeAfterHtmxLoad(targetElement) {
     initSidebar();          // Trạng thái sidebar, link active
     initAuthUI();           // Trạng thái đăng nhập header (QUAN TRỌNG)
     initCustomDropdowns();  // Khởi tạo lại custom dropdowns
-    initThemeSwitcher();    // Trạng thái nút theme
+    initThemeSwitcher();    // Trạng thái nút theme - bây giờ đã an toàn khi gọi lại
     initBackToTop();        // Nút back-to-top
     initResponsive();       // Xử lý responsive chung
     fixAccordionIssues();   // Sửa lỗi accordion chung

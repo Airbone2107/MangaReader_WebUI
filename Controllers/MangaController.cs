@@ -3,6 +3,7 @@ using manga_reader_web.Services.AuthServices;
 using manga_reader_web.Services.MangaServices;
 using manga_reader_web.Services.MangaServices.MangaInformation;
 using manga_reader_web.Services.MangaServices.MangaPageService;
+using manga_reader_web.Services.MangaServices.Models;
 using manga_reader_web.Services.UtilityServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
@@ -23,6 +24,7 @@ namespace manga_reader_web.Controllers
         private readonly IMangaFollowService _mangaFollowService;
         private readonly IUserService _userService;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IFollowedMangaService _followedMangaService;
 
         public MangaController(
             MangaDexService mangaDexService, 
@@ -34,7 +36,8 @@ namespace manga_reader_web.Controllers
             ViewRenderService viewRenderService,
             IMangaFollowService mangaFollowService,
             IUserService userService,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            IFollowedMangaService followedMangaService)
         {
             _mangaDexService = mangaDexService;
             _logger = logger;
@@ -46,6 +49,7 @@ namespace manga_reader_web.Controllers
             _mangaFollowService = mangaFollowService;
             _userService = userService;
             _httpClientFactory = httpClientFactory;
+            _followedMangaService = followedMangaService;
         }
 
         // Thêm class SessionKeys
@@ -535,6 +539,40 @@ namespace manga_reader_web.Controllers
             {
                 _logger.LogError("[VIEW_MODE] Lỗi khi lấy dữ liệu manga từ Session: {Message}", ex.Message);
                 return PartialView("_NoResultsPartial");
+            }
+        }
+
+        // GET: /Manga/Followed
+        public async Task<IActionResult> Followed()
+        {
+            // 1. Kiểm tra xác thực người dùng
+            if (!_userService.IsAuthenticated())
+            {
+                // Chuyển hướng đến trang đăng nhập nếu chưa đăng nhập
+                return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action("Followed", "Manga") });
+            }
+
+            try
+            {
+                _logger.LogInformation("Bắt đầu lấy danh sách truyện đang theo dõi.");
+                // 2. Gọi Service mới để lấy dữ liệu
+                var followedMangas = await _followedMangaService.GetFollowedMangaListAsync();
+
+                _logger.LogInformation($"Tìm thấy {followedMangas.Count} truyện đang theo dõi.");
+
+                // 3. Tạo ViewModel (nếu cần thiết - có thể dùng List<FollowedMangaViewModel> trực tiếp)
+                var viewModel = followedMangas; // Đơn giản hóa, dùng trực tiếp list
+
+                // 4. Sử dụng ViewRenderService để trả về View hoặc PartialView
+                return _viewRenderService.RenderViewBasedOnRequest(this, viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tải trang truyện đang theo dõi.");
+                // Có thể hiển thị trang lỗi hoặc thông báo lỗi
+                ViewBag.ErrorMessage = "Không thể tải danh sách truyện đang theo dõi. Vui lòng thử lại sau.";
+                // Trả về view với model rỗng hoặc view lỗi
+                return View(new List<FollowedMangaViewModel>());
             }
         }
     }
