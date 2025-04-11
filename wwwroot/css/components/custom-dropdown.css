@@ -1,0 +1,136 @@
+/**
+ * Custom User Dropdown Style
+ * Thay thế Bootstrap dropdown bằng custom CSS sử dụng CSS variables cho theme awareness
+ */
+
+/* Container chính */
+.custom-user-dropdown {
+    position: relative;
+    display: inline-block;
+    z-index: 1020;
+}
+
+/* Nút toggle dropdown */
+.dropdown-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: transparent;
+    color: var(--navbar-color, #fff);
+    border: none;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease;
+    width: auto;
+    min-width: fit-content;
+}
+
+.dropdown-toggle-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Icon người dùng */
+.user-icon {
+    font-size: 1.25rem;
+    margin-right: 0.25rem;
+}
+
+/* Tên người dùng */
+.user-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: none;
+    display: inline-block;
+    margin-right: 0.25rem;
+}
+
+/* Arrow icon */
+.dropdown-arrow-icon {
+    font-size: 0.75rem;
+    transition: transform 0.2s ease;
+}
+
+/* Arrow icon khi dropdown mở */
+.custom-user-dropdown.show .dropdown-arrow-icon {
+    transform: rotate(180deg);
+}
+
+/* Menu dropdown */
+.dropdown-menu-content {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.5rem);
+    background-color: var(--dropdown-bg, #fff);
+    min-width: 200px;
+    border-radius: 0.375rem;
+    padding: 0.5rem 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.175);
+    display: none;
+    border: 1px solid var(--dropdown-border, rgba(0, 0, 0, 0.1));
+    z-index: 1021;
+}
+
+/* Menu dropdown khi hiển thị */
+.custom-user-dropdown.show .dropdown-menu-content {
+    display: block;
+    animation: fadeIn 0.2s ease;
+}
+
+/* Dropdown item */
+.dropdown-item {
+    display: block;
+    width: 100%;
+    clear: both;
+    font-weight: 400;
+    color: var(--body-color, #212529);
+    text-align: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.dropdown-item:hover, 
+.dropdown-item:focus {
+    background-color: var(--hover-bg, rgba(0, 0, 0, 0.05));
+    text-decoration: none;
+}
+
+/* Dropdown divider */
+.dropdown-divider {
+    height: 0;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    border-top: 1px solid var(--dropdown-border, rgba(0, 0, 0, 0.1));
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Theme support - Dark mode overrides */
+html[data-bs-theme="dark"] .dropdown-menu-content {
+    background-color: var(--dropdown-bg, #343a40);
+    border-color: var(--dropdown-border, rgba(255, 255, 255, 0.1));
+}
+
+html[data-bs-theme="dark"] .dropdown-item {
+    color: var(--body-color, #f8f9fa);
+}
+
+html[data-bs-theme="dark"] .dropdown-item:hover,
+html[data-bs-theme="dark"] .dropdown-item:focus {
+    background-color: var(--hover-bg, rgba(255, 255, 255, 0.1));
+}
+
+html[data-bs-theme="dark"] .dropdown-divider {
+    border-color: var(--dropdown-border, rgba(255, 255, 255, 0.1));
+} 

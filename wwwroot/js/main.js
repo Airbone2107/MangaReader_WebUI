@@ -4,7 +4,7 @@
 
 // Import các module
 import { updateActiveSidebarLink, initSidebar } from './modules/sidebar.js';
-import { initHtmxHandlers } from './modules/htmx-handlers.js';
+import { initHtmxHandlers, reinitializeAfterHtmxLoad } from './modules/htmx-handlers.js';
 import { 
     cleanupActiveLinks, 
     initTooltips, 
@@ -24,6 +24,36 @@ import { initErrorHandling } from './modules/error-handling.js';
 import { initMangaDetailsPage } from './modules/manga-details.js';
 import { initTagsInSearchForm } from './modules/manga-tags.js';
 import { initAuthUI } from './auth.js';
+import { initCustomDropdowns } from './modules/custom-dropdown.js';
+
+// --- Xử lý Back/Forward và bfcache ---
+window.addEventListener('pageshow', function(event) {
+  // event.persisted là true nếu trang được tải từ bfcache (back/forward)
+  if (event.persisted) {
+    console.log('[pageshow] Page loaded from bfcache.');
+
+    // Kiểm tra xem trang này có phải là trang được quản lý bởi HTMX không
+    // (Dấu hiệu có thể là sự tồn tại của #main-content hoặc body có thuộc tính hx-boost)
+    const mainContent = document.getElementById('main-content');
+    const isHtmxManagedPage = mainContent || document.body.hasAttribute('hx-boost'); // Điều chỉnh điều kiện nếu cần
+
+    if (isHtmxManagedPage) {
+        console.log('[pageshow] This seems to be an HTMX-managed page restored from bfcache.');
+        // Có vẻ như htmx:load không được kích hoạt đúng cách trong trường hợp này (non-HTMX -> HTMX back).
+        // => Gọi lại hàm reinitializeAfterHtmxLoad một cách thủ công như một fallback.
+        // Chúng ta truyền document.body vì toàn bộ trang đã được khôi phục.
+        reinitializeAfterHtmxLoad(document.body);
+    } else {
+        console.log('[pageshow] This page does not seem to be HTMX-managed. No manual re-init needed.');
+        // Đối với trang non-HTMX được khôi phục từ bfcache,
+        // nếu cần chạy lại JS nào đó, bạn có thể thêm logic ở đây.
+        // Ví dụ: Nếu trang Read cần khởi tạo lại gì đó khi back về nó.
+    }
+  } else {
+      console.log('[pageshow] Page loaded normally (not from bfcache).');
+  }
+});
+// --- Kết thúc xử lý Back/Forward ---
 
 /**
  * Khởi tạo tất cả các module
@@ -59,6 +89,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Khởi tạo UI xác thực
     initAuthUI();
     console.log('Auth module registered');
+    
+    // Khởi tạo custom dropdowns
+    initCustomDropdowns();
+    console.log('Custom dropdowns initialized');
     
     // Khởi tạo chức năng chuyển đổi chế độ tối/sáng
     initThemeSwitcher();

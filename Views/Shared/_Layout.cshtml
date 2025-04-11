@@ -101,36 +101,35 @@
                             </div>
                             
                             <!-- Dropdown tài khoản -->
-                            <div class="nav-item dropdown htmx-preserve" hx-preserve="true" id="userDropdownContainer">
-                                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-person-circle"></i>
-                                    <span class="d-none" id="userNameDisplay"></span>
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="userDropdown">
+                            <div class="custom-user-dropdown" id="userDropdownContainer">
+                                <button class="dropdown-toggle-btn" id="userDropdownToggle" aria-haspopup="true" aria-expanded="false">
+                                    <i class="bi bi-person-circle user-icon"></i>
+                                    <span class="user-name d-none" id="userNameDisplay"></span>
+                                    <i class="bi bi-chevron-down dropdown-arrow-icon"></i>
+                                </button>
+                                <div class="dropdown-menu-content" id="userDropdownMenu">
                                     <!-- Menu cho người dùng chưa đăng nhập -->
                                     <div id="guestUserMenu">
-                                        <li><a class="dropdown-item" href="@Url.Action("Login", "Auth")"><i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập</a></li>
+                                        <a class="dropdown-item" href="@Url.Action("Login", "Auth")"><i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập</a>
                                     </div>
-                                    
+
                                     <!-- Menu cho người dùng đã đăng nhập -->
                                     <div id="authenticatedUserMenu" class="d-none">
-                                        <li><a class="dropdown-item" href="@Url.Action("Profile", "Auth")"><i class="bi bi-person me-2"></i>Trang cá nhân</a></li>
-                                        <li><a class="dropdown-item" href="@Url.Action("Profile", "Auth")#following"><i class="bi bi-bookmark me-2"></i>Danh sách theo dõi</a></li>
-                                        <li><a class="dropdown-item" href="@Url.Action("Profile", "Auth")#history"><i class="bi bi-clock-history me-2"></i>Lịch sử đọc</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item" href="@Url.Action("Logout", "Auth")"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+                                        <a class="dropdown-item" href="@Url.Action("Profile", "Auth")"><i class="bi bi-person me-2"></i>Trang cá nhân</a>
+                                        <a class="dropdown-item" href="@Url.Action("Profile", "Auth")#following"><i class="bi bi-bookmark me-2"></i>Danh sách theo dõi</a>
+                                        <a class="dropdown-item" href="@Url.Action("Profile", "Auth")#history"><i class="bi bi-clock-history me-2"></i>Lịch sử đọc</a>
+                                        <hr class="dropdown-divider">
+                                        <a class="dropdown-item" href="@Url.Action("Logout", "Auth")"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a>
                                     </div>
-                                    
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" id="themeSwitcher">
-                                            <span id="themeText"><i class="bi bi-moon-stars me-2"></i>Chế độ tối</span>
-                                            <div class="form-check form-switch mb-0">
-                                                <input class="form-check-input" type="checkbox" role="switch" id="themeSwitch">
-                                            </div>
-                                        </a>
-                                    </li>
-                                </ul>
+
+                                    <hr class="dropdown-divider">
+                                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" id="themeSwitcher">
+                                        <span id="themeText"><i class="bi bi-moon-stars me-2"></i>Chế độ tối</span>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" role="switch" id="themeSwitch">
+                                        </div>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

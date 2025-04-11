@@ -35,7 +35,7 @@ function updateUserInterface(data) {
     const guestUserMenu = document.getElementById('guestUserMenu');
     const authenticatedUserMenu = document.getElementById('authenticatedUserMenu');
     const userNameDisplay = document.getElementById('userNameDisplay');
-    const userDropdown = document.getElementById('userDropdown');
+    const userDropdownToggle = document.getElementById('userDropdownToggle');
     
     if (data.isAuthenticated && data.user) {
         // Người dùng đã đăng nhập
@@ -48,25 +48,11 @@ function updateUserInterface(data) {
             userNameDisplay.classList.remove('d-none');
         }
         
-        // Thay đổi biểu tượng nếu có ảnh đại diện
-        if (data.user.photoUrl && userDropdown) {
-            // Thay thế biểu tượng người dùng bằng ảnh đại diện
-            const avatar = document.createElement('img');
-            avatar.src = data.user.photoUrl;
-            avatar.alt = data.user.displayName;
-            avatar.className = 'rounded-circle user-avatar';
-            avatar.style.width = '24px';
-            avatar.style.height = '24px';
-            
-            // Xóa biểu tượng cũ
-            const icon = userDropdown.querySelector('i.bi-person-circle');
-            if (icon) {
-                userDropdown.replaceChild(avatar, icon);
-            }
+        // Hiển thị icon người dùng 
+        if (userDropdownToggle) {
+            const icon = userDropdownToggle.querySelector('.user-icon');
+            if (icon) icon.style.display = '';
         }
-        
-        // Cập nhật các phần khác của trang nếu cần
-        // ...
         
     } else {
         // Người dùng chưa đăng nhập
@@ -75,20 +61,11 @@ function updateUserInterface(data) {
         
         // Ẩn tên người dùng
         if (userNameDisplay) userNameDisplay.classList.add('d-none');
+        
+        // Đảm bảo hiển thị icon mặc định
+        if (userDropdownToggle) {
+            const icon = userDropdownToggle.querySelector('.user-icon');
+            if (icon) icon.style.display = '';
+        }
     }
 }
-
-// Thêm style cho avatar người dùng
-function addAvatarStyle() {
-    const style = document.createElement('style');
-    style.textContent = `
-        .user-avatar {
-            object-fit: cover;
-            border: 2px solid #fff;
-        }
-    `;
-    document.head.appendChild(style);
-}
-
-// Gọi hàm thêm style trong quá trình khởi tạo
-addAvatarStyle(); 

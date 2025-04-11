@@ -12,267 +12,198 @@
  */
 
 // Import các hàm từ các module khác (sẽ được sử dụng trong HTMX)
-import { updateActiveSidebarLink } from './sidebar.js';
-import { initTooltips, adjustMangaTitles } from './ui.js';
+import { updateActiveSidebarLink, initSidebar } from './sidebar.js';
+import { initTooltips, adjustMangaTitles, initBackToTop, initResponsive, fixAccordionIssues, adjustFooterPosition, createDefaultImage } from './ui.js';
 import { adjustHeaderBackgroundHeight, initMangaDetailsPage } from './manga-details.js';
 import { initTagsInSearchForm } from './manga-tags.js';
 import SearchModule from './search.js';
+import { initThemeSwitcher } from './theme.js';
+import { initAuthUI } from '../auth.js';
+import { initCustomDropdowns } from './custom-dropdown.js';
 
 /**
  * Khởi tạo lại các chức năng cần thiết sau khi HTMX cập nhật nội dung
- * 
- * Hàm này được gọi sau mỗi lần HTMX swap nội dung, với tham số targetElement là
- * phần tử đã được swap. Điều này cho phép chúng ta chỉ tập trung vào việc khởi tạo
- * lại các chức năng cần thiết cho phần tử đó thay vì toàn bộ trang.
- * 
+ *
  * @param {HTMLElement} targetElement - Phần tử được HTMX swap
  */
 function reinitializeAfterHtmxSwap(targetElement) {
+    console.log('[HTMX Swap] Reinitializing JS for swapped element:', targetElement);
     // Cập nhật active sidebar link - luôn thực hiện khi có swap
-    // Đây là một chức năng toàn cục, cần thực hiện bất kể phần tử nào bị swap
     updateActiveSidebarLink();
-    
-    // Xử lý khi main-content được swap (toàn bộ trang)
-    if (targetElement.id === 'main-content') {
-        // Khi toàn bộ trang được swap, chúng ta cần khởi tạo lại tất cả
-        if (typeof SearchModule.initSearchPage === 'function') {
-            SearchModule.initSearchPage();
+
+    // Xử lý khi main-content được swap (toàn bộ trang hoặc phần lớn)
+    if (targetElement.id === 'main-content' || targetElement.closest('#main-content')) {
+        console.log('[HTMX Swap] Main content swapped, reinitializing page-specific modules...');
+        // Khi nội dung chính được swap, khởi tạo lại các thành phần trong đó
+        if (targetElement.querySelector('#searchForm')) {
+            SearchModule.initSearchPage?.();
+            initTagsInSearchForm();
         }
-        initTooltips();
-    }
-    // Xử lý khi search-results-and-pagination được swap (kết quả và phân trang)
-    else if (targetElement.id === 'search-results-and-pagination') {
-        // Gọi lại các hàm init cần thiết cho nội dung mới
-        if (typeof SearchModule.initPageGoTo === 'function') {
-            SearchModule.initPageGoTo(); // Khởi tạo lại nút "..." nếu có
+        if (targetElement.querySelector('.details-manga-header-background')) {
+            initMangaDetailsPage();
         }
-        
-        initTooltips(); // Khởi tạo lại tooltip nếu có
-    }
-    // Xử lý khi search-results-container được swap (chuyển đổi chế độ xem)
-    else if (targetElement.id === 'search-results-container') {
-        // Không cần gọi applySavedViewMode() vì nội dung mới đã được render với class đúng từ server
-    }
-    
-    // Điều chỉnh kích thước chữ cho tiêu đề manga trong phần tử đã swap
-    if (targetElement.querySelector('.details-manga-title')) {
+        // Khởi tạo lại pagination nếu có trong nội dung mới
+        if (targetElement.querySelector('.pagination')) {
+            SearchModule.initPageGoTo?.();
+        }
+        // Điều chỉnh tiêu đề manga nếu có
         adjustMangaTitles(targetElement);
     }
-    
-    // ---------- KHỞI TẠO GIAO DIỆN BOOTSTRAP ----------
-    
-    /**
-     * Phần này tái khởi tạo các component Bootstrap (dropdown, tooltip, collapse, tab)
-     * trong phần tử đã được swap. Quy trình cho mỗi loại component:
-     * 1. Kiểm tra xem phần tử đã swap có chứa component cần khởi tạo không
-     * 2. Nếu có, dọn dẹp (dispose) instance cũ trước
-     * 3. Tạo instance mới
-     */
-    
-    // Khởi tạo lại Bootstrap dropdowns nếu có trong targetElement
-    if (targetElement.querySelector('[data-bs-toggle="dropdown"]')) {
-        targetElement.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function(dropdownToggle) {
-            try {
-                // Nếu đã có dropdown, hủy bỏ nó trước khi tạo mới
-                var oldDropdown = bootstrap.Dropdown.getInstance(dropdownToggle);
-                if (oldDropdown) {
-                    oldDropdown.dispose();
-                }
-                // Tạo mới dropdown
-                new bootstrap.Dropdown(dropdownToggle);
-            } catch (e) {
-                console.error('Lỗi khi khởi tạo lại dropdown:', e);
-            }
-        });
+    // Xử lý khi chỉ kết quả tìm kiếm và phân trang được swap
+    else if (targetElement.id === 'search-results-and-pagination') {
+        console.log('[HTMX Swap] Search results swapped, reinitializing pagination/tooltips...');
+        SearchModule.initPageGoTo?.(); // Khởi tạo lại nút "..." nếu có
+        initTooltips(); // Khởi tạo lại tooltip nếu có trong kết quả mới
     }
-    
-    // Khởi tạo lại tooltips nếu có trong targetElement
-    // Lưu ý: initTooltips() là hàm được import từ ui.js
-    if (targetElement.querySelector('[data-bs-toggle="tooltip"]')) {
-        initTooltips();
+    // Xử lý khi chỉ container kết quả được swap (chuyển đổi view mode)
+    else if (targetElement.id === 'search-results-container') {
+        console.log('[HTMX Swap] Search results container swapped (view mode change).');
+        // Thường không cần làm gì nhiều ở đây vì view mode đã được server render đúng
+        initTooltips(); // Có thể cần tooltip cho list view
     }
-    
-    // Khởi tạo lại các button Bootstrap như accordion, tabs trong targetElement
-    if (targetElement.querySelector('[data-bs-toggle="collapse"], [data-bs-toggle="tab"]')) {
-        targetElement.querySelectorAll('[data-bs-toggle]').forEach(function(element) {
-            const toggleType = element.getAttribute('data-bs-toggle');
-            
-            if (toggleType === 'collapse' || toggleType === 'tab') {
-                try {
-                    // Kiểm tra nếu đã có instance
-                    const instance = bootstrap[toggleType.charAt(0).toUpperCase() + toggleType.slice(1)].getInstance(element);
-                    if (instance) {
-                        instance.dispose();
-                    }
-                    // Tạo instance mới
-                    new bootstrap[toggleType.charAt(0).toUpperCase() + toggleType.slice(1)](element);
-                } catch (e) {
-                    console.error(`Lỗi khi khởi tạo lại ${toggleType}:`, e);
-                }
-            }
-        });
+
+    // Luôn khởi tạo lại các component Bootstrap trong phần tử đã swap
+    initializeBootstrapComponents(targetElement);
+
+    // Khởi tạo lại các thành phần UI chung nếu chúng bị swap (ít khả năng xảy ra nếu header không phải target)
+    if (targetElement.querySelector('#sidebarToggler')) {
+        // Re-init sidebar toggle logic if needed (though usually it's outside swap target)
+        // Consider if initSidebar() needs parts re-run, but be careful
     }
-    
-    // ---------- KHỞI TẠO CÁC TRANG CỤ THỂ ----------
-    
-    /**
-     * Phần này tái khởi tạo các chức năng của các trang cụ thể (chi tiết manga, tìm kiếm)
-     * dựa trên selector đặc biệt trong phần tử đã swap.
-     * Mỗi điều kiện kiểm tra một trang/chức năng cụ thể và chỉ khởi tạo khi cần.
-     */
-    
-    // Khởi tạo lại trang chi tiết manga nếu đang ở trang đó
-    // Nhận diện trang chi tiết manga qua selector '.details-manga-header-background'
-    if (targetElement.querySelector('.details-manga-header-background') || targetElement.classList.contains('details-manga-details-container')) {
-        // initMangaDetailsPage() sẽ khởi tạo tất cả chức năng cần thiết cho trang chi tiết
-        // bao gồm: điều chỉnh header, khởi tạo dropdown chapter, nút theo dõi, v.v.
-        initMangaDetailsPage();
+    if (targetElement.querySelector('#themeSwitch')) {
+        // Re-init theme switcher logic if needed
+        initThemeSwitcher(); // Safe to call again
     }
-    
-    // Khởi tạo lại trang tìm kiếm
-    // Nhận diện trang tìm kiếm qua selector '#searchForm'
+    if (targetElement.querySelector('.custom-user-dropdown')) {
+        // Ensure Custom Dropdown is initialized if the dropdown itself was swapped
+        initCustomDropdowns();
+    }
+
+    console.log('[HTMX Swap] Reinitialization complete for swapped element.');
+}
+
+
+/**
+ * Khởi tạo lại các chức năng sau khi HTMX khôi phục nội dung từ lịch sử (Back/Forward)
+ * @param {HTMLElement} targetElement - Thường là body hoặc main-content
+ */
+function reinitializeAfterHtmxLoad(targetElement) {
+    console.log('[HTMX Load] Reinitializing JS after history navigation for element:', targetElement);
+
+    // *** BƯỚC QUAN TRỌNG: Xóa loading state ngay lập tức ***
+    if (targetElement && targetElement.classList.contains('htmx-loading-target')) {
+        console.log('[HTMX Load] Force removing htmx-loading-target on restored element.');
+        targetElement.classList.remove('htmx-loading-target');
+    }
+    const mainContent = document.getElementById('main-content');
+    if (mainContent && mainContent.classList.contains('htmx-loading-target')) {
+         mainContent.classList.remove('htmx-loading-target');
+    }
+    const searchResults = document.getElementById('search-results-and-pagination');
+     if (searchResults && searchResults.classList.contains('htmx-loading-target')) {
+          searchResults.classList.remove('htmx-loading-target');
+     }
+    // *** KẾT THÚC BƯỚC XÓA LOADING STATE ***
+
+    // --- 1. Khởi tạo lại các chức năng TOÀN CỤC ---
+    // Luôn chạy các hàm này vì chúng ảnh hưởng đến layout/trạng thái chung
+    console.log('[HTMX Load] Reinitializing global functions...');
+    initSidebar();          // Trạng thái sidebar, link active
+    initAuthUI();           // Trạng thái đăng nhập header (QUAN TRỌNG)
+    initCustomDropdowns();  // Khởi tạo lại custom dropdowns
+    initThemeSwitcher();    // Trạng thái nút theme
+    initBackToTop();        // Nút back-to-top
+    initResponsive();       // Xử lý responsive chung
+    fixAccordionIssues();   // Sửa lỗi accordion chung
+    adjustFooterPosition(); // Vị trí footer
+    initTooltips();         // Tooltips toàn cục
+    createDefaultImage();   // Ảnh mặc định
+
+    // --- 2. Khởi tạo lại các chức năng TRANG CỤ THỂ (Có điều kiện) ---
+    // Kiểm tra sự tồn tại của các element đặc trưng cho từng trang TRONG targetElement
     if (targetElement.querySelector('#searchForm')) {
-        // Khởi tạo trang tìm kiếm và bộ lọc tags
-        SearchModule.initSearchPage();
-        initTagsInSearchForm();
-    }
-    
-    // Khởi tạo lại phân trang (pagination) nếu có
-    // Độc lập với trang, pagination có thể xuất hiện ở nhiều trang khác nhau
-    if (targetElement.querySelector('.pagination')) {
-        if (typeof SearchModule.initPageGoTo === 'function') {
-            SearchModule.initPageGoTo();
+        console.log('[HTMX Load] Reinitializing Search Page...');
+        SearchModule.initSearchPage?.(); // Khởi tạo bộ lọc, dropdowns, reset button
+        initTagsInSearchForm();         // Khởi tạo tags
+        SearchModule.initPageGoTo?.();    // Khởi tạo phân trang "..."
+    } else if (targetElement.querySelector('.details-manga-header-background')) {
+        console.log('[HTMX Load] Reinitializing Manga Details Page...');
+        initMangaDetailsPage(); // Khởi tạo dropdown chapter, nút follow, etc.
+    } else {
+        // Trang chủ hoặc trang khác? Khởi tạo lại các thành phần cần thiết
+        console.log('[HTMX Load] Reinitializing Home Page or other...');
+        const latestGrid = document.getElementById('latest-manga-grid');
+        // Ví dụ: Trigger lại load cho grid truyện mới nếu cần
+        if (latestGrid && latestGrid.innerHTML.includes('spinner')) {
+            console.log('[HTMX Load] Retriggering hx-trigger="load" for #latest-manga-grid');
+            // Dùng setTimeout nhỏ để đảm bảo DOM sẵn sàng hoàn toàn sau bfcache
+            setTimeout(() => htmx.trigger(latestGrid, 'load'), 50);
         }
     }
-    
-    // ---------- KHỞI TẠO CÁC THÀNH PHẦN CHUNG ----------
-    
-    /**
-     * Phần này tái khởi tạo các thành phần UI chung (sidebar toggle, theme switcher)
-     * Kỹ thuật quan trọng: thay vì chỉ thêm event listener mới, chúng ta 
-     * clone phần tử và thay thế phần tử cũ để tránh duplicate event listeners
-     */
-    
-    // Khởi tạo lại sự kiện cho nút sidebar toggle
-    const sidebarToggler = targetElement.querySelector('#sidebarToggler');
-    if (sidebarToggler) {
-        // Xóa bỏ tất cả event listener hiện tại bằng cách clone node
-        // Đây là kỹ thuật an toàn để tránh duplicate event listeners
-        const newSidebarToggler = sidebarToggler.cloneNode(true);
-        sidebarToggler.parentNode.replaceChild(newSidebarToggler, sidebarToggler);
+
+    // --- 3. Khởi tạo lại các thành phần UI/Bootstrap chung ---
+    initializeBootstrapComponents(targetElement); // Gọi hàm helper 
+
+    // --- 4. Khởi tạo lại các Event Listener đặc biệt (nếu cần) ---
+    // Ví dụ: các listener gắn trực tiếp vào body hoặc window mà có thể bị mất
+    // (Tuy nhiên, nên hạn chế cách này, ưu tiên delegation hoặc re-init trong module)
+
+    // --- 5. Điều chỉnh UI cuối cùng ---
+    adjustMangaTitles(targetElement); // Điều chỉnh tiêu đề trên toàn bộ nội dung
+
+    console.log('[HTMX Load] Reinitialization complete.');
+}
+
+/**
+ * Helper function to initialize Bootstrap components within a target element.
+ * This function now includes more robust error handling and logging.
+ */
+function initializeBootstrapComponents(targetElement) {
+    if (!targetElement || typeof targetElement.querySelectorAll !== 'function') {
+        console.warn('[Bootstrap Init] Invalid targetElement provided:', targetElement);
+        return;
+    }
+    console.log('[Bootstrap Init] Initializing components within:', targetElement);
+
+    // Dropdowns
+    targetElement.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(el => {
+        // Skip custom dropdowns
+        if (el.closest('.custom-user-dropdown')) return;
         
-        // Thêm event listener mới
-        newSidebarToggler.addEventListener('click', function(e) {
-            e.preventDefault();
-            document.body.classList.add('sidebar-open');
-            localStorage.setItem('sidebarState', 'open');
-            
-            // Xử lý responsive
-            if (window.innerWidth < 992) {
-                document.body.classList.add('mobile-sidebar');
-                const sidebarBackdrop = document.getElementById('sidebarBackdrop');
-                if (sidebarBackdrop) sidebarBackdrop.style.display = 'block';
+        const elId = el.id || el.tagName; // Use ID if available for logging
+        console.log(`[Bootstrap Init - Dropdown] Processing element: ${elId}`);
+        try {
+            var instance = bootstrap.Dropdown.getInstance(el);
+            if (instance) {
+                console.log(`[Bootstrap Init - Dropdown] Disposing existing instance for ${elId}`);
+                instance.dispose();
             } else {
-                // Khi mở sidebar trên desktop, thêm hiệu ứng mở rộng cho thanh tìm kiếm ngay lập tức
-                const searchContainer = document.querySelector('.search-container');
-                if (searchContainer) {
-                    searchContainer.classList.add('search-expanded');
-                }
+                 console.log(`[Bootstrap Init - Dropdown] No existing instance found for ${elId}`);
             }
-        });
-    }
-    
-    // Khởi tạo lại chức năng theme switcher
-    const themeSwitch = targetElement.querySelector('#themeSwitch');
-    if (themeSwitch) {
-        // Cập nhật trạng thái switch dựa vào theme hiện tại
-        const theme = document.documentElement.getAttribute('data-bs-theme');
-        themeSwitch.checked = theme === 'dark';
-        
-        // Xóa bỏ tất cả event listener hiện tại bằng cách clone node
-        const newThemeSwitch = themeSwitch.cloneNode(true);
-        themeSwitch.parentNode.replaceChild(newThemeSwitch, themeSwitch);
-        
-        // Thêm event listener mới
-        newThemeSwitch.addEventListener('change', function() {
-            const theme = this.checked ? 'dark' : 'light';
-            document.documentElement.setAttribute('data-bs-theme', theme);
-            localStorage.setItem('theme', theme);
-            
-            // Cập nhật text
-            const themeText = document.getElementById('themeText');
-            if (themeText) {
-                themeText.innerHTML = this.checked ? 
-                    '<i class="bi bi-sun me-2"></i>Chế độ sáng' : 
-                    '<i class="bi bi-moon-stars me-2"></i>Chế độ tối';
-            }
-            
-            window.showToast('Thông báo', `Đã chuyển sang chế độ ${theme === 'dark' ? 'tối' : 'sáng'}!`, 'info');
-        });
-    }
-    
-    // Khởi tạo lại nút reset bộ lọc trong Search.cshtml
-    const resetFiltersBtn = targetElement.querySelector('#resetFilters');
-    if (resetFiltersBtn) {
-        // Xóa bỏ tất cả event listener hiện tại
-        const newResetFiltersBtn = resetFiltersBtn.cloneNode(true);
-        resetFiltersBtn.parentNode.replaceChild(newResetFiltersBtn, resetFiltersBtn);
-        
-        // Thêm event listener mới
-        newResetFiltersBtn.addEventListener('click', function() {
-            document.querySelectorAll('input[name="status"]').forEach(input => {
-                input.checked = input.id === 'statusAll';
-            });
-            
-            document.querySelectorAll('input[name="genres"]').forEach(input => {
-                input.checked = false;
-            });
-            
-            const sortBySelect = document.querySelector('select[name="sortBy"]');
-            if (sortBySelect) {
-                sortBySelect.value = 'latest';
-            }
-            
-            // Reset tags nếu có
-            const includedTagsInput = document.getElementById('includedTags');
-            const excludedTagsInput = document.getElementById('excludedTags');
-            if (includedTagsInput) includedTagsInput.value = '';
-            if (excludedTagsInput) excludedTagsInput.value = '';
-            
-            // Reset selected tags display
-            const selectedTagsDisplay = document.getElementById('selectedTagsDisplay');
-            if (selectedTagsDisplay) {
-                selectedTagsDisplay.innerHTML = '<span class="manga-tags-empty" id="emptyTagsMessage">Chưa có thẻ nào được chọn. Bấm để chọn thẻ.</span>';
-            }
-            
-            // Reset tags mode
-            const includedTagsModeInput = document.getElementById('includedTagsMode');
-            const includedTagsModeBox = document.getElementById('includedTagsModeBox');
-            const includedTagsModeText = document.getElementById('includedTagsModeText');
-            
-            if (includedTagsModeInput && includedTagsModeBox && includedTagsModeText) {
-                includedTagsModeInput.value = 'AND';
-                includedTagsModeText.textContent = 'VÀ';
-                includedTagsModeBox.classList.remove('tag-mode-or');
-                includedTagsModeBox.classList.add('tag-mode-and');
-            }
-            
-            // Reset excluded tags mode
-            const excludedTagsModeInput = document.getElementById('excludedTagsMode');
-            const excludedTagsModeBox = document.getElementById('excludedTagsModeBox');
-            const excludedTagsModeText = document.getElementById('excludedTagsModeText');
-            
-            if (excludedTagsModeInput && excludedTagsModeBox && excludedTagsModeText) {
-                excludedTagsModeInput.value = 'OR';
-                excludedTagsModeText.textContent = 'HOẶC';
-                excludedTagsModeBox.classList.remove('tag-mode-and');
-                excludedTagsModeBox.classList.add('tag-mode-or');
-            }
-            
-            // Submit form
-            document.getElementById('searchForm').submit();
-        });
-    }
+            console.log(`[Bootstrap Init - Dropdown] Creating new instance for ${elId}`);
+            new bootstrap.Dropdown(el);
+        } catch (e) {
+            console.error(`[Bootstrap Init - Dropdown] Error re-initializing ${elId}:`, e);
+        }
+    });
+    // Collapse
+    targetElement.querySelectorAll('[data-bs-toggle="collapse"]').forEach(el => {
+         try {
+            var instance = bootstrap.Collapse.getInstance(el);
+            if (instance) instance.dispose();
+            new bootstrap.Collapse(el);
+         } catch (e) { console.error("Error re-init Collapse:", e); }
+    });
+    // Tabs
+     targetElement.querySelectorAll('[data-bs-toggle="tab"]').forEach(el => {
+         try {
+            var instance = bootstrap.Tab.getInstance(el);
+            if (instance) instance.dispose();
+            new bootstrap.Tab(el);
+         } catch (e) { console.error("Error re-init Tab:", e); }
+     });
+    // Tooltips (được gọi riêng)
+    // initTooltips(); // Gọi lại nếu cần quét toàn bộ document
 }
 
 /**
@@ -324,7 +255,7 @@ function initHtmxHandlers() {
 
         // Chỉ thêm class loading nếu targetElement là một Element hợp lệ
         if (targetElement instanceof Element) {
-            console.log('[HTMX BeforeRequest] Adding loading state to target:', targetElement);
+            console.log(`[HTMX BeforeRequest] Adding htmx-loading-target to:`, targetElement);
             targetElement.classList.add('htmx-loading-target');
             loadingTargetElement = targetElement; // Lưu lại target đang load
         } else {
@@ -344,7 +275,7 @@ function initHtmxHandlers() {
         const swappedElement = event.detail.target; // Phần tử đã được swap
 
         if (swappedElement && swappedElement instanceof Element) {
-            console.log('[HTMX AfterSwap] Removing loading state from swapped target:', swappedElement);
+            console.log(`[HTMX AfterSwap] Removing htmx-loading-target from swapped:`, swappedElement);
             // Xóa class loading state khỏi phần tử MỚI được swap vào
             swappedElement.classList.remove('htmx-loading-target');
         } else {
@@ -363,26 +294,14 @@ function initHtmxHandlers() {
         const mainSpinner = document.getElementById('content-loading-spinner');
         if (mainSpinner) mainSpinner.style.display = 'none';
 
-        // Nếu request không thành công VÀ có target đang loading (swap chưa xảy ra)
-        if (!event.detail.successful && loadingTargetElement && loadingTargetElement instanceof Element) {
-            console.warn('[HTMX AfterRequest - Error] Request failed, removing loading state from:', loadingTargetElement);
+        // *** LUÔN kiểm tra và xóa loading state khỏi target đã lưu ***
+        if (loadingTargetElement && loadingTargetElement instanceof Element && loadingTargetElement.classList.contains('htmx-loading-target')) {
+            console.warn(`[HTMX AfterRequest] Cleaning up potentially stuck loading state from:`, loadingTargetElement, `(Request Success: ${event.detail.successful})`);
             loadingTargetElement.classList.remove('htmx-loading-target');
         }
-        // Nếu request thành công nhưng không có swap (ví dụ: hx-swap="none")
-        else if (event.detail.successful && loadingTargetElement && loadingTargetElement instanceof Element && !event.detail.xhr.getResponseHeader('HX-Trigger')) {
-             // Kiểm tra xem có swap xảy ra không (cách này có thể không hoàn hảo)
-             // Cách tốt hơn là kiểm tra xem loadingTargetElement có còn class loading không
-             if(loadingTargetElement.classList.contains('htmx-loading-target')) {
-                 console.log('[HTMX AfterRequest] Request successful but no swap detected, removing loading state from:', loadingTargetElement);
-                 loadingTargetElement.classList.remove('htmx-loading-target');
-             }
-        }
+        // *** KẾT THÚC KIỂM TRA VÀ XÓA ***
 
-         // Reset target đang load nếu request kết thúc (dù thành công hay thất bại)
-         // và target đó không còn class loading (đã được xử lý bởi afterSwap hoặc ở trên)
-         if (loadingTargetElement && loadingTargetElement instanceof Element && !loadingTargetElement.classList.contains('htmx-loading-target')) {
-             loadingTargetElement = null;
-         }
+        loadingTargetElement = null; // Reset target đang load
     });
 
     // Xử lý lỗi response (trước khi swap)
@@ -418,7 +337,26 @@ function initHtmxHandlers() {
              window.showToast('Lỗi', 'Đã xảy ra lỗi khi cập nhật giao diện.', 'error');
          }
      });
+    
+    // *** LẮNG NGHE SỰ KIỆN htmx:load CHO HISTORY NAVIGATION ***
+    htmx.on('htmx:load', function(event) {
+        // event.detail.elt thường là body hoặc container chính được khôi phục
+        const restoredElement = event.detail.elt;
+        if (restoredElement) {
+            console.log('[HTMX Load] Content restored via history navigation into:', restoredElement);
+            // Gọi hàm khởi tạo lại cho nội dung được khôi phục
+            reinitializeAfterHtmxLoad(restoredElement);
 
+            // Xóa loading state nếu còn sót lại (ít khả năng xảy ra với htmx:load)
+            if (restoredElement.classList.contains('htmx-loading-target')) {
+                restoredElement.classList.remove('htmx-loading-target');
+            }
+        } else {
+            console.warn('[HTMX Load] No element found in event detail.');
+        }
+        loadingTargetElement = null; // Reset target đang load
+    });
+    // *** KẾT THÚC LẮNG NGHE htmx:load ***
 
     // Bắt sự kiện popstate (nếu cần cập nhật UI khác)
     window.addEventListener('popstate', function() {
@@ -429,4 +367,4 @@ function initHtmxHandlers() {
 }
 
 // Export các hàm cần thiết
-export { reinitializeAfterHtmxSwap, initHtmxHandlers };
+export { reinitializeAfterHtmxSwap, reinitializeAfterHtmxLoad, initHtmxHandlers };
