@@ -9,7 +9,7 @@ namespace manga_reader_web.Services.AuthServices
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<UserService> _logger;
-        private const string TOKEN_KEY = "JwtToken";
+        private const string TOKEN_COOKIE_KEY = "JwtToken";
 
         public UserService(
             IHttpClientFactory httpClientFactory,
@@ -47,17 +47,54 @@ namespace manga_reader_web.Services.AuthServices
 
         public void SaveToken(string token)
         {
-            _httpContextAccessor.HttpContext?.Session.SetString(TOKEN_KEY, token);
+            var context = _httpContextAccessor.HttpContext;
+            if (context != null)
+            {
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTimeOffset.UtcNow.AddDays(30)
+                };
+                context.Response.Cookies.Append(TOKEN_COOKIE_KEY, token, cookieOptions);
+                _logger.LogInformation("Đã lưu token vào cookie HttpOnly.");
+            }
+            else
+            {
+                _logger.LogWarning("HttpContext is null, không thể lưu token vào cookie.");
+            }
         }
 
         public string GetToken()
         {
-            return _httpContextAccessor.HttpContext?.Session.GetString(TOKEN_KEY);
+            var context = _httpContextAccessor.HttpContext;
+            if (context != null && context.Request.Cookies.TryGetValue(TOKEN_COOKIE_KEY, out string token))
+            {
+                return token;
+            }
+            return null;
         }
 
         public void RemoveToken()
         {
-            _httpContextAccessor.HttpContext?.Session.Remove(TOKEN_KEY);
+            var context = _httpContextAccessor.HttpContext;
+            if (context != null && context.Request.Cookies.ContainsKey(TOKEN_COOKIE_KEY))
+            {
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTimeOffset.UtcNow.AddDays(-1)
+                };
+                context.Response.Cookies.Append(TOKEN_COOKIE_KEY, "", cookieOptions);
+                _logger.LogInformation("Đã xóa token khỏi cookie.");
+            }
+            else
+            {
+                _logger.LogDebug("Không tìm thấy cookie token để xóa.");
+            }
         }
 
         public bool IsAuthenticated()
@@ -86,7 +123,6 @@ namespace manga_reader_web.Services.AuthServices
                     return JsonSerializer.Deserialize<UserModel>(content);
                 }
                 
-                // Nếu token không hợp lệ (401), xóa token
                 if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
                     RemoveToken();
