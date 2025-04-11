@@ -1,0 +1,15 @@
+<div class="text-center py-5">
+    <i class="bi bi-exclamation-triangle" style="font-size: 3rem;"></i>
+    <h5 class="mt-3">Đã xảy ra lỗi</h5>
+    @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+    {
+        <p class="text-muted">@ViewBag.ErrorMessage</p>
+    }
+    else
+    {
+        <p class="text-muted">Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại sau.</p>
+    }
+    <button class="btn btn-outline-primary" onclick="window.location.reload();">
+        <i class="bi bi-arrow-clockwise me-1"></i> Tải lại
+    </button>
+</div> 

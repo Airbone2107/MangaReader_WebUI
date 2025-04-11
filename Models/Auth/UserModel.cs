@@ -34,7 +34,7 @@ namespace manga_reader_web.Models.Auth
         public string MangaId { get; set; }
 
         [JsonPropertyName("lastChapter")]
-        public int LastChapter { get; set; }
+        public string LastChapter { get; set; }
 
         [JsonPropertyName("lastReadAt")]
         public DateTime LastReadAt { get; set; }

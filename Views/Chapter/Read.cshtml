@@ -86,3 +86,12 @@
         };
     }
 } 
+
+<div hx-post="@Url.Action("SaveReadingProgress", "Chapter")"
+     hx-trigger="load"
+     hx-vals='{"mangaId": "@Model.MangaId", "chapterId": "@Model.ChapterId"}'
+     hx-swap="none"
+     aria-hidden="true"
+     style="display: none;">
+     <!-- Trigger lưu tiến độ đọc -->
+</div> 

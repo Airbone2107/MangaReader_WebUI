@@ -1,0 +1,21 @@
+@model List<manga_reader_web.Services.MangaServices.Models.LastReadMangaViewModel>
+@{
+    ViewData["Title"] = "Lịch sử đọc truyện";
+}
+
+<div class="container mt-4">
+    <h1 class="mb-4"><i class="bi bi-clock-history me-2"></i>Lịch sử đọc truyện</h1>
+
+    @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+    {
+        @* Hiển thị thông báo lỗi nếu có lỗi từ Action (cho request thường) *@
+        <div class="alert alert-danger" role="alert">
+            @ViewBag.ErrorMessage
+        </div>
+    }
+    else
+    {
+        @* Render partial view danh sách, truyền Model vào *@
+        @Html.Partial("_ReadingHistoryListPartial", Model)
+    }
+</div> 

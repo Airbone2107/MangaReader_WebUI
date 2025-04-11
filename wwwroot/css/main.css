@@ -52,3 +52,4 @@
 @import url("./pages/search/index.css");
 @import url("./pages/followed/followed.css"); /* Style cho trang truyện đang theo dõi */
 @import url("./pages/followed-item.css"); /* Style cho từng item truyện đang theo dõi */
+@import url("./pages/history/reading-history-item.css"); /* Style cho từng item lịch sử đọc */

@@ -129,6 +129,22 @@ builder.Services.AddScoped<manga_reader_web.Services.MangaServices.ChapterServic
 // Đăng ký ChapterReadingServices
 builder.Services.AddScoped<manga_reader_web.Services.MangaServices.ChapterServices.ChapterReadingServices>();
 
+// Đăng ký ChapterAttributeService
+builder.Services.AddScoped<manga_reader_web.Services.MangaServices.ChapterServices.ChapterAttributeService>(sp =>
+{
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var logger = sp.GetRequiredService<ILogger<manga_reader_web.Services.MangaServices.ChapterServices.ChapterAttributeService>>();
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var httpClient = httpClientFactory.CreateClient("MangaDexClient");
+    return new manga_reader_web.Services.MangaServices.ChapterServices.ChapterAttributeService(httpClient, configuration, logger);
+});
+
+// Đăng ký ChapterInfoService
+builder.Services.AddScoped<manga_reader_web.Services.MangaServices.ChapterServices.IChapterInfoService, manga_reader_web.Services.MangaServices.ChapterServices.ChapterInfoService>();
+
+// Đăng ký ReadingHistoryService
+builder.Services.AddScoped<manga_reader_web.Services.MangaServices.IReadingHistoryService, manga_reader_web.Services.MangaServices.ReadingHistoryService>();
+
 builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaPageService.MangaDetailsService>();
 builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaPageService.MangaSearchService>();
 

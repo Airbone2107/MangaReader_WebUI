@@ -25,6 +25,7 @@ namespace manga_reader_web.Controllers
         private readonly IUserService _userService;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IFollowedMangaService _followedMangaService;
+        private readonly IReadingHistoryService _readingHistoryService;
 
         public MangaController(
             MangaDexService mangaDexService, 
@@ -37,7 +38,8 @@ namespace manga_reader_web.Controllers
             IMangaFollowService mangaFollowService,
             IUserService userService,
             IHttpClientFactory httpClientFactory,
-            IFollowedMangaService followedMangaService)
+            IFollowedMangaService followedMangaService,
+            IReadingHistoryService readingHistoryService)
         {
             _mangaDexService = mangaDexService;
             _logger = logger;
@@ -50,6 +52,7 @@ namespace manga_reader_web.Controllers
             _userService = userService;
             _httpClientFactory = httpClientFactory;
             _followedMangaService = followedMangaService;
+            _readingHistoryService = readingHistoryService;
         }
 
         // Thêm class SessionKeys
@@ -549,6 +552,7 @@ namespace manga_reader_web.Controllers
             if (!_userService.IsAuthenticated())
             {
                 // Chuyển hướng đến trang đăng nhập nếu chưa đăng nhập
+                _logger.LogInformation("Người dùng chưa đăng nhập truy cập trang Theo dõi.");
                 return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action("Followed", "Manga") });
             }
 
@@ -573,6 +577,49 @@ namespace manga_reader_web.Controllers
                 ViewBag.ErrorMessage = "Không thể tải danh sách truyện đang theo dõi. Vui lòng thử lại sau.";
                 // Trả về view với model rỗng hoặc view lỗi
                 return View(new List<FollowedMangaViewModel>());
+            }
+        }
+
+        // GET: /Manga/History
+        public async Task<IActionResult> History()
+        {
+            // 1. Kiểm tra xác thực người dùng
+            if (!_userService.IsAuthenticated())
+            {
+                _logger.LogWarning("Người dùng chưa đăng nhập truy cập trang Lịch sử.");
+                // Nếu là HTMX request, trả về partial yêu cầu đăng nhập
+                if (Request.Headers.ContainsKey("HX-Request"))
+                {
+                    return PartialView("_UnauthorizedPartial");
+                }
+                // Nếu là request thường, chuyển hướng đến trang Login
+                return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action("History", "Manga") });
+            }
+
+            try
+            {
+                _logger.LogInformation("Bắt đầu lấy lịch sử đọc truyện.");
+                // 2. Gọi Service để lấy dữ liệu
+                var history = await _readingHistoryService.GetReadingHistoryAsync();
+                _logger.LogInformation($"Tìm thấy {history.Count} mục lịch sử đọc.");
+
+                // 3. Sử dụng ViewRenderService để trả về View hoặc PartialView
+                // Truyền tên View "History" để nó biết render view nào cho request thường
+                return _viewRenderService.RenderViewBasedOnRequest(this, "History", history);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tải trang lịch sử đọc truyện.");
+                // Nếu là HTMX request, trả về partial lỗi
+                if (Request.Headers.ContainsKey("HX-Request"))
+                {
+                     ViewBag.ErrorMessage = "Không thể tải lịch sử đọc. Vui lòng thử lại sau.";
+                     return PartialView("_ErrorPartial");
+                }
+                // Nếu là request thường, hiển thị trang lỗi hoặc thông báo lỗi trên View
+                ViewBag.ErrorMessage = "Không thể tải lịch sử đọc. Vui lòng thử lại sau.";
+                // Trả về view với model rỗng hoặc view lỗi
+                return View("History", new List<LastReadMangaViewModel>()); // Trả về view History với model rỗng
             }
         }
     }
