@@ -1,153 +1,164 @@
 /**
- * theme.js - Quản lý các chức năng liên quan đến chế độ sáng/tối
+ * theme.js - Quản lý các chức năng liên quan đến chế độ sáng/tối (Phiên bản Custom)
  */
+
+const THEME_KEY = 'theme';
+const THEME_DARK = 'dark';
+const THEME_LIGHT = 'light';
 
 /**
  * Lưu chủ đề hiện tại vào localStorage
  * @param {string} theme - Chủ đề ('light' hoặc 'dark')
  */
 function saveTheme(theme) {
-    localStorage.setItem('theme', theme);
+    localStorage.setItem(THEME_KEY, theme);
 }
 
 /**
- * Áp dụng chủ đề cho trang web
- * @param {string} theme - Chủ đề ('light' hoặc 'dark')
+ * Lấy chủ đề đã lưu hoặc chủ đề hệ thống mặc định
+ * @returns {string} - Chủ đề ('light' hoặc 'dark')
  */
-function applyTheme(theme) {
+function getSavedTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved) {
+        return saved;
+    }
+    // Fallback kiểm tra chế độ màu hệ thống
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return THEME_DARK;
+    }
+    return THEME_LIGHT; // Mặc định là light
+}
+
+/**
+ * Áp dụng chủ đề cho trang web và cập nhật UI của switcher
+ * @param {string} theme - Chủ đề ('light' hoặc 'dark')
+ * @param {boolean} [showNotification=false] - Có hiển thị toast thông báo không
+ */
+function applyTheme(theme, showNotification = false) {
     document.documentElement.setAttribute('data-bs-theme', theme);
-    
-    // Cập nhật meta tag theme-color để phù hợp với theme
+
+    // Cập nhật meta tag theme-color
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
-        metaThemeColor.setAttribute('content', theme === 'dark' ? '#121212' : '#0d6efd');
+        metaThemeColor.setAttribute('content', theme === THEME_DARK ? '#121318' : '#0d6efd'); // Sử dụng màu nền body dark
     }
-    
-    // Cập nhật trạng thái nút chuyển đổi
-    const themeSwitch = document.getElementById('themeSwitch');
-    const themeText = document.getElementById('themeText');
-    
-    if (themeSwitch && themeText) {
-        if (theme === 'dark') {
-            themeSwitch.checked = true;
-            themeText.innerHTML = '<i class="bi bi-sun me-2"></i>Chế độ sáng';
-        } else {
-            themeSwitch.checked = false;
-            themeText.innerHTML = '<i class="bi bi-moon-stars me-2"></i>Chế độ tối';
-        }
+
+    // Cập nhật UI của switcher
+    updateThemeSwitcherUI(theme);
+
+    // Hiển thị thông báo nếu cần
+    if (showNotification && typeof window.showToast === 'function') {
+        window.showToast('Thông báo', `Đã chuyển sang chế độ ${theme === THEME_DARK ? 'tối' : 'sáng'}!`, 'info');
+    }
+     // Xóa bỏ inline style color trên các nav-link active sau khi đổi theme
+     if (typeof window.cleanupActiveLinks === 'function') {
+        window.cleanupActiveLinks();
     }
 }
 
 /**
- * Khởi tạo chức năng chuyển đổi chế độ tối/sáng
+ * Cập nhật giao diện của custom theme switcher
+ * @param {string} theme - Chủ đề hiện tại ('light' hoặc 'dark')
  */
-function initThemeSwitcher() {
-    // Tìm các phần tử DOM cần thiết
-    let themeSwitcherContainer = document.getElementById('themeSwitcher');
-    let themeSwitchInput = document.getElementById('themeSwitch');
-    let themeText = document.getElementById('themeText');
-    const htmlElement = document.documentElement;
+function updateThemeSwitcherUI(theme) {
+    const switcherItem = document.getElementById('customThemeSwitcherItem');
+    const switcherText = document.getElementById('customThemeSwitcherText');
+    const switcherIcon = document.getElementById('customThemeIcon');
 
-    // Quan trọng: Xóa listener cũ bằng cách clone và replace container
-    if (themeSwitcherContainer) {
-        const newSwitcherContainer = themeSwitcherContainer.cloneNode(true);
-        themeSwitcherContainer.parentNode.replaceChild(newSwitcherContainer, themeSwitcherContainer);
-        
-        // Cập nhật lại tham chiếu đến container và input mới sau khi clone
-        themeSwitcherContainer = newSwitcherContainer;
-        themeSwitchInput = themeSwitcherContainer.querySelector('#themeSwitch');
-        themeText = themeSwitcherContainer.querySelector('#themeText');
+    if (!switcherItem || !switcherText || !switcherIcon) {
+        console.warn("Không tìm thấy các thành phần của custom theme switcher.");
+        return;
+    }
 
-        // Kiểm tra lại xem các phần tử con có tồn tại trong container mới không
-        if (!themeSwitchInput || !themeText) {
-            console.error("Không tìm thấy input hoặc text của theme switcher sau khi clone.");
-            return; // Dừng nếu không tìm thấy
-        }
+    const isDark = theme === THEME_DARK;
+
+    // Cập nhật class cho switch trực quan
+    if (isDark) {
+        switcherItem.classList.add('dark-mode');
     } else {
-        console.error("Không tìm thấy container theme switcher.");
-        return; // Dừng nếu không tìm thấy container
+        switcherItem.classList.remove('dark-mode');
     }
 
-    // Kiểm tra theme đã lưu
-    const savedTheme = localStorage.getItem('theme');
-    
-    if (savedTheme) {
-        htmlElement.setAttribute('data-bs-theme', savedTheme);
-        updateSwitches(savedTheme === 'dark');
+    // Cập nhật icon và text
+    if (isDark) {
+        switcherIcon.className = 'bi bi-sun me-2'; // Đổi thành icon mặt trời
+        switcherText.childNodes[switcherText.childNodes.length - 1].nodeValue = ' Chế độ sáng'; // Cập nhật text node
+    } else {
+        switcherIcon.className = 'bi bi-moon-stars me-2'; // Đổi thành icon mặt trăng
+        switcherText.childNodes[switcherText.childNodes.length - 1].nodeValue = ' Chế độ tối'; // Cập nhật text node
     }
-
-    // Cập nhật trạng thái các switcher
-    function updateSwitches(isDark) {
-        if (themeSwitchInput) themeSwitchInput.checked = isDark;
-        
-        // Cập nhật text
-        if (themeText) {
-            themeText.innerHTML = isDark ? 
-                '<i class="bi bi-sun me-2"></i>Chế độ sáng' : 
-                '<i class="bi bi-moon-stars me-2"></i>Chế độ tối';
-        }
-        
-        // Xóa bỏ toàn bộ inline style color trên các nav-link active
-        if (typeof window.cleanupActiveLinks === 'function') {
-            window.cleanupActiveLinks();
-        }
-    }
-
-    // Hàm thay đổi theme
-    function changeTheme(isDark, showNotification = true) {
-        const theme = isDark ? 'dark' : 'light';
-        
-        // Thiết lập theme
-        htmlElement.setAttribute('data-bs-theme', theme);
-        localStorage.setItem('theme', theme);
-        
-        // Cập nhật meta tag theme-color
-        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-        if (metaThemeColor) {
-            metaThemeColor.setAttribute('content', theme === 'dark' ? '#121212' : '#0d6efd');
-        }
-        
-        // Cập nhật UI
-        updateSwitches(isDark);
-        
-        // Hiển thị thông báo nếu cần
-        if (showNotification && window.showToast) {
-            window.showToast('Thông báo', `Đã chuyển sang chế độ ${theme === 'dark' ? 'tối' : 'sáng'}!`, 'info');
-        }
-    }
-
-    // Gắn một listener duy nhất vào themeSwitcherContainer
-    themeSwitcherContainer.addEventListener('click', function(e) {
-        e.preventDefault(); // Ngăn hành vi mặc định của thẻ <a>
-
-        // Lấy trạng thái hiện tại của checkbox *trước khi* thay đổi
-        const isCurrentlyDark = themeSwitchInput.checked;
-        let newIsDark;
-
-        // Xác định trạng thái mới dựa trên việc click vào đâu
-        if (e.target === themeSwitchInput) {
-            // Nếu click trực tiếp vào checkbox, trạng thái mới là trạng thái *sau khi* click
-            // Tuy nhiên, sự kiện click trên container xảy ra trước khi trạng thái checked thay đổi
-            // nên ta cần đảo ngược trạng thái hiện tại để có trạng thái mới
-            newIsDark = !isCurrentlyDark;
-            // Cập nhật trạng thái checked của input một cách thủ công để đồng bộ
-            themeSwitchInput.checked = newIsDark;
-        } else {
-            // Nếu click vào vùng khác của container (<a> hoặc <span>),
-            // thì đảo ngược trạng thái hiện tại và cập nhật checkbox
-            newIsDark = !isCurrentlyDark;
-            themeSwitchInput.checked = newIsDark;
-        }
-
-        // Gọi hàm thay đổi theme một lần duy nhất với trạng thái mới
-        changeTheme(newIsDark);
-    });
-    
-    // Khởi chạy lần đầu tiên mà không hiển thị thông báo
-    changeTheme(savedTheme === 'dark', false);
-    
-    // Thêm phương thức toàn cục để các phần khác có thể sử dụng
-    window.changeTheme = changeTheme;
+     console.log(`[Theme] UI updated for ${theme} mode.`);
 }
 
-export { saveTheme, applyTheme, initThemeSwitcher }; 
+/**
+ * Khởi tạo chức năng chuyển đổi chế độ tối/sáng tùy chỉnh
+ */
+function initCustomThemeSwitcher() {
+    console.log("[Theme] Initializing custom theme switcher...");
+    const switcherItem = document.getElementById('customThemeSwitcherItem');
+
+    if (!switcherItem) {
+        console.warn("Custom theme switcher item (#customThemeSwitcherItem) not found.");
+        return;
+    }
+
+    // Xác định theme ban đầu
+    const initialTheme = getSavedTheme();
+    console.log(`[Theme] Initial theme: ${initialTheme}`);
+    applyTheme(initialTheme, false); // Áp dụng theme ban đầu không cần thông báo
+
+    // --- Xử lý Event Listener ---
+    // Lưu function handler vào một biến để có thể remove nếu cần (ví dụ khi re-init)
+    const handleSwitcherClick = (event) => {
+        event.preventDefault(); // Ngăn hành vi mặc định nếu là link (dù đang là div)
+        event.stopPropagation(); // Ngăn sự kiện lan ra dropdown
+
+        // Xác định theme hiện tại từ attribute của html
+        const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+        // Chuyển đổi theme
+        const newTheme = currentTheme === THEME_DARK ? THEME_LIGHT : THEME_DARK;
+
+        console.log(`[Theme] Switching from ${currentTheme} to ${newTheme}`);
+        applyTheme(newTheme, true); // Áp dụng theme mới và hiển thị thông báo
+        saveTheme(newTheme); // Lưu theme mới
+    };
+
+    // Xóa listener cũ trước khi thêm mới (quan trọng khi re-init)
+    if (switcherItem._themeClickListener) {
+        switcherItem.removeEventListener('click', switcherItem._themeClickListener);
+         console.log("[Theme] Removed old click listener.");
+    }
+
+    // Lưu listener mới vào element để có thể xóa sau này
+    switcherItem._themeClickListener = handleSwitcherClick;
+    // Thêm listener mới
+    switcherItem.addEventListener('click', handleSwitcherClick);
+    console.log("[Theme] Custom theme switcher initialized and click listener attached.");
+
+     // Lắng nghe thay đổi theme từ hệ thống (nếu người dùng chưa chọn theme)
+     if (!localStorage.getItem(THEME_KEY)) {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+        const handleSystemThemeChange = (e) => {
+            // Chỉ áp dụng nếu người dùng chưa từng lưu theme
+            if (!localStorage.getItem(THEME_KEY)) {
+                const systemTheme = e.matches ? THEME_DARK : THEME_LIGHT;
+                console.log(`[Theme] System theme changed to: ${systemTheme}`);
+                applyTheme(systemTheme, false);
+            }
+        };
+
+        // Xóa listener cũ nếu có
+         if (mediaQuery._systemThemeListener) {
+            mediaQuery.removeEventListener('change', mediaQuery._systemThemeListener);
+         }
+         // Gắn listener mới
+         mediaQuery._systemThemeListener = handleSystemThemeChange;
+         mediaQuery.addEventListener('change', handleSystemThemeChange);
+         console.log("[Theme] Added listener for system theme changes.");
+    }
+}
+
+// Export hàm khởi tạo mới
+export { initCustomThemeSwitcher, applyTheme };

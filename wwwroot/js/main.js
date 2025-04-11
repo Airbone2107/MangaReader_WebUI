@@ -16,7 +16,7 @@ import {
     createDefaultImage,
     adjustMangaTitles
 } from './modules/ui.js';
-import { initThemeSwitcher } from './modules/theme.js';
+import { initCustomThemeSwitcher } from './modules/theme.js';
 import { initToasts } from './modules/toast.js';
 import SearchModule from './modules/search.js';
 import { initReadingState } from './modules/reading-state.js';
@@ -95,8 +95,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initCustomDropdowns();
     console.log('Custom dropdowns initialized');
     
-    // Khởi tạo chức năng chuyển đổi chế độ tối/sáng
-    initThemeSwitcher();
+    // Khởi tạo chức năng chuyển đổi chế độ tối/sáng tùy chỉnh
+    initCustomThemeSwitcher();
     
     // Khởi tạo nút back-to-top
     initBackToTop();

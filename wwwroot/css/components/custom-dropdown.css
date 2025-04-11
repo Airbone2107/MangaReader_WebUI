@@ -73,6 +73,11 @@
     z-index: 1021;
 }
 
+.dropdown-menu-content .custom-dropdown-item {
+    display: flex;
+    justify-content: center;
+}
+
 /* Menu dropdown khi hiển thị */
 .custom-user-dropdown.show .dropdown-menu-content {
     display: block;
@@ -133,4 +138,73 @@ html[data-bs-theme="dark"] .dropdown-item:focus {
 
 html[data-bs-theme="dark"] .dropdown-divider {
     border-color: var(--dropdown-border, rgba(255, 255, 255, 0.1));
-} 
+}
+
+/* --- Custom Theme Switcher --- */
+.custom-theme-switcher {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer; /* Quan trọng: làm cho toàn bộ item có thể click */
+    user-select: none; /* Ngăn chọn text khi click */
+    padding: 0.5rem 1rem; /* Thêm padding giống dropdown-item */
+}
+
+.custom-theme-switcher:hover,
+.custom-theme-switcher:focus {
+    /* Giữ nguyên style hover của dropdown-item */
+    background-color: var(--hover-bg, rgba(0, 0, 0, 0.05));
+    color: var(--body-color, #212529); /* Đảm bảo màu chữ không bị ảnh hưởng quá nhiều */
+}
+
+html[data-bs-theme="dark"] .custom-theme-switcher:hover,
+html[data-bs-theme="dark"] .custom-theme-switcher:focus {
+    background-color: var(--hover-bg, rgba(255, 255, 255, 0.1));
+}
+
+
+/* Phần text và icon */
+#customThemeSwitcherText {
+    display: inline-flex; /* Để icon và text thẳng hàng */
+    align-items: center;
+}
+
+/* Phần switch toggle trực quan */
+.custom-theme-toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px; /* Chiều rộng của switch */
+    height: 20px; /* Chiều cao của switch */
+    background-color: #ccc; /* Màu nền khi tắt (sáng) */
+    border-radius: 20px; /* Bo tròn */
+    transition: background-color 0.3s ease;
+    flex-shrink: 0; /* Ngăn không bị co lại */
+    margin-left: 20px; /* Đẩy về bên phải */
+}
+
+
+.custom-theme-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 2px; /* Căn giữa theo chiều dọc */
+    left: 2px; /* Vị trí ban đầu (tắt) */
+    width: 16px; /* Chiều rộng núm trượt */
+    height: 16px; /* Chiều cao núm trượt */
+    background-color: white;
+    border-radius: 50%; /* Bo tròn thành hình tròn */
+    transition: transform 0.3s ease;
+}
+
+/* Trạng thái bật (dark mode) */
+.custom-theme-switcher.dark-mode .custom-theme-toggle-switch {
+    background-color: var(--primary-color, #0d6efd); /* Màu nền khi bật (tối) */
+}
+
+.custom-theme-switcher.dark-mode .custom-theme-toggle-slider {
+    transform: translateX(20px); /* Di chuyển núm trượt sang phải */
+}
+
+/* Điều chỉnh màu nền switch cho theme tối */
+html[data-bs-theme="dark"] .custom-theme-toggle-switch {
+    background-color: #555; /* Màu nền tối hơn khi tắt trong dark mode */
+}

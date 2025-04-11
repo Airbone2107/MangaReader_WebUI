@@ -17,7 +17,7 @@ import { initTooltips, adjustMangaTitles, initBackToTop, initResponsive, fixAcco
 import { adjustHeaderBackgroundHeight, initMangaDetailsPage } from './manga-details.js';
 import { initTagsInSearchForm } from './manga-tags.js';
 import SearchModule from './search.js';
-import { initThemeSwitcher } from './theme.js';
+import { initCustomThemeSwitcher } from './theme.js';
 import { initAuthUI } from '../auth.js';
 import { initCustomDropdowns } from './custom-dropdown.js';
 import { initReadPage, initImageLoading, initSidebarToggle, initChapterDropdownNav, initContentAreaClickToOpenSidebar, initImageScaling, initPlaceholderButtons } from './read-page.js';
@@ -82,6 +82,11 @@ function reinitializeAfterHtmxSwap(targetElement) {
          initPlaceholderButtons(); // Gọi lại cho các nút placeholder
          initImageScaling(); // Gọi lại để gắn listener cho nút scale
     }
+    // Xử lý khi chỉ dropdown chứa theme switcher bị swap (ít khả năng)
+    else if (targetElement.querySelector('#customThemeSwitcherItem')) {
+        console.log('[HTMX Swap] Custom theme switcher detected in swapped content, reinitializing.');
+        initCustomThemeSwitcher();
+    }
 
     // Luôn khởi tạo lại các component Bootstrap trong phần tử đã swap
     initializeBootstrapComponents(targetElement);
@@ -93,7 +98,7 @@ function reinitializeAfterHtmxSwap(targetElement) {
     }
     if (targetElement.querySelector('#themeSwitch')) {
         // Re-init theme switcher logic if needed
-        initThemeSwitcher(); // Bây giờ đã an toàn khi gọi lại, vì đã xử lý việc xóa bỏ listener cũ
+        initCustomThemeSwitcher(); // Bây giờ đã an toàn khi gọi lại, vì đã xử lý việc xóa bỏ listener cũ
     }
     if (targetElement.querySelector('.custom-user-dropdown')) {
         // Ensure Custom Dropdown is initialized if the dropdown itself was swapped
@@ -132,7 +137,7 @@ function reinitializeAfterHtmxLoad(targetElement) {
     initSidebar();          // Trạng thái sidebar, link active
     initAuthUI();           // Trạng thái đăng nhập header (QUAN TRỌNG)
     initCustomDropdowns();  // Khởi tạo lại custom dropdowns
-    initThemeSwitcher();    // Trạng thái nút theme - bây giờ đã an toàn khi gọi lại
+    initCustomThemeSwitcher();    // Trạng thái nút theme
     initBackToTop();        // Nút back-to-top
     initResponsive();       // Xử lý responsive chung
     fixAccordionIssues();   // Sửa lỗi accordion chung
