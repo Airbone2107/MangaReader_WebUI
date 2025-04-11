@@ -20,6 +20,7 @@ import SearchModule from './search.js';
 import { initThemeSwitcher } from './theme.js';
 import { initAuthUI } from '../auth.js';
 import { initCustomDropdowns } from './custom-dropdown.js';
+import { initReadPage, initImageLoading, initSidebarToggle, initChapterDropdownNav, initContentAreaClickToOpenSidebar } from './read-page.js';
 
 /**
  * Khởi tạo lại các chức năng cần thiết sau khi HTMX cập nhật nội dung
@@ -42,6 +43,11 @@ function reinitializeAfterHtmxSwap(targetElement) {
         if (targetElement.querySelector('.details-manga-header-background')) {
             initMangaDetailsPage();
         }
+        // Khởi tạo lại trang đọc chapter nếu có
+        if (targetElement.querySelector('.chapter-reader-container') || targetElement.querySelector('#readingSidebar')) {
+            console.log('[HTMX Swap] Chapter Read page detected, initializing read-page modules');
+            initReadPage();
+        }
         // Khởi tạo lại pagination nếu có trong nội dung mới
         if (targetElement.querySelector('.pagination')) {
             SearchModule.initPageGoTo?.();
@@ -60,6 +66,11 @@ function reinitializeAfterHtmxSwap(targetElement) {
         console.log('[HTMX Swap] Search results container swapped (view mode change).');
         // Thường không cần làm gì nhiều ở đây vì view mode đã được server render đúng
         initTooltips(); // Có thể cần tooltip cho list view
+    }
+    // Xử lý khi chỉ container ảnh chapter được swap
+    else if (targetElement.id === 'chapterImagesContainer') {
+        console.log('[HTMX Swap] Chapter images container swapped, initializing image loading...');
+        initImageLoading('#chapterImagesContainer');
     }
 
     // Luôn khởi tạo lại các component Bootstrap trong phần tử đã swap
@@ -129,6 +140,9 @@ function reinitializeAfterHtmxLoad(targetElement) {
     } else if (targetElement.querySelector('.details-manga-header-background')) {
         console.log('[HTMX Load] Reinitializing Manga Details Page...');
         initMangaDetailsPage(); // Khởi tạo dropdown chapter, nút follow, etc.
+    } else if (targetElement.querySelector('.chapter-reader-container') || targetElement.querySelector('#readingSidebar')) {
+        console.log('[HTMX Load] Reinitializing Chapter Read Page...');
+        initReadPage(); // Khởi tạo sidebar, lazy loading, dropdown navigation
     } else {
         // Trang chủ hoặc trang khác? Khởi tạo lại các thành phần cần thiết
         console.log('[HTMX Load] Reinitializing Home Page or other...');

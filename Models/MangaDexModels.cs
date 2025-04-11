@@ -297,5 +297,6 @@ namespace manga_reader_web.Models
         public List<string> Pages { get; set; } = new List<string>();
         public string PrevChapterId { get; set; }
         public string NextChapterId { get; set; }
+        public List<ChapterViewModel> SiblingChapters { get; set; } = new List<ChapterViewModel>();
     }
 } 

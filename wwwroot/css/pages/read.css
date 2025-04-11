@@ -1,0 +1,302 @@
+/**
+ * READ PAGE STYLES
+ * ---------------
+ * Styles dành riêng cho trang đọc chapter mới
+ */
+
+/* Container chính cho trang đọc */
+.chapter-reader-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+/* Header của chapter */
+.chapter-header {
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.manga-title {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+.chapter-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 1rem;
+}
+
+.chapter-number, .chapter-title, .chapter-controls {
+    background-color: var(--card-bg);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    box-shadow: var(--card-shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: normal;
+    color: var(--body-color);
+}
+
+.chapter-number {
+    flex: 1;
+    min-width: 120px;
+}
+
+.chapter-title {
+    flex: 2;
+    overflow: hidden;
+}
+
+.chapter-title h2 {
+    margin-bottom: 0;
+    font-size: 1.1rem;
+    font-weight: normal;
+    text-align: center;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chapter-controls {
+    flex: 1;
+    min-width: 120px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.chapter-controls:hover {
+    background-color: var(--hover-bg);
+}
+
+/* Container cho ảnh chapter */
+.chapter-images-container {
+    margin-bottom: 2rem;
+}
+
+.chapter-images {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.page-image-container {
+    position: relative;
+    width: 100%;
+    min-height: 200px;
+    background-color: var(--bg-secondary);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.chapter-page-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: 0 auto;
+}
+
+/* Loading indicator */
+.loading-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--bg-secondary);
+    z-index: 2;
+}
+
+/* Error overlay */
+.error-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(var(--error-rgb), 0.8);
+    color: white;
+    z-index: 3;
+}
+
+.retry-button {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background-color: white;
+    color: var(--error);
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.retry-button:hover {
+    background-color: #f8f9fa;
+}
+
+/* Chapter footer */
+.chapter-footer {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+.nav-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Reading Sidebar */
+.reading-sidebar {
+    position: fixed;
+    top: 0;
+    right: -300px;
+    width: 300px;
+    height: 100vh;
+    background-color: var(--body-bg);
+    border-left: 1px solid var(--border-color);
+    box-shadow: -5px 0px 15px rgba(0, 0, 0, 0.1);
+    z-index: var(--z-index-modal);
+    transition: right var(--transition-speed) ease-in-out;
+    overflow-y: auto;
+    padding: 1rem;
+    color: var(--body-color);
+}
+
+.reading-sidebar.open {
+    right: 0;
+}
+
+.reading-sidebar .sidebar-section {
+    margin-bottom: 1.5rem;
+}
+
+.reading-sidebar .sidebar-section h6 {
+    margin-bottom: 1rem;
+    color: var(--text-muted);
+}
+
+/* Chapter Navigation Styles */
+.reading-sidebar .chapter-navigation {
+    background-color: transparent;
+    border: none;
+}
+
+.reading-sidebar .chapter-nav-button {
+    flex: 0 0 15%;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 1.2rem;
+    color: var(--sidebar-link-color);
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: calc(1.5em + 0.75rem + 2px);
+}
+
+.reading-sidebar .chapter-nav-button:hover:not([disabled]) {
+    background-color: var(--sidebar-link-hover-bg);
+    color: var(--sidebar-link-hover-color);
+}
+
+.reading-sidebar .chapter-nav-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.reading-sidebar #chapterSelect {
+    flex: 1 1 70%;
+    min-width: 0;
+    background-color: var(--input-bg);
+    color: var(--input-color);
+    border: 1px solid var(--input-border);
+}
+
+.reading-sidebar #chapterSelect:focus {
+    border-color: var(--input-focus-border);
+    background-color: var(--input-focus-bg);
+    box-shadow: var(--input-focus-shadow);
+}
+
+.reading-sidebar .btn-theme-outline {
+    color: var(--body-color);
+    border-color: var(--border-color);
+}
+
+.reading-sidebar .btn-theme-outline:hover {
+    background-color: var(--hover-bg);
+}
+
+.reading-sidebar .form-select {
+    background-color: var(--input-bg);
+    color: var(--input-color);
+    border-color: var(--input-border);
+}
+
+/* Pin sidebar button */
+#pinSidebarBtn {
+    font-size: 0.9rem;
+    padding: 0.25rem 0.5rem;
+}
+
+#pinSidebarBtn i {
+    font-size: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .manga-title {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .chapter-info-row {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .chapter-number,
+    .chapter-title,
+    .chapter-controls {
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+        padding: 0.5rem;
+        font-size: 1rem;
+        min-width: 0;
+        flex: 1;
+    }
+    
+    .chapter-title {
+        overflow: visible;
+    }
+    
+    .chapter-title h2 {
+        font-size: 1rem;
+        white-space: normal;
+    }
+    
+    .reading-sidebar {
+        width: 85%;
+        right: -85%;
+    }
+} 

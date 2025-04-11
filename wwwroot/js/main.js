@@ -25,6 +25,7 @@ import { initMangaDetailsPage } from './modules/manga-details.js';
 import { initTagsInSearchForm } from './modules/manga-tags.js';
 import { initAuthUI } from './auth.js';
 import { initCustomDropdowns } from './modules/custom-dropdown.js';
+import { initReadPage } from './modules/read-page.js';
 
 // --- Xử lý Back/Forward và bfcache ---
 window.addEventListener('pageshow', function(event) {
@@ -122,6 +123,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.querySelector('.details-manga-header-background') || document.querySelector('.details-manga-details-container')) {
         console.log('Main.js: Đang khởi tạo tính năng trang chi tiết manga khi tải trực tiếp.');
         initMangaDetailsPage();
+    }
+    
+    // Khởi tạo chức năng cho trang đọc chapter có điều kiện
+    if (document.querySelector('.chapter-reader-container') || document.getElementById('readingSidebar')) {
+        console.log('Main.js: Đang khởi tạo tính năng trang đọc chapter khi tải trực tiếp.');
+        initReadPage();
     }
     
     // Khởi tạo xử lý HTMX

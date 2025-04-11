@@ -165,7 +165,8 @@ namespace manga_reader_web.Services.MangaServices.ChapterServices
                     ChapterLanguage = currentChapterLanguage,
                     Pages = pages,
                     PrevChapterId = prevChapterId,
-                    NextChapterId = nextChapterId
+                    NextChapterId = nextChapterId,
+                    SiblingChapters = chaptersList
                 };
                 
                 return viewModel;

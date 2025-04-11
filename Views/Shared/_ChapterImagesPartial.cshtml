@@ -1,0 +1,25 @@
+@model List<string>
+
+@if (Model != null && Model.Any())
+{
+    <div class="chapter-images">
+        @foreach (var imgPage in Model)
+        {
+            <div class="page-image-container">
+                <div class="loading-indicator">
+                    <div class="spinner-border"></div>
+                </div>
+                <img class="chapter-page-image lazy-load" src="" data-src="@imgPage" alt="Trang truyện" />
+                <div class="error-overlay" style="display: none;">
+                    <i class="bi bi-exclamation-triangle"></i> Lỗi tải ảnh <button class="retry-button">Thử lại</button>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="alert alert-warning text-center">
+        <i class="bi bi-exclamation-circle"></i> Không có trang nào cho chương này
+    </div>
+} 

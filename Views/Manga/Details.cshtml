@@ -69,10 +69,16 @@
                                         var newestEnglishChapter = newestChapters.FirstOrDefault(c => c.Language == "en");
                                         var newestChapterId = newestVietnameseChapter?.Id ?? newestEnglishChapter?.Id ?? newestChapters.First().Id;
                                         
-                                        <a asp-controller="Chapter" asp-action="Read" asp-route-id="@firstChapterId" class="btn btn-primary">
+                                        <a asp-controller="Chapter" asp-action="Read" asp-route-id="@firstChapterId" class="btn btn-primary"
+                                           hx-get="@Url.Action("Read", "Chapter", new { id = firstChapterId })"
+                                           hx-target="#main-content"
+                                           hx-push-url="true">
                                             <i class="bi bi-book-fill me-2"></i>Đọc từ đầu
                                         </a>
-                                        <a asp-controller="Chapter" asp-action="Read" asp-route-id="@newestChapterId" class="btn btn-success">
+                                        <a asp-controller="Chapter" asp-action="Read" asp-route-id="@newestChapterId" class="btn btn-success"
+                                           hx-get="@Url.Action("Read", "Chapter", new { id = newestChapterId })"
+                                           hx-target="#main-content"
+                                           hx-push-url="true">
                                             <i class="bi bi-lightning-fill me-2"></i>Đọc mới nhất
                                         </a>
                                     }
@@ -232,7 +238,10 @@
                                                     {
                                                         <a asp-controller="Chapter" asp-action="Read" 
                                                            asp-route-id="@chapter.Id"
-                                                           class="custom-chapter-item chapter-link">
+                                                           class="custom-chapter-item chapter-link"
+                                                           hx-get="@Url.Action("Read", "Chapter", new { id = chapter.Id })"
+                                                           hx-target="#main-content"
+                                                           hx-push-url="true">
                                                             <div class="custom-chapter-info">
                                                                 <h6 class="mb-0">@chapter.Title</h6>
                                                                 <small class="text-muted">@chapter.PublishedAt.ToString("dd/MM/yyyy")</small>
