@@ -122,7 +122,7 @@ Thêm chức năng cho phép người dùng xem lại lịch sử các chương 
 *   `manga_reader_web\Views\Manga\History.cshtml`
 *   `manga_reader_web\Views\Shared\_ReadingHistoryListPartial.cshtml`
 
-**Công việc:** (Giữ nguyên như hướng dẫn trước)
+**Công việc:**
 
 1.  **Trong `MangaController.cs`:**
     *   Inject `IReadingHistoryService`.
@@ -135,7 +135,7 @@ Thêm chức năng cho phép người dùng xem lại lịch sử các chương 
 
 **File cần sửa:** `manga_reader_web\Views\Shared\_Layout.cshtml`
 
-**Công việc:** (Giữ nguyên như hướng dẫn trước)
+**Công việc:**
 
 1.  Thêm một `<li>` và `<a>` mới vào `ul.navbar-nav` trong sidebar.
 2.  Thẻ `<a>` trỏ đến `Manga/History` và sử dụng các thuộc tính HTMX (`hx-get`, `hx-target`, `hx-push-url`) để tải nội dung vào `#main-content`.
@@ -144,7 +144,7 @@ Thêm chức năng cho phép người dùng xem lại lịch sử các chương 
 
 **File cần sửa:** `manga_reader_web\Services\AuthServices\UserService.cs`
 
-**Công việc:** (Chỉ thực hiện nếu bạn chuyển sang lưu token vào Cookie)
+**Công việc:**
 
 1.  Sửa hàm `GetToken()` để đọc giá trị token từ `HttpContext.Request.Cookies["YourTokenCookieName"]`.
 2.  Sửa hàm `IsAuthenticated()` để kiểm tra sự tồn tại của cookie hoặc dựa vào `HttpContext.User.Identity.IsAuthenticated` nếu bạn cấu hình Cookie Authentication đúng cách.
@@ -152,7 +152,7 @@ Thêm chức năng cho phép người dùng xem lại lịch sử các chương 
 
 ### 11. Kiểm Tra và Hoàn Thiện
 
-**Công việc:** (Giữ nguyên như hướng dẫn trước)
+**Công việc:**
 
 1.  Chạy ứng dụng, đăng nhập.
 2.  Đọc truyện. Kiểm tra Network tab trong DevTools xem request `POST` đến `SaveReadingProgress` có được gửi khi trang đọc tải không. Kiểm tra log backend.
