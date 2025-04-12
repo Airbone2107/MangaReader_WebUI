@@ -122,14 +122,24 @@
                                 <div class="dropdown-menu-content" id="userDropdownMenu">
                                     <!-- Menu cho người dùng chưa đăng nhập -->
                                     <div id="guestUserMenu">
-                                        <a class="dropdown-item" href="@Url.Action("Login", "Auth")"><i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập</a>
+                                        <a class="dropdown-item"
+                                           href="@Url.Action("Login", "Auth")"
+                                           hx-get="@Url.Action("Login", "Auth")"
+                                           hx-target="#main-content"
+                                           hx-push-url="true">
+                                            <i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập
+                                        </a>
                                     </div>
 
                                     <!-- Menu cho người dùng đã đăng nhập -->
                                     <div id="authenticatedUserMenu" class="d-none">
-                                        <a class="dropdown-item" href="@Url.Action("Profile", "Auth")"><i class="bi bi-person me-2"></i>Trang cá nhân</a>
-                                        <a class="dropdown-item" href="@Url.Action("Profile", "Auth")#following"><i class="bi bi-bookmark me-2"></i>Danh sách theo dõi</a>
-                                        <a class="dropdown-item" href="@Url.Action("Profile", "Auth")#history"><i class="bi bi-clock-history me-2"></i>Lịch sử đọc</a>
+                                        <a class="dropdown-item"
+                                           href="@Url.Action("Profile", "Auth")"
+                                           hx-get="@Url.Action("Profile", "Auth")"
+                                           hx-target="#main-content"
+                                           hx-push-url="true">
+                                            <i class="bi bi-person me-2"></i>Trang cá nhân
+                                        </a>
                                         <hr class="dropdown-divider">
                                         <a class="dropdown-item" href="@Url.Action("Logout", "Auth")"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a>
                                     </div>

@@ -4,6 +4,7 @@ using manga_reader_web.Models;
 using manga_reader_web.Models.Auth;
 using manga_reader_web.Services.MangaServices;
 using manga_reader_web.Services.MangaServices.MangaPageService;
+using manga_reader_web.Services.UtilityServices;
 
 namespace manga_reader_web.Controllers
 {
@@ -11,19 +12,16 @@ namespace manga_reader_web.Controllers
     {
         private readonly IUserService _userService;
         private readonly ILogger<AuthController> _logger;
-        private readonly IMangaFollowService _mangaFollowService;
-        private readonly MangaDetailsService _mangaDetailsService;
+        private readonly ViewRenderService _viewRenderService;
 
         public AuthController(
             IUserService userService,
             ILogger<AuthController> logger,
-            IMangaFollowService mangaFollowService,
-            MangaDetailsService mangaDetailsService)
+            ViewRenderService viewRenderService)
         {
             _userService = userService;
             _logger = logger;
-            _mangaFollowService = mangaFollowService;
-            _mangaDetailsService = mangaDetailsService;
+            _viewRenderService = viewRenderService;
         }
 
         /// <summary>
@@ -33,8 +31,9 @@ namespace manga_reader_web.Controllers
         /// <returns>View đăng nhập</returns>
         public IActionResult Login(string returnUrl = null)
         {
+            _logger.LogInformation("Hiển thị trang Login.");
             ViewBag.ReturnUrl = returnUrl;
-            return View();
+            return _viewRenderService.RenderViewBasedOnRequest(this, "Login", null);
         }
 
         /// <summary>
@@ -180,73 +179,58 @@ namespace manga_reader_web.Controllers
         /// <returns>View profile người dùng</returns>
         public async Task<IActionResult> Profile()
         {
+            _logger.LogInformation("Yêu cầu trang Profile.");
             if (!_userService.IsAuthenticated())
             {
-                return RedirectToAction("Login");
+                _logger.LogWarning("Người dùng chưa đăng nhập, chuyển hướng đến Login.");
+                
+                // Nếu là HTMX request, trả về partial yêu cầu đăng nhập
+                if (Request.Headers.ContainsKey("HX-Request"))
+                {
+                    return PartialView("_UnauthorizedPartial");
+                }
+                return RedirectToAction("Login", new { returnUrl = Url.Action("Profile", "Auth") });
             }
 
             try
             {
                 // Lấy thông tin người dùng
                 var user = await _userService.GetUserInfoAsync();
-                
+
                 if (user == null)
                 {
+                    _logger.LogError("Không thể lấy thông tin người dùng đã đăng nhập.");
                     TempData["ErrorMessage"] = "Không thể lấy thông tin người dùng. Vui lòng đăng nhập lại.";
+                    
+                    if (Request.Headers.ContainsKey("HX-Request"))
+                    {
+                        ViewBag.ErrorMessage = "Không thể lấy thông tin người dùng.";
+                        return PartialView("_ErrorPartial");
+                    }
                     return RedirectToAction("Login");
                 }
-                
-                // Tạo ProfileViewModel để chứa thông tin người dùng và danh sách manga đang theo dõi
+
+                // Tạo ViewModel chỉ với thông tin User
                 var viewModel = new ProfileViewModel
                 {
-                    User = user,
-                    FollowingMangas = new List<MangaViewModel>()
+                    User = user
                 };
-                
-                // Lấy danh sách manga đang theo dõi
-                if (user.FollowingManga != null && user.FollowingManga.Count > 0)
-                {
-                    // Lấy chi tiết từng manga
-                    foreach (var mangaId in user.FollowingManga)
-                    {
-                        try
-                        {
-                            // Lấy thông tin chi tiết manga từ MangaDetailsService
-                            var mangaDetails = await _mangaDetailsService.GetMangaDetailsAsync(mangaId);
-                            if (mangaDetails != null && mangaDetails.Manga != null)
-                            {
-                                // Đánh dấu manga này đang được theo dõi
-                                mangaDetails.Manga.IsFollowing = true;
-                                viewModel.FollowingMangas.Add(mangaDetails.Manga);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, $"Lỗi khi lấy thông tin chi tiết của manga {mangaId}");
-                            // Tiếp tục với manga tiếp theo nếu có lỗi
-                            continue;
-                        }
-                    }
-                }
-                
-                return View(viewModel);
+
+                _logger.LogInformation($"Hiển thị trang Profile cho user: {user.Email}");
+                return _viewRenderService.RenderViewBasedOnRequest(this, "Profile", viewModel);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi tải trang profile người dùng");
-                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tải trang profile. Vui lòng thử lại sau.";
+                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tải trang profile.";
+                
+                if (Request.Headers.ContainsKey("HX-Request"))
+                {
+                    ViewBag.ErrorMessage = "Có lỗi xảy ra khi tải trang profile.";
+                    return PartialView("_ErrorPartial");
+                }
                 return RedirectToAction("Index", "Home");
             }
         }
-    }
-}
-
-// ProfileViewModel để hiển thị thông tin người dùng và danh sách manga đang theo dõi
-namespace manga_reader_web.Models
-{
-    public class ProfileViewModel
-    {
-        public UserModel User { get; set; }
-        public List<MangaViewModel> FollowingMangas { get; set; } = new List<MangaViewModel>();
     }
 } 
