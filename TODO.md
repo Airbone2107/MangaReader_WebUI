@@ -1,369 +1,137 @@
-Chào bạn, tôi đã xem xét yêu cầu của bạn về việc loại bỏ danh sách theo dõi và lịch sử đọc khỏi trang Profile và menu người dùng, đồng thời tích hợp HTMX cho trang Login và Profile.
-
-Dưới đây là các bước chi tiết để thực hiện những thay đổi này. Tôi sẽ tạo file `TODO.md` để bạn tiện theo dõi và thực hiện.
-
-```markdown
-# TODO.md: Đơn Giản Hóa Trang Profile và Tích Hợp HTMX cho Auth
+# TODO.md: Refactor JavaScript với Alpine.js (Phương pháp Bottom-Up)
 
 ## Mục tiêu
 
-1.  Loại bỏ hoàn toàn tab "Đang theo dõi" và "Lịch sử đọc" khỏi trang Profile (`/Auth/Profile`). Trang Profile sẽ chỉ hiển thị thông tin cơ bản của người dùng.
-2.  Loại bỏ các liên kết "Danh sách theo dõi" và "Lịch sử đọc" khỏi menu dropdown của người dùng trong header.
-3.  Cập nhật các liên kết đến trang Login (`/Auth/Login`) và Profile (`/Auth/Profile`) để sử dụng HTMX, tải nội dung vào `#main-content`.
-4.  Cập nhật `AuthController` để xử lý các request HTMX cho action `Login` và `Profile`.
+Tái cấu trúc mã JavaScript hiện có (`wwwroot/js`) bằng cách chọn từng chức năng JavaScript cụ thể, tìm HTML tương ứng, chuyển đổi sang Alpine.js, và loại bỏ mã JavaScript gốc. Mục tiêu cuối cùng là làm mã nguồn gọn gàng hơn, dễ bảo trì và giảm sự phụ thuộc vào việc khởi tạo lại thủ công sau các thao tác HTMX.
 
-## Các Bước Thực Hiện Chi Tiết
+## Phương pháp "Từ trong ra ngoài" (Bottom-Up)
 
-### 1. Frontend: Loại Bỏ Tabs và Nội Dung Khỏi Trang Profile
+Chúng ta sẽ thực hiện các bước sau cho **từng chức năng JavaScript** muốn refactor:
 
-**File cần sửa:** `manga_reader_web\Views\Auth\Profile.cshtml`
+1.  **Chọn chức năng:** Chọn một hàm JavaScript cụ thể trong thư mục `wwwroot/js/modules` (ví dụ: `initSidebarToggle` trong `read-page.js`). Ưu tiên các hàm xử lý sự kiện UI đơn giản (click, toggle class, show/hide).
+2.  **Xác định HTML liên quan:** Tìm các file `.cshtml` (trong `Views/`) chứa các phần tử HTML (thường có ID hoặc class cụ thể) mà hàm JavaScript đã chọn tương tác.
+3.  **Thiết kế với Alpine.js:** Xác định cách triển khai lại chức năng đó bằng Alpine.js:
+    *   Cần trạng thái gì? (`x-data`)
+    *   Sự kiện nào kích hoạt thay đổi? (`@click`, `@change`, etc.)
+    *   Phần tử nào cần thay đổi hiển thị/class? (`x-show`, `:class`)
+    *   Có cần đóng khi click ra ngoài không? (`@click.outside`)
+4.  **Chỉnh sửa HTML:** Thêm các directives (`x-data`, `x-init`, `x-show`, `@click`, `:class`, etc.) vào các phần tử HTML đã xác định ở Bước 2.
+5.  **Kiểm thử (Quan trọng):**
+    *   Tạm thời **bình luận (comment out)** lệnh gọi hàm JavaScript gốc trong `main.js` hoặc `htmx-handlers.js`.
+    *   Kiểm tra xem chức năng trên HTML đã hoạt động đúng với Alpine.js chưa.
+    *   Kiểm tra sau các thao tác HTMX (swap, load) để đảm bảo Alpine tự khởi tạo đúng cách.
+6.  **Xóa mã JavaScript cũ:**
+    *   Nếu Bước 5 thành công, **xóa bỏ** hàm JavaScript gốc khỏi file module của nó.
+    *   **Xóa bỏ** lệnh gọi hàm đó khỏi `main.js` và/hoặc `htmx-handlers.js`.
+7.  **Đơn giản hóa `htmx-handlers.js`:** Xóa bỏ các lệnh gọi `init...()` không còn cần thiết trong `reinitializeAfterHtmxSwap` và `reinitializeAfterHtmxLoad` vì Alpine.js sẽ tự quản lý.
+8.  **Lặp lại:** Chọn một chức năng JavaScript khác và lặp lại quy trình.
 
-**Công việc:**
+Đây là danh sách các hàm JavaScript có tiềm năng cao để được thay thế hoặc đơn giản hóa đáng kể bằng Alpine.js:
 
-1.  **Xóa bỏ cấu trúc Tabs:** Xóa toàn bộ phần `nav-tabs` (`<ul class="nav nav-tabs card-header-tabs"...>`) và `tab-content` (`<div class="tab-content"...>`).
-2.  **Giữ lại phần thông tin người dùng:** Giữ lại cột chứa thông tin cơ bản (ảnh đại diện, tên, email, nút đăng xuất).
-3.  **Điều chỉnh layout:** Đảm bảo phần thông tin người dùng còn lại hiển thị đúng trong layout mới (có thể cần điều chỉnh class `col-md-4` và `col-md-8`).
+1. custom-dropdown.js (Toàn bộ module)
 
-**Mã nguồn cần sửa (Xóa các phần được đánh dấu):**
+initCustomDropdowns(): Alpine sẽ tự động khởi tạo các component x-data.
 
-```html
-@model manga_reader_web.Models.ProfileViewModel
-@{
-    ViewData["Title"] = "Trang cá nhân";
-}
+toggleDropdown(): Thay thế bằng @click="open = !open" và :class hoặc x-show.
 
-<div class="container mt-4">
-    <div class="row justify-content-center"> @* Thay đổi thành justify-content-center nếu chỉ còn 1 cột *@
-        <div class="col-md-6 col-lg-5"> @* Điều chỉnh kích thước cột cho phù hợp *@
-            <div class="card shadow-sm mb-4">
-                <div class="card-body text-center">
-                    @if (!string.IsNullOrEmpty(Model.User.PhotoURL))
-                    {
-                        <img src="@Model.User.PhotoURL" alt="Ảnh đại diện" class="rounded-circle img-fluid mb-3" style="max-width: 150px;" />
-                    }
-                    else
-                    {
-                        <div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 150px; height: 150px;">
-                            <i class="bi bi-person-fill" style="font-size: 4rem;"></i>
-                        </div>
-                    }
-                    <h5 class="mb-1">@Model.User.DisplayName</h5>
-                    <p class="text-muted">@Model.User.Email</p>
-                    <a href="@Url.Action("Logout", "Auth")" class="btn btn-outline-danger mt-3"> @* Thêm margin top nếu cần *@
-                        <i class="bi bi-box-arrow-right me-1"></i> Đăng xuất
-                    </a>
-                </div>
-            </div>
-        </div>
+closeAllDropdowns(): Alpine xử lý scope component và @click.outside sẽ đóng dropdown.
 
-        @* ----- BẮT ĐẦU PHẦN CẦN XÓA ----- *@
-        @*
-        <div class="col-md-8">
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <ul class="nav nav-tabs card-header-tabs" id="profileTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="following-tab" data-bs-toggle="tab" data-bs-target="#following" type="button" role="tab" aria-controls="following" aria-selected="true">
-                                <i class="bi bi-heart-fill me-1"></i> Đang theo dõi (@Model.FollowingMangas.Count)
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab" aria-controls="history" aria-selected="false">
-                                <i class="bi bi-clock-history me-1"></i> Lịch sử đọc
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-                <div class="card-body">
-                    <div class="tab-content" id="profileTabsContent">
-                        <div class="tab-pane fade show active" id="following" role="tabpanel" aria-labelledby="following-tab">
-                            <!-- Nội dung tab Đang theo dõi -->
-                        </div>
+closeDropdownsOnClickOutside(): Thay thế bằng @click.outside="open = false" trên phần tử dropdown.
 
-                        <div class="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab">
-                            <!-- Nội dung tab Lịch sử đọc -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        *@
-        @* ----- KẾT THÚC PHẦN CẦN XÓA ----- *@
-    </div>
-</div>
+Lý do: Quản lý trạng thái mở/đóng và xử lý click là thế mạnh cốt lõi của Alpine.js.
 
-<!-- Toast thông báo (Giữ lại nếu cần cho các chức năng khác) -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-            <i class="bi bi-info-circle me-2"></i>
-            <strong class="me-auto" id="toastTitle">Thông báo</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-        <div class="toast-body" id="toastMessage">
+2. theme.js (Phần lớn module)
 
-        </div>
-    </div>
-</div>
+initCustomThemeSwitcher(): Thay thế bằng định nghĩa component x-data="themeSwitcher()" trong HTML.
 
-@* Giữ lại Section Scripts nếu cần cho Toast hoặc chức năng khác *@
-@section Scripts {
-    <script>
-        // Khởi tạo toast
-        let toastElement = document.getElementById('notificationToast');
-        let toast = toastElement ? new bootstrap.Toast(toastElement, { delay: 3000 }) : null;
+saveTheme(): Thay thế bằng plugin $persist của Alpine hoặc cập nhật localStorage trong method của Alpine.
 
-        function showNotification(title, message, type = 'info') {
-            // ... (giữ nguyên code showNotification)
-        }
+getSavedTheme(): Dùng để lấy giá trị khởi tạo cho state Alpine (có thể kết hợp $persist).
 
-        // Xóa bỏ các hàm setupUnfollowButtons và setupContinueReadingButtons nếu không còn sử dụng
-        // document.addEventListener('DOMContentLoaded', function () {
-        //     // setupUnfollowButtons(); // Xóa hoặc comment dòng này
-        //     // setupContinueReadingButtons(); // Xóa hoặc comment dòng này
-        // });
+updateThemeSwitcherUI(): Thay thế bằng các binding của Alpine (:class, x-text) dựa trên state isDark.
 
-        // Xóa bỏ hàm setupUnfollowButtons và unfollowManga nếu không còn nút unfollow
-        // function setupUnfollowButtons() { ... }
-        // function unfollowManga(mangaId, title, buttonElement) { ... }
-        // function setupContinueReadingButtons() { ... }
-    </script>
-}
-```
+applyTheme(): Hàm này vẫn cần thiết dưới dạng JS helper để áp dụng class/attribute lên document.documentElement và cập nhật meta tag, nhưng nó sẽ được gọi từ Alpine (ví dụ: trong init() hoặc $watch).
 
-### 2. Backend: Cập Nhật `AuthController` và `ProfileViewModel`
+Lý do: Quản lý trạng thái theme (sáng/tối), lưu trữ và cập nhật UI của nút switch rất phù hợp với mô hình của Alpine.
 
-**File cần sửa:** `manga_reader_web\Controllers\AuthController.cs`
+3. search.js (Nhiều phần)
 
-**Công việc:**
+initAdvancedFilter(): Việc toggle hiển thị #filterContainer có thể thay bằng x-data="{ filtersOpen: false }", @click="filtersOpen = !filtersOpen", x-show="filtersOpen". Logic checkForActiveFilters có thể chạy trong x-init để xác định trạng thái ban đầu.
 
-1.  **Inject `ViewRenderService`:** Nếu chưa có, inject `ViewRenderService` vào constructor.
-    *   **Nhắc nhở:** Bạn đã inject `ViewRenderService` trong các controller khác như `MangaController`, `ChapterController`. Hãy làm tương tự.
-2.  **Cập nhật Action `Profile`:**
-    *   Xóa bỏ logic lấy danh sách `FollowingMangas` (không cần gọi `_mangaDetailsService` nữa).
-    *   Đảm bảo `ViewModel` chỉ chứa `User`.
-    *   Sử dụng `_viewRenderService.RenderViewBasedOnRequest` để trả về `View` hoặc `PartialView`.
-3.  **Cập nhật Action `Login`:**
-    *   Sử dụng `_viewRenderService.RenderViewBasedOnRequest` để trả về `View` hoặc `PartialView`.
+initFilterDropdowns(): Toàn bộ logic quản lý trạng thái mở/đóng, cập nhật text hiển thị, xử lý chọn checkbox/radio trong các dropdown bộ lọc có thể chuyển sang các component Alpine riêng cho mỗi dropdown.
 
-**Mã nguồn cần thêm/sửa trong `AuthController.cs`:**
+updateDropdownText(): Logic này sẽ được tích hợp vào các component Alpine của dropdown (ví dụ: dùng computed property hoặc method).
 
-```csharp
-// Thêm using nếu cần
-using manga_reader_web.Services.UtilityServices;
-using manga_reader_web.Models; // Namespace của ProfileViewModel
-using manga_reader_web.Models.Auth; // Namespace của UserModel
+initViewModeToggle(): Việc chuyển đổi trạng thái (grid/list), lưu localStorage, cập nhật class active cho nút có thể chuyển sang Alpine (x-data, $persist, @click, :class).
 
-namespace manga_reader_web.Controllers
-{
-    public class AuthController : Controller
-    {
-        private readonly IUserService _userService;
-        private readonly ILogger<AuthController> _logger;
-        // private readonly IMangaFollowService _mangaFollowService; // Không cần nữa nếu không dùng
-        // private readonly MangaDetailsService _mangaDetailsService; // Không cần nữa
-        private readonly ViewRenderService _viewRenderService; // THÊM INJECTION
+handleViewModeToggleClick(): Thay thế bằng method trong component Alpine.
 
-        public AuthController(
-            IUserService userService,
-            ILogger<AuthController> logger,
-            // IMangaFollowService mangaFollowService, // Bỏ injection này
-            // MangaDetailsService mangaDetailsService, // Bỏ injection này
-            ViewRenderService viewRenderService // THÊM VÀO CONSTRUCTOR
-            )
-        {
-            _userService = userService;
-            _logger = logger;
-            // _mangaFollowService = mangaFollowService; // Bỏ gán
-            // _mangaDetailsService = mangaDetailsService; // Bỏ gán
-            _viewRenderService = viewRenderService; // GÁN GIÁ TRỊ
-        }
+updateViewModeButtons(): Thay thế bằng :class binding trong Alpine.
 
-        // GET: /Auth/Login
-        public IActionResult Login(string returnUrl = null)
-        {
-            _logger.LogInformation("Hiển thị trang Login.");
-            ViewBag.ReturnUrl = returnUrl;
-            // SỬ DỤNG VIEWRENDERSERVICE
-            return _viewRenderService.RenderViewBasedOnRequest(this, "Login", null); // Truyền null vì view Login không cần model
-        }
+applySavedViewMode(): Logic này được xử lý bởi $persist hoặc x-init của Alpine.
 
-        // ... (Các action GoogleLogin, Callback, Logout giữ nguyên) ...
+initPageGoTo() (Một phần): Việc hiển thị/ẩn input khi click "..." có thể dùng state Alpine (x-data="{ editingPage: false }"), nhưng logic tạo input và xử lý Enter/Blur có thể vẫn cần JS helper.
 
-        // GET: /Auth/Profile
-        public async Task<IActionResult> Profile()
-        {
-            _logger.LogInformation("Yêu cầu trang Profile.");
-            if (!_userService.IsAuthenticated())
-            {
-                _logger.LogWarning("Người dùng chưa đăng nhập, chuyển hướng đến Login.");
-                // Nếu là HTMX request, trả về partial yêu cầu đăng nhập
-                if (Request.Headers.ContainsKey("HX-Request"))
-                {
-                     // Có thể trả về Unauthorized() để HTMX xử lý hoặc một partial view
-                     // return Unauthorized();
-                     return PartialView("_UnauthorizedPartial"); // Tạo partial này nếu muốn
-                }
-                return RedirectToAction("Login", new { returnUrl = Url.Action("Profile", "Auth") });
-            }
+setupResetFilters() (Một phần): Trigger reset bằng @click của Alpine, nhưng logic reset các trường form phức tạp nên giữ trong hàm JS được gọi từ Alpine.
 
-            try
-            {
-                // Lấy thông tin người dùng
-                var user = await _userService.GetUserInfoAsync();
+Lý do: Alpine rất mạnh trong việc quản lý trạng thái và hiển thị có điều kiện của các form filter và các nút toggle đơn giản.
 
-                if (user == null)
-                {
-                    _logger.LogError("Không thể lấy thông tin người dùng đã đăng nhập.");
-                    TempData["ErrorMessage"] = "Không thể lấy thông tin người dùng. Vui lòng đăng nhập lại.";
-                     if (Request.Headers.ContainsKey("HX-Request"))
-                     {
-                         ViewBag.ErrorMessage = "Không thể lấy thông tin người dùng.";
-                         return PartialView("_ErrorPartial"); // Tạo partial này nếu muốn
-                     }
-                    return RedirectToAction("Login");
-                }
+4. manga-details.js (Một phần)
 
-                // Tạo ViewModel chỉ với thông tin User
-                var viewModel = new ProfileViewModel
-                {
-                    User = user
-                    // Không cần FollowingMangas nữa
-                };
+initDropdowns() (Chapter/Volume Accordions): Logic toggle class active cho header ngôn ngữ và volume hoàn toàn có thể thay bằng Alpine (x-data, @click, :class).
 
-                _logger.LogInformation($"Hiển thị trang Profile cho user: {user.Email}");
-                // SỬ DỤNG VIEWRENDERSERVICE
-                return _viewRenderService.RenderViewBasedOnRequest(this, "Profile", viewModel);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Lỗi khi tải trang profile người dùng");
-                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tải trang profile.";
-                 if (Request.Headers.ContainsKey("HX-Request"))
-                 {
-                     ViewBag.ErrorMessage = "Có lỗi xảy ra khi tải trang profile.";
-                     return PartialView("_ErrorPartial");
-                 }
-                return RedirectToAction("Index", "Home");
-            }
-        }
+initLanguageFilter(): Tương tự, việc quản lý nút filter ngôn ngữ nào đang active và ẩn/hiện các section tương ứng rất phù hợp với Alpine (x-data, @click, :class/x-show).
 
-         // ... (Action GetCurrentUser giữ nguyên) ...
-    }
-}
+initFollowButton() / handleFollowClick() / toggleFollow() (Phần UI): Trạng thái isFollowing, loading và việc cập nhật text/icon/disabled của nút follow là ứng viên tốt cho x-data, :class, x-text, :disabled. Logic fetch có thể là một method async trong x-data.
 
-// File: manga_reader_web\Models\ProfileViewModel.cs
-namespace manga_reader_web.Models
-{
-    public class ProfileViewModel
-    {
-        public UserModel User { get; set; }
-        // public List<MangaViewModel> FollowingMangas { get; set; } = new List<MangaViewModel>(); // XÓA DÒNG NÀY
-    }
-}
-```
+Lý do: Các tương tác toggle, quản lý trạng thái đơn giản (active/inactive, following/not following, loading/not loading) là những gì Alpine làm tốt nhất.
 
-**File cần tạo (nếu chưa có):**
+5. read-page.js (Một phần)
 
-*   `manga_reader_web\Views\Shared\_UnauthorizedPartial.cshtml` (Bạn có thể copy từ file này trong project hoặc tạo mới)
-*   `manga_reader_web\Views\Shared\_ErrorPartial.cshtml` (Bạn có thể copy từ file này trong project hoặc tạo mới)
+initSidebarToggle(): Quản lý trạng thái mở/đóng sidebar đọc truyện (x-data, @click, :class, @click.outside, @keydown.escape).
 
-### 3. Frontend: Loại Bỏ Links Khỏi User Dropdown
+initContentAreaClickToOpenSidebar(): Xử lý toggle sidebar khi click vùng ảnh (@click trên container ảnh gọi đến state của sidebar).
 
-**File cần sửa:** `manga_reader_web\Views\Shared\_Layout.cshtml`
+initChapterDropdownNav(): Có thể dùng x-model và @change (hoặc $watch) trên thẻ <select> để trigger navigation bằng JS (gọi htmx.ajax hoặc window.location).
 
-**Công việc:**
+initImageScaling(): Quản lý trạng thái fitWidth, lưu localStorage (dùng $persist), và cập nhật class cho container ảnh (x-data, $persist, @click, :class).
 
-1.  Tìm đến phần `#authenticatedUserMenu`.
-2.  Xóa các thẻ `<a>` của "Danh sách theo dõi" và "Lịch sử đọc".
+Lý do: Các chức năng toggle UI, quản lý trạng thái đơn giản và lưu trữ local rất phù hợp với Alpine.
 
-**Mã nguồn cần sửa (Xóa các dòng được đánh dấu `-`):**
+6. manga-tags.js (Một phần)
 
-```html
-<!-- Menu cho người dùng đã đăng nhập -->
-<div id="authenticatedUserMenu" class="d-none">
-    <a class="dropdown-item" href="@Url.Action("Profile", "Auth")"><i class="bi bi-person me-2"></i>Trang cá nhân</a>
--   <a class="dropdown-item" href="@Url.Action("Profile", "Auth")#following"><i class="bi bi-bookmark me-2"></i>Danh sách theo dõi</a>
--   <a class="dropdown-item" href="@Url.Action("Profile", "Auth")#history"><i class="bi bi-clock-history me-2"></i>Lịch sử đọc</a>
-    <hr class="dropdown-divider">
-    <a class="dropdown-item" href="@Url.Action("Logout", "Auth")"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a>
-</div>
-```
+initTagDropdownToggle(): Quản lý trạng thái mở/đóng dropdown (x-data, @click, x-show, @click.outside).
 
-### 4. Frontend: Cập Nhật Links Để Sử Dụng HTMX
+Listeners trong initTagsInSearchForm (Search, Mode Boxes): Logic lọc UI khi search và toggle trạng thái/class cho các mode box (AND/OR) có thể chuyển sang Alpine (x-model, x-data, @click, :class).
 
-**File cần sửa:** `manga_reader_web\Views\Shared\_Layout.cshtml`
+Logic chọn/bỏ chọn/loại trừ tag (trong renderTags): Thay vì addEventListener, dùng @click="cycleTagState(tag.id, tag.name)" trên tag item và xử lý logic thay đổi state trong Alpine.
 
-**Công việc:**
+Logic xóa tag badge (trong updateSelectedTagsDisplay): Dùng @click="removeTag(tag.id, isExcluded)" trên nút xóa của badge.
 
-1.  **Link Đăng nhập:** Tìm thẻ `<a>` trong `#guestUserMenu` trỏ đến `Auth/Login`. Thêm các thuộc tính HTMX `hx-get`, `hx-target`, `hx-push-url`.
-2.  **Link Trang cá nhân:** Tìm thẻ `<a>` trong `#authenticatedUserMenu` trỏ đến `Auth/Profile`. Thêm các thuộc tính HTMX `hx-get`, `hx-target`, `hx-push-url`.
+updateTagsInput(): Có thể thay bằng x-bind:value trên các input ẩn, liên kết với state mảng ID tag đã chọn/loại trừ.
 
-**Mã nguồn cần sửa (Thêm các thuộc tính được đánh dấu `+`):**
+updateTagItemStates(): Thay thế bằng :class binding trên các tag item trong dropdown, dựa trên state tag đã chọn/loại trừ.
 
-```html
-<!-- Menu cho người dùng chưa đăng nhập -->
-<div id="guestUserMenu">
-    <a class="dropdown-item"
-       href="@Url.Action("Login", "Auth")"
-+      hx-get="@Url.Action("Login", "Auth")"
-+      hx-target="#main-content"
-+      hx-push-url="true">
-        <i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập
-    </a>
-</div>
+Lý do: Alpine giúp quản lý trạng thái phức tạp của việc chọn/loại trừ tag và cập nhật UI tương ứng một cách reactive.
 
-<!-- Menu cho người dùng đã đăng nhập -->
-<div id="authenticatedUserMenu" class="d-none">
-    <a class="dropdown-item"
-       href="@Url.Action("Profile", "Auth")"
-+      hx-get="@Url.Action("Profile", "Auth")"
-+      hx-target="#main-content"
-+      hx-push-url="true">
-        <i class="bi bi-person me-2"></i>Trang cá nhân
-    </a>
-    @* Các link đã xóa ở bước trước *@
-    <hr class="dropdown-divider">
-    <a class="dropdown-item" href="@Url.Action("Logout", "Auth")"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a>
-</div>
-```
+Các hàm/module ít có khả năng hoặc không nên thay thế bằng Alpine.js:
 
-### 5. Backend: Đăng Ký `ViewRenderService` (Nếu Chưa Có)
+htmx-handlers.js: Module này điều phối việc gọi lại các hàm init khác, nó sẽ được đơn giản hóa khi các hàm init bị loại bỏ, chứ không bị thay thế.
 
-**File cần sửa:** `manga_reader_web\Program.cs`
+main.js: Điểm vào chính, logic pageshow xử lý bfcache.
 
-**Công việc:** Đảm bảo rằng `ViewRenderService` đã được đăng ký.
+toast.js: Cung cấp tiện ích global, không quản lý state UI cụ thể.
 
-**Mã nguồn cần kiểm tra/thêm:**
+ui.js (Hầu hết): Chứa các tiện ích DOM manipulation phức tạp (adjust titles, footer), tích hợp Bootstrap JS (tooltips, accordion fixes), hoặc dùng API trình duyệt (IntersectionObserver, scroll).
 
-```csharp
-// ... các đăng ký services khác ...
+error-handling.js: Chủ yếu là xử lý lỗi và fallback, ít liên quan đến state UI phức tạp.
 
-// Đăng ký ViewRenderService (Đảm bảo dòng này tồn tại)
-builder.Services.AddScoped<manga_reader_web.Services.UtilityServices.ViewRenderService>();
+auth.js (checkAuthState): Phần fetch lấy dữ liệu.
 
-// ... các đăng ký services khác ...
-```
+manga-details.js (adjustHeaderBackgroundHeight): Tính toán layout phức tạp.
 
-### 6. Kiểm Tra
+manga-tags.js (loadTags, renderTags, createTagBadge): Logic fetch và tạo DOM phức tạp (nhưng các event listener bên trong chúng có thể thay thế).
 
-1.  Chạy ứng dụng (`dotnet run`).
-2.  **Kiểm tra Trang Profile:**
-    *   Đăng nhập vào tài khoản.
-    *   Click vào "Trang cá nhân" trong menu người dùng.
-    *   **Xác nhận:** Nội dung trang Profile chỉ hiển thị thông tin người dùng (ảnh, tên, email, nút đăng xuất), không còn các tab "Đang theo dõi" hay "Lịch sử đọc".
-    *   **Xác nhận:** Trang Profile được tải vào `#main-content` mà không load lại toàn bộ trang. URL trên thanh địa chỉ thay đổi thành `/Auth/Profile`.
-3.  **Kiểm tra Menu Người Dùng:**
-    *   Click vào menu người dùng ở góc trên bên phải.
-    *   **Xác nhận:** Menu chỉ còn các mục "Trang cá nhân" và "Đăng xuất", không còn "Danh sách theo dõi" và "Lịch sử đọc".
-4.  **Kiểm tra Trang Login:**
-    *   Đăng xuất (nếu đang đăng nhập).
-    *   Click vào "Đăng nhập" trong menu người dùng.
-    *   **Xác nhận:** Trang Login được tải vào `#main-content` mà không load lại toàn bộ trang. URL trên thanh địa chỉ thay đổi thành `/Auth/Login`.
-5.  **Kiểm tra Console:** Mở Developer Tools (F12) và kiểm tra tab Console xem có lỗi JavaScript nào không, đặc biệt là sau khi HTMX tải nội dung.
-6.  **Kiểm tra Network:** Kiểm tra tab Network để xem các request HTMX đến `/Auth/Profile` và `/Auth/Login` có được gửi đúng và nhận về partial view không.
+read-page.js (initImageLoading): Quản lý state phức tạp cho từng ảnh và dùng API trình duyệt.
 
-Chúc bạn thực hiện thành công!
-```
-
-Bạn hãy lưu nội dung trên vào file `TODO.md` và thực hiện theo các bước đã hướng dẫn nhé. Nếu có bất kỳ vấn đề gì, đừng ngần ngại hỏi lại!
+search.js (initQuickSearch, checkForActiveFilters, getTotalPages, navigateToPage, setViewModeCookie, setupResetFilters (phần logic reset)): Các hàm tiện ích, đọc DOM, hoặc logic nghiệp vụ không trực tiếp quản lý state UI đơn giản.

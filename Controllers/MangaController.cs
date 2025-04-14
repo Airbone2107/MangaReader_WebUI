@@ -173,12 +173,6 @@ namespace manga_reader_web.Controllers
                 // Thực hiện tìm kiếm và xử lý kết quả bằng MangaSearchService
                 var viewModel = await _mangaSearchService.SearchMangaAsync(page, pageSize, sortManga);
 
-                // Kiểm tra nếu có lỗi cụ thể cần hiển thị (ví dụ: vượt quá giới hạn API)
-                if (viewModel.Mangas.Count == 0 && viewModel.TotalCount > 0)
-                {
-                    ViewBag.ErrorMessage = "Không thể hiển thị kết quả vì đã vượt quá giới hạn 10000 kết quả từ API.";
-                }
-
                 // Lưu dữ liệu manga vào Session
                 if (viewModel.Mangas != null && viewModel.Mangas.Any())
                 {
