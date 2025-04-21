@@ -41,13 +41,13 @@ namespace manga_reader_web.Controllers
                 var viewModel = await _chapterReadingServices.GetChapterReadViewModel(id);
                 
                 // Sử dụng ViewRenderService để trả về view phù hợp với loại request
-                return _viewRenderService.RenderViewBasedOnRequest(this, viewModel);
+                return _viewRenderService.RenderViewBasedOnRequest(this, "Read", viewModel);
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Lỗi khi tải chapter: {ex.Message}");
                 ViewBag.ErrorMessage = $"Không thể tải chapter. Lỗi: {ex.Message}";
-                return View(new ChapterReadViewModel());
+                return View("Read", new ChapterReadViewModel());
             }
         }
         

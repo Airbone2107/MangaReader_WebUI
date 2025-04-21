@@ -115,13 +115,13 @@ namespace manga_reader_web.Controllers
                 }
                 
                 // Sử dụng ViewRenderService để trả về view phù hợp
-                return _viewRenderService.RenderViewBasedOnRequest(this, viewModel);
+                return _viewRenderService.RenderViewBasedOnRequest(this, "Details", viewModel);
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Lỗi khi tải chi tiết manga: {ex.Message}");
                 ViewBag.ErrorMessage = "Không thể tải chi tiết manga. Vui lòng thử lại sau.";
-                return View(new MangaDetailViewModel());
+                return View("Details", new MangaDetailViewModel());
             }
         }
         
@@ -252,7 +252,7 @@ namespace manga_reader_web.Controllers
                 }
 
                 // Trả về view đầy đủ nếu không phải HTMX request
-                return View(viewModel);
+                return View("Search", viewModel);
             }
             catch (Exception ex)
             {
@@ -272,7 +272,7 @@ namespace manga_reader_web.Controllers
                 ViewBag.ErrorMessage = errorMessage;
                 
                 // Tạo một viewModel trống để tránh null reference exception
-                return View(new MangaListViewModel
+                return View("Search", new MangaListViewModel
                 {
                     Mangas = new List<MangaViewModel>(),
                     CurrentPage = 1,
@@ -562,7 +562,7 @@ namespace manga_reader_web.Controllers
                 var viewModel = followedMangas; // Đơn giản hóa, dùng trực tiếp list
 
                 // 4. Sử dụng ViewRenderService để trả về View hoặc PartialView
-                return _viewRenderService.RenderViewBasedOnRequest(this, viewModel);
+                return _viewRenderService.RenderViewBasedOnRequest(this, "Followed", viewModel);
             }
             catch (Exception ex)
             {
@@ -570,7 +570,7 @@ namespace manga_reader_web.Controllers
                 // Có thể hiển thị trang lỗi hoặc thông báo lỗi
                 ViewBag.ErrorMessage = "Không thể tải danh sách truyện đang theo dõi. Vui lòng thử lại sau.";
                 // Trả về view với model rỗng hoặc view lỗi
-                return View(new List<FollowedMangaViewModel>());
+                return View("Followed", new List<FollowedMangaViewModel>());
             }
         }
 
@@ -607,8 +607,8 @@ namespace manga_reader_web.Controllers
                 // Nếu là HTMX request, trả về partial lỗi
                 if (Request.Headers.ContainsKey("HX-Request"))
                 {
-                     ViewBag.ErrorMessage = "Không thể tải lịch sử đọc. Vui lòng thử lại sau.";
-                     return PartialView("_ErrorPartial");
+                    ViewBag.ErrorMessage = "Không thể tải lịch sử đọc. Vui lòng thử lại sau.";
+                    return PartialView("_ErrorPartial");
                 }
                 // Nếu là request thường, hiển thị trang lỗi hoặc thông báo lỗi trên View
                 ViewBag.ErrorMessage = "Không thể tải lịch sử đọc. Vui lòng thử lại sau.";

@@ -2,6 +2,8 @@ using manga_reader_web.Services.AuthServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using manga_reader_web.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Razor;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,27 +24,6 @@ builder.Services.AddSession(options =>
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
-
-// Cấu hình xác thực JWT Bearer token
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.RequireHttpsMetadata = false; // Đặt true trong môi trường sản xuất
-    options.SaveToken = true;
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(
-            builder.Configuration["Authentication:Jwt:Secret"])),
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ClockSkew = TimeSpan.Zero
-    };
-});
 
 // Cấu hình HttpClient để gọi Backend API
 builder.Services.AddHttpClient("BackendApiClient", client =>
@@ -150,6 +131,14 @@ builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaPageServ
 
 // Đăng ký HttpContextAccessor để các service có thể truy cập HttpContext
 builder.Services.AddHttpContextAccessor();
+
+// Cấu hình Razor View Engine để sử dụng View Location Expander tùy chỉnh
+builder.Services.Configure<RazorViewEngineOptions>(options =>
+{
+    // Thêm expander vào danh sách.
+    // Nó sẽ được gọi để cung cấp các đường dẫn tìm kiếm bổ sung (hoặc thay thế).
+    options.ViewLocationExpanders.Add(new CustomViewLocationExpander());
+});
 
 var app = builder.Build();
 

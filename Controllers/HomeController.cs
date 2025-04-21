@@ -32,7 +32,7 @@ namespace manga_reader_web.Controllers
                     _logger.LogWarning("Không thể kết nối đến API MangaDex");
                     ViewBag.ErrorMessage = "Không thể kết nối đến API. Vui lòng thử lại sau.";
                     ViewBag.IsConnected = false;
-                    return View(new List<MangaViewModel>());
+                    return View("Index", new List<MangaViewModel>());
                 }
                 
                 ViewBag.IsConnected = true;
@@ -53,7 +53,7 @@ namespace manga_reader_web.Controllers
                     {
                         _logger.LogWarning("API đã kết nối nhưng không trả về dữ liệu manga");
                         ViewBag.ErrorMessage = "Không có dữ liệu manga. Vui lòng thử lại sau.";
-                        return View(new List<MangaViewModel>());
+                        return View("Index", new List<MangaViewModel>());
                     }
 
                     // Chuyển đổi thành MangaViewModel
@@ -103,17 +103,17 @@ namespace manga_reader_web.Controllers
                     // Nếu là HTMX request, chỉ trả về nội dung một phần
                     if (Request.Headers.ContainsKey("HX-Request"))
                     {
-                        return PartialView(viewModels);
+                        return PartialView("Index", viewModels);
                     }
 
-                    return View(viewModels);
+                    return View("Index", viewModels);
                 }
                 catch (Exception apiEx)
                 {
                     _logger.LogError($"Lỗi khi gọi API MangaDex: {apiEx.Message}");
                     ViewBag.ErrorMessage = $"Lỗi khi tải dữ liệu từ MangaDex: {apiEx.Message}";
                     ViewBag.StackTrace = apiEx.StackTrace;
-                    return View(new List<MangaViewModel>());
+                    return View("Index", new List<MangaViewModel>());
                 }
             }
             catch (Exception ex)
@@ -126,7 +126,7 @@ namespace manga_reader_web.Controllers
                 
                 ViewBag.ErrorMessage = $"Không thể tải danh sách manga: {ex.Message}";
                 ViewBag.StackTrace = ex.StackTrace; // Thêm stack trace để debug
-                return View(new List<MangaViewModel>());
+                return View("Index", new List<MangaViewModel>());
             }
         }
 
@@ -157,15 +157,15 @@ namespace manga_reader_web.Controllers
                 // Nếu là HTMX request, chỉ trả về nội dung một phần
                 if (Request.Headers.ContainsKey("HX-Request"))
                 {
-                    return PartialView(testResults);
+                    return PartialView("ApiTest", testResults);
                 }
                 
-                return View(testResults);
+                return View("ApiTest", testResults);
             }
             catch (Exception ex)
             {
                 testResults.Add("General Error", ex.Message);
-                return View(testResults);
+                return View("ApiTest", testResults);
             }
         }
 
@@ -177,10 +177,10 @@ namespace manga_reader_web.Controllers
             // Nếu là HTMX request, chỉ trả về nội dung một phần
             if (Request.Headers.ContainsKey("HX-Request"))
             {
-                return PartialView();
+                return PartialView("Privacy");
             }
             
-            return View();
+            return View("Privacy");
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
@@ -194,10 +194,10 @@ namespace manga_reader_web.Controllers
             // Nếu là HTMX request, chỉ trả về nội dung một phần
             if (Request.Headers.ContainsKey("HX-Request"))
             {
-                return PartialView(model);
+                return PartialView("Error", model);
             }
             
-            return View(model);
+            return View("Error", model);
         }
         
         // Hàm utility để xử lý dữ liệu
