@@ -1,7 +1,7 @@
-using manga_reader_web.Services.UtilityServices;
+using MangaReader.WebUI.Services.UtilityServices;
 using System.Text.Json;
 
-namespace manga_reader_web.Services.MangaServices.MangaInformation
+namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
 {
     public class MangaDescription
     {

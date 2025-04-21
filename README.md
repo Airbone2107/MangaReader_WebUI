@@ -34,5 +34,5 @@
 1.  **Clone repository:**
     ```bash
     git clone <your-repository-url>
-    cd manga_reader_web
+    cd MangaReader.WebUI
     ```

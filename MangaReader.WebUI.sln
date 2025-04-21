@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35728.132 d17.12
+VisualStudioVersion = 17.12.35728.132
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "manga_reader_web", "manga_reader_web.csproj", "{7CBB7C80-AB68-4BF1-AA2A-B147C4F2D39A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MangaReader.WebUI", "MangaReader.WebUI.csproj", "{7CBB7C80-AB68-4BF1-AA2A-B147C4F2D39A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +18,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A6365865-3D6B-4782-88A1-3E9214A6BBCA}
 	EndGlobalSection
 EndGlobal

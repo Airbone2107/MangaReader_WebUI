@@ -1,9 +1,9 @@
-using manga_reader_web.Models;
-using manga_reader_web.Services.MangaServices.Models;
-using manga_reader_web.Services.UtilityServices;
+using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Services.MangaServices.Models;
+using MangaReader.WebUI.Services.UtilityServices;
 using System.Text.Json;
 
-namespace manga_reader_web.Services.MangaServices.ChapterServices
+namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
     public class ChapterService
     {

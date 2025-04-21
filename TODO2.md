@@ -11,7 +11,7 @@ Sau khi tái cấu trúc thư mục `Views`, cơ chế tìm kiếm View mặc đ
 ## Các bước thực hiện
 
 1.  **Tạo thư mục Infrastructure (Nếu chưa có):**
-    *   Trong thư mục gốc của dự án (`manga_reader_web`), tạo một thư mục mới tên là `Infrastructure`. (Hoặc bạn có thể đặt lớp Expander trong thư mục `Helpers` hoặc `Services` tùy ý).
+    *   Trong thư mục gốc của dự án (`MangaReader.WebUI`), tạo một thư mục mới tên là `Infrastructure`. (Hoặc bạn có thể đặt lớp Expander trong thư mục `Helpers` hoặc `Services` tùy ý).
 
 2.  **Tạo lớp `CustomViewLocationExpander.cs`:**
     *   Trong thư mục `Infrastructure` (hoặc thư mục bạn đã chọn), tạo một file mới tên là `CustomViewLocationExpander.cs`.
@@ -23,7 +23,7 @@ Sau khi tái cấu trúc thư mục `Views`, cơ chế tìm kiếm View mặc đ
     using System.Collections.Generic;
     using System.Linq;
 
-    namespace manga_reader_web.Infrastructure // Đảm bảo namespace phù hợp
+    namespace MangaReader.WebUI.Infrastructure // Đảm bảo namespace phù hợp
     {
         /// <summary>
         /// Mở rộng cách Razor View Engine tìm kiếm các file View và Partial View
@@ -96,7 +96,7 @@ Sau khi tái cấu trúc thư mục `Views`, cơ chế tìm kiếm View mặc đ
     *   Mở file `Program.cs`.
     *   Thêm dòng `using` cho namespace của lớp expander ở đầu file:
         ```csharp
-        using manga_reader_web.Infrastructure; // Hoặc namespace bạn đã đặt
+        using MangaReader.WebUI.Infrastructure; // Hoặc namespace bạn đã đặt
         using Microsoft.AspNetCore.Mvc.Razor; // Cần thêm using này
         ```
     *   Tìm đến phần cấu hình services (`builder.Services...`).

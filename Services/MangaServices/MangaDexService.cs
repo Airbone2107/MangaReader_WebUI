@@ -1,9 +1,9 @@
-using manga_reader_web.Models;
+using MangaReader.WebUI.Models;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
-namespace manga_reader_web.Services.MangaServices
+namespace MangaReader.WebUI.Services.MangaServices
 {
     public class MangaDexService
     {

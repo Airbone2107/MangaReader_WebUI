@@ -1,7 +1,7 @@
-using manga_reader_web.Services.MangaServices.Models;
+using MangaReader.WebUI.Services.MangaServices.Models;
 using System.Threading.Tasks;
 
-namespace manga_reader_web.Services.MangaServices.ChapterServices
+namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
     public interface IChapterInfoService
     {

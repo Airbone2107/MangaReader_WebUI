@@ -4,8 +4,8 @@
  */
 
 // Import các hàm từ các module khác
-import { initTooltips } from './ui.js';
 import { showToast } from './toast.js';
+import { initTooltips } from './ui.js';
 
 /**
  * Tính toán và điều chỉnh chiều cao cho details-manga-header-background
@@ -353,13 +353,6 @@ function initAfterHtmxLoad() {
 }
 
 // Export các hàm để có thể sử dụng ở file khác
-export { 
-    adjustHeaderBackgroundHeight, 
-    initMangaDetailsPage, 
-    initAfterHtmxLoad, 
-    initDropdowns, 
-    initChapterItems,
-    initFollowButton,
-    toggleFollow,
-    handleFollowClick
-}; 
+export {
+    adjustHeaderBackgroundHeight, handleFollowClick, initAfterHtmxLoad, initChapterItems, initDropdowns, initFollowButton, initMangaDetailsPage, toggleFollow
+};

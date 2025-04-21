@@ -188,4 +188,4 @@ function initSidebar() {
 }
 
 // Export các hàm để sử dụng trong các module khác
-export { updateActiveSidebarLink, initSidebar }; 
+export { initSidebar, updateActiveSidebarLink };

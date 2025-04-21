@@ -1,15 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using manga_reader_web.Models.Auth; // Cần UserModel
-using manga_reader_web.Services.AuthServices;
-using manga_reader_web.Services.MangaServices.ChapterServices;
-using manga_reader_web.Services.MangaServices.Models;
-using Microsoft.Extensions.Logging;
+using MangaReader.WebUI.Models.Auth;
+using MangaReader.WebUI.Services.AuthServices;
+using MangaReader.WebUI.Services.MangaServices.ChapterServices;
+using MangaReader.WebUI.Services.MangaServices.Models;
 
-namespace manga_reader_web.Services.MangaServices
+namespace MangaReader.WebUI.Services.MangaServices
 {
     public class FollowedMangaService : IFollowedMangaService
     {

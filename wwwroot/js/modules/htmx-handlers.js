@@ -12,15 +12,15 @@
  */
 
 // Import các hàm từ các module khác (sẽ được sử dụng trong HTMX)
-import { updateActiveSidebarLink, initSidebar } from './sidebar.js';
-import { initTooltips, adjustMangaTitles, initBackToTop, initResponsive, fixAccordionIssues, adjustFooterPosition, createDefaultImage } from './ui.js';
-import { adjustHeaderBackgroundHeight, initMangaDetailsPage } from './manga-details.js';
-import { initTagsInSearchForm } from './manga-tags.js';
-import SearchModule from './search.js';
-import { initCustomThemeSwitcher } from './theme.js';
 import { initAuthUI } from '../auth.js';
 import { initCustomDropdowns } from './custom-dropdown.js';
-import { initReadPage, initImageLoading, initSidebarToggle, initChapterDropdownNav, initContentAreaClickToOpenSidebar, initImageScaling, initPlaceholderButtons } from './read-page.js';
+import { initMangaDetailsPage } from './manga-details.js';
+import { initTagsInSearchForm } from './manga-tags.js';
+import { initChapterDropdownNav, initImageLoading, initImageScaling, initPlaceholderButtons, initReadPage, initSidebarToggle } from './read-page.js';
+import SearchModule from './search.js';
+import { initSidebar, updateActiveSidebarLink } from './sidebar.js';
+import { initCustomThemeSwitcher } from './theme.js';
+import { adjustFooterPosition, adjustMangaTitles, createDefaultImage, fixAccordionIssues, initBackToTop, initResponsive, initTooltips } from './ui.js';
 
 /**
  * Khởi tạo lại các chức năng cần thiết sau khi HTMX cập nhật nội dung
@@ -396,4 +396,4 @@ function initHtmxHandlers() {
 }
 
 // Export các hàm cần thiết
-export { reinitializeAfterHtmxSwap, reinitializeAfterHtmxLoad, initHtmxHandlers };
+export { initHtmxHandlers, reinitializeAfterHtmxLoad, reinitializeAfterHtmxSwap };

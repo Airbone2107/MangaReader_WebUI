@@ -1,4 +1,4 @@
-namespace manga_reader_web.Models
+namespace MangaReader.WebUI.Models
 {
     /// <summary>
     /// Model đại diện cho một chương của manga.

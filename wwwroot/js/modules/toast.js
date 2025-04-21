@@ -80,4 +80,4 @@ function initToasts() {
     console.log('Toast module initialized: window.showToast is now available');
 }
 
-export { showToast, initToasts }; 
+export { initToasts, showToast };

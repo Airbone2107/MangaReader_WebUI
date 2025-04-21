@@ -161,4 +161,4 @@ function initCustomThemeSwitcher() {
 }
 
 // Export hàm khởi tạo mới
-export { initCustomThemeSwitcher, applyTheme };
+export { applyTheme, initCustomThemeSwitcher };

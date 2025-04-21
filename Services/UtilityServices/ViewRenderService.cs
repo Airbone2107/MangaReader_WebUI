@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace manga_reader_web.Services.UtilityServices
+namespace MangaReader.WebUI.Services.UtilityServices
 {
     /// <summary>
     /// Service xử lý việc render view dựa trên loại request (HTMX hoặc thông thường)

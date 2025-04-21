@@ -1,12 +1,9 @@
-using manga_reader_web.Services.AuthServices;
+using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Services.AuthServices;
+using MangaReader.WebUI.Services.UtilityServices;
 using Microsoft.AspNetCore.Mvc;
-using manga_reader_web.Models;
-using manga_reader_web.Models.Auth;
-using manga_reader_web.Services.MangaServices;
-using manga_reader_web.Services.MangaServices.MangaPageService;
-using manga_reader_web.Services.UtilityServices;
 
-namespace manga_reader_web.Controllers
+namespace MangaReader.WebUI.Controllers
 {
     public class AuthController : Controller
     {

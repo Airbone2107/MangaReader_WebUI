@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc.Razor;
-using System.Collections.Generic;
-using System.Linq;
 
-namespace manga_reader_web.Infrastructure // Đảm bảo namespace phù hợp
+namespace MangaReader.WebUI.Infrastructure // Đảm bảo namespace phù hợp
 {
     /// <summary>
     /// Mở rộng cách Razor View Engine tìm kiếm các file View và Partial View

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace manga_reader_web.Models.Auth
+namespace MangaReader.WebUI.Models.Auth
 {
     public class AuthResponse
     {

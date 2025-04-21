@@ -1,6 +1,6 @@
-using manga_reader_web.Services.UtilityServices;
+using MangaReader.WebUI.Services.UtilityServices;
 
-namespace manga_reader_web.Services.MangaServices.MangaInformation
+namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
 {
     public class MangaTitleService
     {

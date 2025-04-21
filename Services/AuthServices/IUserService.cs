@@ -1,4 +1,4 @@
-namespace manga_reader_web.Services.AuthServices
+namespace MangaReader.WebUI.Services.AuthServices
 {
     public interface IUserService
     {

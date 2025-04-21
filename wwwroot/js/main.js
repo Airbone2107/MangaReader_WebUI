@@ -3,29 +3,29 @@
  */
 
 // Import các module
-import { updateActiveSidebarLink, initSidebar } from './modules/sidebar.js';
-import { initHtmxHandlers, reinitializeAfterHtmxLoad } from './modules/htmx-handlers.js';
-import { 
-    cleanupActiveLinks, 
-    initTooltips, 
-    initLazyLoading, 
-    initBackToTop, 
-    initResponsive, 
-    fixAccordionIssues, 
-    adjustFooterPosition,
-    createDefaultImage,
-    adjustMangaTitles
-} from './modules/ui.js';
-import { initCustomThemeSwitcher } from './modules/theme.js';
-import { initToasts } from './modules/toast.js';
-import SearchModule from './modules/search.js';
-import { initReadingState } from './modules/reading-state.js';
-import { initErrorHandling } from './modules/error-handling.js';
-import { initMangaDetailsPage } from './modules/manga-details.js';
-import { initTagsInSearchForm } from './modules/manga-tags.js';
 import { initAuthUI } from './auth.js';
 import { initCustomDropdowns } from './modules/custom-dropdown.js';
+import { initErrorHandling } from './modules/error-handling.js';
+import { initHtmxHandlers, reinitializeAfterHtmxLoad } from './modules/htmx-handlers.js';
+import { initMangaDetailsPage } from './modules/manga-details.js';
+import { initTagsInSearchForm } from './modules/manga-tags.js';
 import { initReadPage } from './modules/read-page.js';
+import { initReadingState } from './modules/reading-state.js';
+import SearchModule from './modules/search.js';
+import { initSidebar } from './modules/sidebar.js';
+import { initCustomThemeSwitcher } from './modules/theme.js';
+import { initToasts } from './modules/toast.js';
+import {
+    adjustFooterPosition,
+    adjustMangaTitles,
+    cleanupActiveLinks,
+    createDefaultImage,
+    fixAccordionIssues,
+    initBackToTop,
+    initLazyLoading,
+    initResponsive,
+    initTooltips
+} from './modules/ui.js';
 
 // --- Xử lý Back/Forward và bfcache ---
 window.addEventListener('pageshow', function(event) {

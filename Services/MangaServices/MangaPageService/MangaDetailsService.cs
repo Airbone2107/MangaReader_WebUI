@@ -1,10 +1,10 @@
-using manga_reader_web.Models;
-using manga_reader_web.Services.MangaServices.ChapterServices;
-using manga_reader_web.Services.MangaServices.MangaInformation;
-using manga_reader_web.Services.UtilityServices;
+using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Services.MangaServices.ChapterServices;
+using MangaReader.WebUI.Services.MangaServices.MangaInformation;
+using MangaReader.WebUI.Services.UtilityServices;
 using System.Text.Json;
 
-namespace manga_reader_web.Services.MangaServices.MangaPageService
+namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
 {
     public class MangaDetailsService
     {

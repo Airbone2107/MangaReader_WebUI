@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace manga_reader_web.Services.UtilityServices
+namespace MangaReader.WebUI.Services.UtilityServices
 {
     public class JsonConversionService
     {

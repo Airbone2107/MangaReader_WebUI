@@ -48,4 +48,4 @@ function initErrorHandling() {
     });
 }
 
-export { initErrorHandling }; 
+export { initErrorHandling };

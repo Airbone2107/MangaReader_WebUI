@@ -393,13 +393,5 @@ function adjustMangaTitles(container = null) {
 }
 
 export {
-    cleanupActiveLinks,
-    initTooltips,
-    initLazyLoading,
-    initBackToTop,
-    initResponsive,
-    fixAccordionIssues,
-    adjustFooterPosition,
-    createDefaultImage,
-    adjustMangaTitles
-}; 
+    adjustFooterPosition, adjustMangaTitles, cleanupActiveLinks, createDefaultImage, fixAccordionIssues, initBackToTop, initLazyLoading, initResponsive, initTooltips
+};

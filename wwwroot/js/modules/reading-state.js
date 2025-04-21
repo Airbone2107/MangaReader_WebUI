@@ -65,7 +65,6 @@ function initReadingState() {
 }
 
 export {
-    saveReadingState,
     getReadingState,
-    initReadingState
-}; 
+    initReadingState, saveReadingState
+};

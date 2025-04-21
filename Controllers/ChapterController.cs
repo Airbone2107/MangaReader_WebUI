@@ -1,13 +1,13 @@
-using manga_reader_web.Models;
-using manga_reader_web.Services.MangaServices.ChapterServices;
-using manga_reader_web.Services.UtilityServices;
+using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Services.AuthServices;
+using MangaReader.WebUI.Services.MangaServices.ChapterServices;
+using MangaReader.WebUI.Services.UtilityServices;
 using Microsoft.AspNetCore.Mvc;
-using manga_reader_web.Services.AuthServices;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
-namespace manga_reader_web.Controllers
+namespace MangaReader.WebUI.Controllers
 {
     public class ChapterController : Controller
     {

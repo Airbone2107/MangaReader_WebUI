@@ -1,10 +1,7 @@
-using manga_reader_web.Services.MangaServices.MangaInformation;
-using manga_reader_web.Services.MangaServices.Models;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Threading.Tasks;
+using MangaReader.WebUI.Services.MangaServices.MangaInformation;
+using MangaReader.WebUI.Services.MangaServices.Models;
 
-namespace manga_reader_web.Services.MangaServices
+namespace MangaReader.WebUI.Services.MangaServices
 {
     public class MangaInfoService : IMangaInfoService
     {

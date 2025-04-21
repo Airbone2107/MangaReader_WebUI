@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace manga_reader_web.Services.MangaServices.ChapterServices
+namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
     public class MangaIdService
     {

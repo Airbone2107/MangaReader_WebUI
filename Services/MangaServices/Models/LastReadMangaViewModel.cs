@@ -1,6 +1,4 @@
-using System;
-
-namespace manga_reader_web.Services.MangaServices.Models
+namespace MangaReader.WebUI.Services.MangaServices.Models
 {
     public class LastReadMangaViewModel
     {

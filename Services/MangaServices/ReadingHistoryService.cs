@@ -1,18 +1,11 @@
-using manga_reader_web.Services.AuthServices;
-using manga_reader_web.Services.MangaServices.ChapterServices;
-using manga_reader_web.Services.MangaServices.Models;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
+using MangaReader.WebUI.Services.AuthServices;
+using MangaReader.WebUI.Services.MangaServices.ChapterServices;
+using MangaReader.WebUI.Services.MangaServices.Models;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
-namespace manga_reader_web.Services.MangaServices
+namespace MangaReader.WebUI.Services.MangaServices
 {
     // Model để deserialize response từ backend /reading-history
     public class BackendHistoryItem

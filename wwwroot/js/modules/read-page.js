@@ -334,12 +334,8 @@ function initPlaceholderButtons() {
     }
 }
 
-export { 
-    initReadPage, 
-    initImageLoading, 
-    initSidebarToggle, 
-    initChapterDropdownNav, 
-    initContentAreaClickToOpenSidebar,
-    initImageScaling,
-    initPlaceholderButtons
-}; 
+export {
+    initChapterDropdownNav,
+    initContentAreaClickToOpenSidebar, initImageLoading, initImageScaling,
+    initPlaceholderButtons, initReadPage, initSidebarToggle
+};

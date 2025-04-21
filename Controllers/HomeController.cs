@@ -1,11 +1,11 @@
-using manga_reader_web.Models;
-using manga_reader_web.Services.MangaServices;
+using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Services.MangaServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Dynamic;
 using System.Text.Json;
 
-namespace manga_reader_web.Controllers
+namespace MangaReader.WebUI.Controllers
 {
     public class HomeController : Controller
     {

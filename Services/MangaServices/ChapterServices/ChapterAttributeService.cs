@@ -1,11 +1,6 @@
-using manga_reader_web.Services.MangaServices.Models;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Net.Http;
 using System.Text.Json;
-using System.Threading.Tasks;
 
-namespace manga_reader_web.Services.MangaServices.ChapterServices
+namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
     public class ChapterAttributeService
     {

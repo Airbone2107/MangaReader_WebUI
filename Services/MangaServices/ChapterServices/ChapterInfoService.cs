@@ -1,13 +1,8 @@
-using manga_reader_web.Services.MangaServices.Models;
-using manga_reader_web.Services.UtilityServices;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
+using MangaReader.WebUI.Services.MangaServices.Models;
+using MangaReader.WebUI.Services.UtilityServices;
 using System.Text.Json;
-using System.Threading.Tasks;
-using System.Net.Http;
 
-namespace manga_reader_web.Services.MangaServices.ChapterServices
+namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
     public class ChapterInfoService : IChapterInfoService
     {

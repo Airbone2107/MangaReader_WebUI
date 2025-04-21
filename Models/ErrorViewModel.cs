@@ -1,4 +1,4 @@
-namespace manga_reader_web.Models
+namespace MangaReader.WebUI.Models
 {
     public class ErrorViewModel
     {

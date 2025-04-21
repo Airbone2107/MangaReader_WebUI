@@ -1,8 +1,6 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using manga_reader_web.Services.MangaServices.Models;
+using MangaReader.WebUI.Services.MangaServices.Models;
 
-namespace manga_reader_web.Services.MangaServices
+namespace MangaReader.WebUI.Services.MangaServices
 {
     public interface IFollowedMangaService
     {

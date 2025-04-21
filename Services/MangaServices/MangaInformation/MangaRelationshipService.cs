@@ -1,4 +1,4 @@
-namespace manga_reader_web.Services.MangaServices.MangaInformation
+namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
 {
     /// <summary>
     /// Service xử lý các mối quan hệ (relationships) của manga

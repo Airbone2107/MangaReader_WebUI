@@ -1,8 +1,5 @@
-using manga_reader_web.Services.AuthServices;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using manga_reader_web.Infrastructure;
+using MangaReader.WebUI.Infrastructure;
+using MangaReader.WebUI.Services.AuthServices;
 using Microsoft.AspNetCore.Mvc.Razor;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -60,74 +57,74 @@ builder.Services.AddHttpClient("MangaDexClient", client =>
 builder.Services.AddScoped<IUserService, UserService>();
 
 // Đăng ký MangaDexService với HttpClient được cấu hình
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaDexService>(sp =>
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaDexService>(sp =>
 {
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var logger = sp.GetRequiredService<ILogger<manga_reader_web.Services.MangaServices.MangaDexService>>();
+    var logger = sp.GetRequiredService<ILogger<MangaReader.WebUI.Services.MangaServices.MangaDexService>>();
     var httpClient = httpClientFactory.CreateClient("MangaDexClient");
-    return new manga_reader_web.Services.MangaServices.MangaDexService(httpClient, logger);
+    return new MangaReader.WebUI.Services.MangaServices.MangaDexService(httpClient, logger);
 });
 
 // Đăng ký ViewRenderService
-builder.Services.AddScoped<manga_reader_web.Services.UtilityServices.ViewRenderService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.UtilityServices.ViewRenderService>();
 
 // Đăng ký các service mới tách từ MangaController
-builder.Services.AddScoped<manga_reader_web.Services.UtilityServices.LocalizationService>();
-builder.Services.AddScoped<manga_reader_web.Services.UtilityServices.JsonConversionService>();
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaInformation.MangaUtilityService>();
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaInformation.MangaTitleService>();
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaInformation.MangaTagService>();
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaInformation.MangaRelationshipService>();
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaInformation.MangaDescription>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.UtilityServices.LocalizationService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.UtilityServices.JsonConversionService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaInformation.MangaUtilityService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaInformation.MangaTitleService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaInformation.MangaTagService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaInformation.MangaRelationshipService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaInformation.MangaDescription>();
 // Đăng ký MangaFollowService với interface
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.IMangaFollowService, manga_reader_web.Services.MangaServices.MangaFollowService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.IMangaFollowService, MangaReader.WebUI.Services.MangaServices.MangaFollowService>();
 // Đăng ký FollowedMangaService
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.IFollowedMangaService, manga_reader_web.Services.MangaServices.FollowedMangaService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.IFollowedMangaService, MangaReader.WebUI.Services.MangaServices.FollowedMangaService>();
 // Đăng ký MangaInfoService
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.IMangaInfoService, manga_reader_web.Services.MangaServices.MangaInfoService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.IMangaInfoService, MangaReader.WebUI.Services.MangaServices.MangaInfoService>();
 // Giữ lại đăng ký cũ để tương thích ngược (có thể xóa sau khi đã cập nhật tất cả các thành phần khác)
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaFollowService>();
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.ChapterServices.ChapterService>();
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.ChapterServices.MangaIdService>(sp =>
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaFollowService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.MangaIdService>(sp =>
 {
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var logger = sp.GetRequiredService<ILogger<manga_reader_web.Services.MangaServices.ChapterServices.MangaIdService>>();
+    var logger = sp.GetRequiredService<ILogger<MangaReader.WebUI.Services.MangaServices.ChapterServices.MangaIdService>>();
     var configuration = sp.GetRequiredService<IConfiguration>();
     var httpClient = httpClientFactory.CreateClient("MangaDexClient");
-    return new manga_reader_web.Services.MangaServices.ChapterServices.MangaIdService(httpClient, configuration, logger);
+    return new MangaReader.WebUI.Services.MangaServices.ChapterServices.MangaIdService(httpClient, configuration, logger);
 });
 
 // Đăng ký ChapterLanguageServices
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.ChapterServices.ChapterLanguageServices>(sp =>
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterLanguageServices>(sp =>
 {
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var logger = sp.GetRequiredService<ILogger<manga_reader_web.Services.MangaServices.ChapterServices.ChapterLanguageServices>>();
+    var logger = sp.GetRequiredService<ILogger<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterLanguageServices>>();
     var configuration = sp.GetRequiredService<IConfiguration>();
     var httpClient = httpClientFactory.CreateClient("MangaDexClient");
-    return new manga_reader_web.Services.MangaServices.ChapterServices.ChapterLanguageServices(httpClient, configuration, logger);
+    return new MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterLanguageServices(httpClient, configuration, logger);
 });
 
 // Đăng ký ChapterReadingServices
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.ChapterServices.ChapterReadingServices>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterReadingServices>();
 
 // Đăng ký ChapterAttributeService
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.ChapterServices.ChapterAttributeService>(sp =>
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterAttributeService>(sp =>
 {
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var logger = sp.GetRequiredService<ILogger<manga_reader_web.Services.MangaServices.ChapterServices.ChapterAttributeService>>();
+    var logger = sp.GetRequiredService<ILogger<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterAttributeService>>();
     var configuration = sp.GetRequiredService<IConfiguration>();
     var httpClient = httpClientFactory.CreateClient("MangaDexClient");
-    return new manga_reader_web.Services.MangaServices.ChapterServices.ChapterAttributeService(httpClient, configuration, logger);
+    return new MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterAttributeService(httpClient, configuration, logger);
 });
 
 // Đăng ký ChapterInfoService
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.ChapterServices.IChapterInfoService, manga_reader_web.Services.MangaServices.ChapterServices.ChapterInfoService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.IChapterInfoService, MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterInfoService>();
 
 // Đăng ký ReadingHistoryService
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.IReadingHistoryService, manga_reader_web.Services.MangaServices.ReadingHistoryService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.IReadingHistoryService, MangaReader.WebUI.Services.MangaServices.ReadingHistoryService>();
 
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaPageService.MangaDetailsService>();
-builder.Services.AddScoped<manga_reader_web.Services.MangaServices.MangaPageService.MangaSearchService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaPageService.MangaDetailsService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaPageService.MangaSearchService>();
 
 // Đăng ký HttpContextAccessor để các service có thể truy cập HttpContext
 builder.Services.AddHttpContextAccessor();

@@ -1,6 +1,6 @@
-using manga_reader_web.Models.Auth;
+using MangaReader.WebUI.Models.Auth;
 
-namespace manga_reader_web.Models
+namespace MangaReader.WebUI.Models
 {
     public class ProfileViewModel
     {

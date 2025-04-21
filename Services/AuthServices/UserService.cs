@@ -1,8 +1,8 @@
-using manga_reader_web.Models.Auth;
+using MangaReader.WebUI.Models.Auth;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
-namespace manga_reader_web.Services.AuthServices
+namespace MangaReader.WebUI.Services.AuthServices
 {
     public class UserService : IUserService
     {

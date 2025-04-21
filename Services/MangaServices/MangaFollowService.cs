@@ -1,11 +1,9 @@
-using manga_reader_web.Models;
-using manga_reader_web.Models.Auth;
-using manga_reader_web.Services.AuthServices;
+using MangaReader.WebUI.Services.AuthServices;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
-namespace manga_reader_web.Services.MangaServices
+namespace MangaReader.WebUI.Services.MangaServices
 {
     /// <summary>
     /// Interface định nghĩa các phương thức cho dịch vụ theo dõi manga
