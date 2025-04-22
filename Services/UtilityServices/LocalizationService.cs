@@ -152,5 +152,21 @@ namespace MangaReader.WebUI.Services.UtilityServices
                 return "";
             }
         }
+
+        /// <summary>
+        /// Lấy trạng thái đã dịch từ attributes
+        /// </summary>
+        public string GetStatus(Dictionary<string, object> attributesDict)
+        {
+            string status = attributesDict.ContainsKey("status") ? attributesDict["status"]?.ToString() ?? "unknown" : "unknown";
+            return status switch
+            {
+                "ongoing" => "Đang tiến hành",
+                "completed" => "Hoàn thành",
+                "hiatus" => "Tạm ngưng",
+                "cancelled" => "Đã hủy",
+                _ => "Không rõ"
+            };
+        }
     }
 }

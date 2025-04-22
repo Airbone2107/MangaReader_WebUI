@@ -1,17 +1,23 @@
 using System.Text.Json;
+using MangaReader.WebUI.Services.APIServices;
+using MangaReader.WebUI.Services.UtilityServices;
 
 namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
     public class ChapterAttributeService
     {
-        private readonly HttpClient _httpClient;
+        private readonly IChapterApiService _chapterApiService;
+        private readonly JsonConversionService _jsonConversionService;
         private readonly ILogger<ChapterAttributeService> _logger;
-        private readonly string _baseUrl = "https://manga-reader-app-backend.onrender.com/api/mangadex";
         private readonly JsonSerializerOptions _jsonOptions;
 
-        public ChapterAttributeService(HttpClient httpClient, IConfiguration configuration, ILogger<ChapterAttributeService> logger)
+        public ChapterAttributeService(
+            IChapterApiService chapterApiService,
+            JsonConversionService jsonConversionService,
+            ILogger<ChapterAttributeService> logger)
         {
-            _httpClient = httpClient;
+            _chapterApiService = chapterApiService;
+            _jsonConversionService = jsonConversionService;
             _logger = logger;
             _jsonOptions = new JsonSerializerOptions
             {
@@ -20,11 +26,11 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         }
 
         /// <summary>
-        /// Lấy thông tin chapter từ API MangaDex
+        /// Lấy thông tin chapter từ API
         /// </summary>
         /// <param name="chapterId">ID của chapter cần lấy thông tin</param>
-        /// <returns>JsonElement chứa dữ liệu attributes của chapter</returns>
-        private async Task<JsonElement?> FetchChapterDataAsync(string chapterId)
+        /// <returns>Dictionary chứa dữ liệu attributes của chapter</returns>
+        private async Task<Dictionary<string, object>> FetchChapterDataAsync(string chapterId)
         {
             if (string.IsNullOrEmpty(chapterId))
             {
@@ -34,39 +40,25 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 
             _logger.LogInformation($"Đang lấy thông tin cho Chapter: {chapterId}");
             
-            // Gọi API để lấy thông tin chapter
-            string url = $"{_baseUrl}/chapter/{chapterId}";
-            _logger.LogInformation($"Đang gọi API: {url}");
-            
-            var response = await _httpClient.GetAsync(url);
-            var content = await response.Content.ReadAsStringAsync();
-            
-            if (!response.IsSuccessStatusCode)
+            // Gọi API để lấy thông tin chapter thông qua IChapterApiService
+            var chapterData = await _chapterApiService.FetchChapterInfoAsync(chapterId);
+            if (chapterData == null)
             {
-                _logger.LogError($"Lỗi khi gọi API: {response.StatusCode} - {response.ReasonPhrase}");
-                _logger.LogDebug($"Nội dung phản hồi: {content}");
-                throw new HttpRequestException($"API trả về lỗi {response.StatusCode}: {response.ReasonPhrase}");
+                _logger.LogError($"Không lấy được thông tin chapter {chapterId}");
+                throw new InvalidOperationException($"Không lấy được thông tin cho chapter {chapterId}");
             }
 
-            // Đọc và phân tích dữ liệu JSON
-            var chapterData = JsonSerializer.Deserialize<JsonElement>(content);
+            // Chuyển đổi kết quả thành Dictionary
+            var chapterElement = JsonSerializer.Deserialize<JsonElement>(chapterData.ToString());
+            var chapterDict = _jsonConversionService.ConvertJsonElementToDict(chapterElement);
 
-            // Kiểm tra xem API có trả về kết quả thành công không
-            if (!chapterData.TryGetProperty("result", out JsonElement resultElement) || 
-                resultElement.GetString() != "ok")
+            if (!chapterDict.ContainsKey("attributes") || chapterDict["attributes"] == null)
             {
-                _logger.LogError($"API trả về kết quả không thành công: {content}");
-                throw new InvalidOperationException("API trả về kết quả không thành công");
+                _logger.LogError($"Dữ liệu trả về từ API không có trường attributes cho chapter {chapterId}");
+                return new Dictionary<string, object>();
             }
 
-            if (!chapterData.TryGetProperty("data", out JsonElement dataElement) ||
-                !dataElement.TryGetProperty("attributes", out JsonElement attributesElement))
-            {
-                _logger.LogError($"Dữ liệu trả về từ API không có trường attributes: {content}");
-                return null;
-            }
-
-            return attributesElement;
+            return (Dictionary<string, object>)chapterDict["attributes"];
         }
 
         /// <summary>
@@ -78,23 +70,16 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         {
             try
             {
-                var attributesElement = await FetchChapterDataAsync(chapterId);
-                if (attributesElement == null)
+                var attributes = await FetchChapterDataAsync(chapterId);
+                if (attributes.Count == 0)
                 {
                     return "?";
                 }
 
                 string chapterNumber = "?";
-                if (attributesElement.Value.TryGetProperty("chapter", out JsonElement chapterNumElement))
+                if (attributes.ContainsKey("chapter") && attributes["chapter"] != null)
                 {
-                    if (chapterNumElement.ValueKind == JsonValueKind.String)
-                    {
-                        chapterNumber = chapterNumElement.GetString() ?? "?";
-                    }
-                    else if (chapterNumElement.ValueKind == JsonValueKind.Number)
-                    {
-                        chapterNumber = chapterNumElement.ToString();
-                    }
+                    chapterNumber = attributes["chapter"].ToString();
                 }
 
                 _logger.LogInformation($"Đã lấy được số chapter: {chapterNumber} cho Chapter: {chapterId}");
@@ -116,17 +101,16 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         {
             try
             {
-                var attributesElement = await FetchChapterDataAsync(chapterId);
-                if (attributesElement == null)
+                var attributes = await FetchChapterDataAsync(chapterId);
+                if (attributes.Count == 0)
                 {
                     return "";
                 }
 
                 string chapterTitle = "";
-                if (attributesElement.Value.TryGetProperty("title", out JsonElement titleElement) && 
-                    titleElement.ValueKind == JsonValueKind.String)
+                if (attributes.ContainsKey("title") && attributes["title"] != null)
                 {
-                    chapterTitle = titleElement.GetString() ?? "";
+                    chapterTitle = attributes["title"].ToString();
                 }
 
                 _logger.LogInformation($"Đã lấy được tiêu đề chapter: '{chapterTitle}' cho Chapter: {chapterId}");
@@ -148,23 +132,22 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         {
             try
             {
-                var attributesElement = await FetchChapterDataAsync(chapterId);
-                if (attributesElement == null)
+                var attributes = await FetchChapterDataAsync(chapterId);
+                if (attributes.Count == 0)
                 {
                     return DateTime.MinValue;
                 }
 
                 DateTime publishedAt = DateTime.MinValue;
-                if (attributesElement.Value.TryGetProperty("publishAt", out JsonElement publishAtElement) && 
-                    publishAtElement.ValueKind == JsonValueKind.String)
+                if (attributes.ContainsKey("publishAt") && attributes["publishAt"] != null)
                 {
-                    if (publishAtElement.TryGetDateTime(out var date))
+                    if (DateTime.TryParse(attributes["publishAt"].ToString(), out var date))
                     {
                         publishedAt = date;
                     }
                     else
                     {
-                        _logger.LogWarning($"Không thể parse ngày publishAt: {publishAtElement.GetString()} cho chapter {chapterId}");
+                        _logger.LogWarning($"Không thể parse ngày publishAt: {attributes["publishAt"]} cho chapter {chapterId}");
                     }
                 }
 

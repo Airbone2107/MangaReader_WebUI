@@ -1,12 +1,13 @@
 using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Services.MangaServices.MangaInformation;
+using MangaReader.WebUI.Services.APIServices;
 using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
     public class ChapterReadingServices
     {
-        private readonly MangaDexService _mangaDexService;
+        private readonly IChapterApiService _chapterApiService;
         private readonly MangaIdService _mangaIdService;
         private readonly ChapterLanguageServices _chapterLanguageServices;
         private readonly MangaTitleService _mangaTitleService;
@@ -15,7 +16,7 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public ChapterReadingServices(
-            MangaDexService mangaDexService,
+            IChapterApiService chapterApiService,
             MangaIdService mangaIdService,
             ChapterLanguageServices chapterLanguageServices,
             MangaTitleService mangaTitleService,
@@ -23,7 +24,7 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
             IHttpContextAccessor httpContextAccessor,
             ILogger<ChapterReadingServices> logger)
         {
-            _mangaDexService = mangaDexService;
+            _chapterApiService = chapterApiService;
             _mangaIdService = mangaIdService;
             _chapterLanguageServices = chapterLanguageServices;
             _mangaTitleService = mangaTitleService;
@@ -39,7 +40,7 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
                 _logger.LogInformation($"Đang tải chapter {id}");
                 
                 // Tải các trang của chapter
-                var pages = await _mangaDexService.FetchChapterPagesAsync(id);
+                var pages = await _chapterApiService.FetchChapterPagesAsync(id);
                 
                 // Lấy mangaId từ API
                 _logger.LogInformation($"Đang xác định mangaId cho chapter {id}");
@@ -248,54 +249,50 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
                 return chaptersByLanguage[language];
             }
             
-            // Nếu không tìm thấy chapters với ngôn ngữ chỉ định, trả về danh sách rỗng
-            _logger.LogWarning($"Không tìm thấy chapters ngôn ngữ {language} cho manga {mangaId}");
+            // Nếu không có chapter nào thuộc ngôn ngữ chỉ định, trả về danh sách rỗng
             return new List<ChapterViewModel>();
         }
         
         private (ChapterViewModel currentChapter, string prevId, string nextId) FindCurrentAndAdjacentChapters(
             List<ChapterViewModel> chapters, string chapterId, string language)
         {
-            ChapterViewModel currentChapterViewModel;
-            string prevChapterId = null;
-            string nextChapterId = null;
+            _logger.LogInformation($"Xác định chapter hiện tại và các chapter liền kề trong danh sách {chapters.Count} chapters");
             
-            // Tìm chapter hiện tại trong danh sách các chapter cùng ngôn ngữ
-            int currentIndex = chapters.FindIndex(c => c.Id == chapterId);
-            _logger.LogInformation($"Chapter hiện tại ở vị trí: {currentIndex}, tổng số: {chapters.Count}");
+            // Tìm chương hiện tại
+            var currentChapter = chapters.FirstOrDefault(c => c.Id == chapterId);
             
-            if (currentIndex > 0)
+            if (currentChapter == null)
             {
-                prevChapterId = chapters[currentIndex - 1].Id;
-            }
-            
-            if (currentIndex < chapters.Count - 1 && currentIndex >= 0)
-            {
-                nextChapterId = chapters[currentIndex + 1].Id;
-            }
-            
-            _logger.LogInformation($"Chapter trước: {prevChapterId}, Chapter sau: {nextChapterId}");
-            
-            // Lấy thông tin về chapter hiện tại
-            if (currentIndex >= 0 && currentIndex < chapters.Count)
-            {
-                currentChapterViewModel = chapters[currentIndex];
-            }
-            else
-            {
-                _logger.LogWarning($"Không tìm thấy chapter {chapterId} trong danh sách");
-                
-                // Tạo một chapter mặc định với thông tin tối thiểu
-                currentChapterViewModel = new ChapterViewModel
+                _logger.LogWarning($"Không tìm thấy chapter {chapterId} trong danh sách chapters ngôn ngữ {language}");
+                return (new ChapterViewModel
                 {
                     Id = chapterId,
+                    Title = "Không xác định",
                     Number = "?",
-                    Title = "Chương không xác định",
                     Language = language
-                };
+                }, null, null);
             }
             
-            return (currentChapterViewModel, prevChapterId, nextChapterId);
+            // Sắp xếp danh sách chapters theo số chương tăng dần để xác định chương trước/sau
+            var sortedChapters = chapters.OrderBy(c =>
+            {
+                if (float.TryParse(c.Number, out float num))
+                    return num;
+                return 0;
+            }).ToList();
+            
+            // Tìm vị trí của chapter hiện tại trong danh sách đã sắp xếp
+            int index = sortedChapters.FindIndex(c => c.Id == chapterId);
+            
+            // Tìm chapter trước và sau
+            string prevId = (index > 0) ? sortedChapters[index - 1].Id : null;
+            string nextId = (index < sortedChapters.Count - 1) ? sortedChapters[index + 1].Id : null;
+            
+            _logger.LogInformation($"Chapter hiện tại: {currentChapter.Title}, " +
+                                  $"Chapter trước: {(prevId != null ? "có" : "không có")}, " +
+                                  $"Chapter sau: {(nextId != null ? "có" : "không có")}");
+            
+            return (currentChapter, prevId, nextId);
         }
     }
 }

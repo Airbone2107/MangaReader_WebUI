@@ -1,142 +1,366 @@
-# TODO.md: Triển khai IViewLocationExpander để tùy chỉnh đường dẫn tìm kiếm View
+```markdown
+# TODO.md: Cập nhật Logic Xử lý Cover Art
 
 ## Mục tiêu
 
-Cấu hình ASP.NET Core Razor View Engine để tự động tìm kiếm các file View (`.cshtml`) và Partial View (`_.cshtml`) trong các thư mục con mới được tạo trong `Views/` (ví dụ: `Views/MangaSearch/`, `Views/ChapterRead/`, `Views/Auth/`, v.v.). Điều này cho phép gọi `View("ActionName")` hoặc `PartialView("_PartialName")` từ Controller và `<partial name="_PartialName" />` từ View mà không cần chỉ định đường dẫn đầy đủ.
-
-## Tại sao cần làm điều này?
-
-Sau khi tái cấu trúc thư mục `Views`, cơ chế tìm kiếm View mặc định của ASP.NET Core (dựa trên tên Controller và thư mục `Shared`) không còn hoạt động hiệu quả cho cấu trúc mới. `IViewLocationExpander` cho phép chúng ta "dạy" cho View Engine biết những nơi mới cần tìm kiếm.
+Tối ưu hóa việc lấy và xử lý ảnh bìa (cover art) để đáp ứng các trường hợp sử dụng khác nhau và xử lý giới hạn phân trang của API MangaDex.
 
 ## Các bước thực hiện
 
-1.  **Tạo thư mục Infrastructure (Nếu chưa có):**
-    *   Trong thư mục gốc của dự án (`MangaReader.WebUI`), tạo một thư mục mới tên là `Infrastructure`. (Hoặc bạn có thể đặt lớp Expander trong thư mục `Helpers` hoặc `Services` tùy ý).
+### Bước 1: Cập nhật Interface `ICoverApiService.cs`
 
-2.  **Tạo lớp `CustomViewLocationExpander.cs`:**
-    *   Trong thư mục `Infrastructure` (hoặc thư mục bạn đã chọn), tạo một file mới tên là `CustomViewLocationExpander.cs`.
-    *   Dán đoạn code sau vào file:
+Định nghĩa lại các phương thức trong interface để phản ánh rõ ràng các use case và kiểu dữ liệu trả về mong muốn.
 
-    ```csharp
-    // Infrastructure/CustomViewLocationExpander.cs
-    using Microsoft.AspNetCore.Mvc.Razor;
-    using System.Collections.Generic;
-    using System.Linq;
+```csharp
+// File: Services/APIServices/ICoverApiService.cs
+using MangaReader.WebUI.Models.Mangadex;
+using System.Collections.Generic; // Thêm using
+using System.Threading.Tasks; // Thêm using
 
-    namespace MangaReader.WebUI.Infrastructure // Đảm bảo namespace phù hợp
+namespace MangaReader.WebUI.Services.APIServices
+{
+    public interface ICoverApiService
     {
         /// <summary>
-        /// Mở rộng cách Razor View Engine tìm kiếm các file View và Partial View
-        /// để phù hợp với cấu trúc thư mục theo feature.
+        /// Lấy TẤT CẢ ảnh bìa cho một manga, xử lý pagination.
         /// </summary>
-        public class CustomViewLocationExpander : IViewLocationExpander
+        /// <param name="mangaId">ID của manga.</param>
+        /// <returns>Danh sách tất cả Cover của manga đó hoặc null nếu có lỗi.</returns>
+        Task<CoverList?> GetAllCoversForMangaAsync(string mangaId);
+
+        /// <summary>
+        /// Lấy URL ảnh bìa ĐẠI DIỆN (ưu tiên volume mới nhất) cho một danh sách manga.
+        /// </summary>
+        /// <param name="mangaIds">Danh sách ID của các manga.</param>
+        /// <returns>Dictionary map từ MangaId sang URL ảnh bìa đại diện (thumbnail .512.jpg) hoặc null nếu có lỗi.</returns>
+        Task<Dictionary<string, string>?> FetchRepresentativeCoverUrlsAsync(List<string> mangaIds);
+
+        /// <summary>
+        /// Lấy URL ảnh bìa ĐẠI DIỆN cho một manga duy nhất.
+        /// </summary>
+        /// <param name="mangaId">ID của manga.</param>
+        /// <returns>URL ảnh bìa đại diện (thumbnail .512.jpg) hoặc chuỗi rỗng nếu không tìm thấy/lỗi.</returns>
+        Task<string> FetchCoverUrlAsync(string mangaId);
+
+        // Các phương thức khác nếu có...
+    }
+}
+```
+
+### Bước 2: Implement Logic Pagination trong `CoverApiService.cs`
+
+Triển khai phương thức `GetAllCoversForMangaAsync` để gọi API `/cover` lặp lại cho đến khi lấy hết dữ liệu.
+
+```csharp
+// File: Services/APIServices/CoverApiService.cs
+using MangaReader.WebUI.Models.Mangadex;
+using System.Text.Json;
+using System.Net.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
+using System.Collections.Generic; // Thêm using
+using System.Linq; // Thêm using
+using System.Threading.Tasks; // Thêm using
+using System; // Thêm using
+
+namespace MangaReader.WebUI.Services.APIServices
+{
+    public class CoverApiService : BaseApiService, ICoverApiService
+    {
+        private readonly string _imageProxyBaseUrl;
+        private readonly TimeSpan _apiDelay = TimeSpan.FromMilliseconds(250); // Delay giữa các lần gọi API pagination
+
+        public CoverApiService(HttpClient httpClient, ILogger<CoverApiService> logger, IConfiguration configuration)
+            : base(httpClient, logger, configuration)
         {
-            // Danh sách các thư mục "feature" bạn đã tạo trong Views/
-            private static readonly string[] FeatureFolders = {
-                "Auth",
-                "ChapterRead",
-                "Home",
-                "MangaDetails",
-                "MangaFollowed",
-                "MangaHistory",
-                "MangaSearch"
-                // Thêm các thư mục feature khác nếu bạn tạo thêm
+            _imageProxyBaseUrl = configuration["BackendApi:BaseUrl"]?.TrimEnd('/')
+                              ?? throw new InvalidOperationException("BackendApi:BaseUrl is not configured.");
+        }
+
+        public async Task<CoverList?> GetAllCoversForMangaAsync(string mangaId)
+        {
+            var allCovers = new List<Cover>();
+            int offset = 0;
+            const int limit = 100; // Luôn lấy tối đa 100 mỗi lần
+            int totalAvailable = 0;
+
+            Logger.LogInformation($"Fetching ALL covers for manga ID: {mangaId} with pagination...");
+
+            do
+            {
+                var queryParams = new Dictionary<string, List<string>>
+                {
+                    { "manga[]", new List<string> { mangaId } },
+                    { "limit", new List<string> { limit.ToString() } },
+                    { "offset", new List<string> { offset.ToString() } },
+                    { "order[volume]", new List<string> { "asc" } } // Sắp xếp tăng dần để hiển thị
+                    // Bạn có thể thêm các order khác nếu muốn, ví dụ order[createdAt]=asc
+                };
+
+                var url = BuildUrlWithParams("cover", queryParams);
+                Logger.LogInformation($"Fetching covers page: {url}");
+
+                try
+                {
+                    var response = await HttpClient.GetAsync(url);
+
+                    // Xử lý lỗi Rate Limit (429) - Chờ và thử lại
+                    if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                    {
+                        Logger.LogWarning($"Rate limit hit when fetching covers for manga {mangaId}. Waiting and retrying...");
+                        await Task.Delay(TimeSpan.FromSeconds(5)); // Chờ 5 giây
+                        response = await HttpClient.GetAsync(url); // Thử lại request
+                    }
+
+                    var contentStream = await response.Content.ReadAsStreamAsync();
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var coverListResponse = await JsonSerializer.DeserializeAsync<CoverList>(contentStream, JsonOptions);
+
+                        if (coverListResponse?.Data == null) // Không cần !.Any() vì API có thể trả về mảng rỗng hợp lệ
+                        {
+                             Logger.LogInformation($"No more covers found or data is null/invalid for manga {mangaId} at offset {offset}.");
+                             // Nếu là lần gọi đầu tiên và không có data, totalAvailable sẽ là 0
+                             if (offset == 0) totalAvailable = coverListResponse?.Total ?? 0;
+                             break; // Dừng vòng lặp
+                        }
+
+
+                        allCovers.AddRange(coverListResponse.Data);
+                        if (totalAvailable == 0 && offset == 0) // Lấy total từ response đầu tiên
+                        {
+                            totalAvailable = coverListResponse.Total;
+                        }
+                        offset += coverListResponse.Data.Count; // Tăng offset dựa trên số lượng thực tế trả về
+
+                        Logger.LogDebug($"Fetched {coverListResponse.Data.Count} covers. Offset now: {offset}. Total available: {totalAvailable}");
+
+                        // Chỉ delay nếu còn trang tiếp theo
+                        if (offset < totalAvailable && totalAvailable > 0)
+                        {
+                            await Task.Delay(_apiDelay);
+                        }
+                    }
+                    else
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        LogApiError(nameof(GetAllCoversForMangaAsync), response, errorContent);
+                        return null; // Lỗi API
+                    }
+                }
+                catch (JsonException jsonEx)
+                {
+                    Logger.LogError(jsonEx, $"JSON Deserialization error during cover pagination for manga ID: {mangaId}");
+                    return null;
+                }
+                catch (HttpRequestException httpEx)
+                {
+                     Logger.LogError(httpEx, $"HTTP Request error during cover pagination for manga ID: {mangaId}");
+                     return null;
+                }
+                catch (TaskCanceledException ex) // Xử lý timeout
+                {
+                    Logger.LogError(ex, $"Request timed out during cover pagination for manga ID: {mangaId}");
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, $"Unexpected exception during cover pagination for manga ID: {mangaId}");
+                    return null;
+                }
+
+            } while (offset < totalAvailable && totalAvailable > 0); // Tiếp tục nếu còn cover
+
+            Logger.LogInformation($"Finished fetching. Total covers retrieved: {allCovers.Count} for manga ID: {mangaId}. API reported total: {totalAvailable}");
+
+            return new CoverList
+            {
+                Result = "ok",
+                Response = "collection",
+                Data = allCovers,
+                Limit = allCovers.Count, // Tổng số đã lấy
+                Offset = 0,
+                Total = totalAvailable
             };
+        }
 
-            /// <summary>
-            /// Được gọi bởi View Engine để lấy danh sách các đường dẫn tìm kiếm View.
-            /// </summary>
-            /// <param name="context">Thông tin về View đang được tìm kiếm.</param>
-            /// <param name="viewLocations">Danh sách các đường dẫn tìm kiếm mặc định.</param>
-            /// <returns>Danh sách các đường dẫn tìm kiếm đã được mở rộng.</returns>
-            public IEnumerable<string> ExpandViewLocations(ViewLocationExpanderContext context, IEnumerable<string> viewLocations)
-            {
-                // {0} = Tên View (hoặc Partial View không có dấu _)
-                // {1} = Tên Controller (ít dùng trong cấu trúc này)
-                // {2} = Tên Area (không dùng trong dự án này)
+        // Implement FetchRepresentativeCoverUrlsAsync và FetchCoverUrlAsync ở bước tiếp theo
+        // ... (code cũ của FetchCoverUrlAsync sẽ được thay thế) ...
+        public async Task<Dictionary<string, string>?> FetchRepresentativeCoverUrlsAsync(List<string> mangaIds)
+        {
+           // Sẽ implement ở Bước 3
+           throw new NotImplementedException();
+        }
 
-                // Ưu tiên tìm kiếm trong các thư mục feature đã định nghĩa
-                foreach (var folder in FeatureFolders)
-                {
-                    // Đường dẫn cho View chính (ví dụ: Search.cshtml -> {0} = "Search")
-                    yield return $"~/Views/{folder}/{{0}}.cshtml";
-                    // Đường dẫn cho Partial View (ví dụ: _SearchFormPartial.cshtml -> {0} = "SearchFormPartial")
-                    yield return $"~/Views/{folder}/_{{0}}.cshtml";
-                }
-
-                // Luôn tìm kiếm trong thư mục Shared (rất quan trọng)
-                yield return "~/Views/Shared/{0}.cshtml";
-                yield return "~/Views/Shared/_{0}.cshtml"; // Cho partials trong Shared
-
-                // --- Tùy chọn: Giữ lại các đường dẫn mặc định ---
-                // Bỏ comment phần dưới nếu bạn muốn View Engine vẫn tìm ở các vị trí cũ
-                // (ví dụ: /Views/ControllerName/ActionName.cshtml) phòng trường hợp bạn chưa di chuyển hết.
-                // Tuy nhiên, nếu đã di chuyển hết, việc này có thể không cần thiết và làm chậm quá trình tìm kiếm một chút.
-                /*
-                foreach (var location in viewLocations)
-                {
-                    yield return location;
-                }
-                */
-            }
-
-            /// <summary>
-            /// Được gọi bởi View Engine để thêm các giá trị vào RouteData,
-            /// thường dùng cho việc cache key. Không cần thiết cho trường hợp này.
-            /// </summary>
-            public void PopulateValues(ViewLocationExpanderContext context)
-            {
-                // Không cần thực hiện gì ở đây.
-            }
+        public async Task<string> FetchCoverUrlAsync(string mangaId)
+        {
+            // Sẽ implement ở Bước 4
+            throw new NotImplementedException();
         }
     }
-    ```
+}
+```
 
-3.  **Đăng ký `CustomViewLocationExpander` trong `Program.cs`:**
-    *   Mở file `Program.cs`.
-    *   Thêm dòng `using` cho namespace của lớp expander ở đầu file:
-        ```csharp
-        using MangaReader.WebUI.Infrastructure; // Hoặc namespace bạn đã đặt
-        using Microsoft.AspNetCore.Mvc.Razor; // Cần thêm using này
-        ```
-    *   Tìm đến phần cấu hình services (`builder.Services...`).
-    *   Thêm đoạn code sau **trước** dòng `var app = builder.Build();`:
+### Bước 3: Implement `FetchRepresentativeCoverUrlsAsync` trong `CoverApiService.cs`
 
-        ```csharp
-        // Cấu hình Razor View Engine để sử dụng View Location Expander tùy chỉnh
-        builder.Services.Configure<RazorViewEngineOptions>(options =>
+Phương thức này sẽ lấy cover đại diện cho một danh sách manga.
+
+```csharp
+// File: Services/APIServices/CoverApiService.cs
+// ... (using và constructor giữ nguyên) ...
+
+public async Task<Dictionary<string, string>?> FetchRepresentativeCoverUrlsAsync(List<string> mangaIds)
+{
+    if (mangaIds == null || !mangaIds.Any())
+    {
+        return new Dictionary<string, string>();
+    }
+
+    Logger.LogInformation($"Fetching representative covers for {mangaIds.Count} manga IDs...");
+    var resultCovers = new Dictionary<string, string>();
+    var mangaIdsToProcess = new HashSet<string>(mangaIds); // Dùng HashSet để kiểm tra nhanh
+
+    // Chia nhỏ danh sách mangaIds nếu cần (ví dụ: mỗi lần 100 ID)
+    const int batchSize = 100;
+    for (int i = 0; i < mangaIds.Count; i += batchSize)
+    {
+        var currentBatchIds = mangaIds.Skip(i).Take(batchSize).ToList();
+        if (!currentBatchIds.Any()) continue;
+
+        var queryParams = new Dictionary<string, List<string>>
         {
-            // Thêm expander của bạn vào danh sách.
-            // Nó sẽ được gọi để cung cấp các đường dẫn tìm kiếm bổ sung (hoặc thay thế).
-            options.ViewLocationExpanders.Add(new CustomViewLocationExpander());
-        });
-        ```
+            // Sắp xếp ưu tiên volume mới nhất, sau đó đến ngày tạo mới nhất
+            { "order[volume]", new List<string> { "desc" } },
+            { "order[createdAt]", new List<string> { "desc" } },
+            { "limit", new List<string> { currentBatchIds.Count.ToString() } } // Lấy tối đa số lượng ID trong batch
+        };
 
-4.  **Đơn giản hóa các lệnh gọi `View()` và `PartialView()` (Quan trọng!):**
-    *   Bây giờ View Engine đã biết cách tìm View trong cấu trúc mới, bạn có thể (và nên) **quay lại các Controller và View để đơn giản hóa các lệnh gọi**:
-    *   **Trong Controllers:**
-        *   Thay thế các lệnh gọi `View("~/Views/MangaSearch/Search.cshtml", model)` thành `View("Search", model)`.
-        *   Thay thế các lệnh gọi `PartialView("~/Views/MangaSearch/_SearchResultsWrapperPartial.cshtml", viewModel)` thành `PartialView("_SearchResultsWrapperPartial", viewModel)`.
-        *   Thay thế các lệnh gọi `_viewRenderService.RenderViewBasedOnRequest(this, "~/Views/MangaDetails/Details.cshtml", viewModel)` thành `_viewRenderService.RenderViewBasedOnRequest(this, "Details", viewModel)`.
-        *   **Áp dụng tương tự cho tất cả các Controller khác (`Home`, `Auth`, `Chapter`) và các Action trả về `View` hoặc `PartialView`.**
-    *   **Trong Views (`.cshtml` files):**
-        *   Thay thế các thẻ `<partial name="~/Views/MangaSearch/_SearchFormPartial.cshtml" ... />` thành `<partial name="_SearchFormPartial" ... />`.
-        *   Thay thế các lệnh gọi `@Html.Partial("~/Views/MangaFollowed/_FollowedMangaItemPartial.cshtml", manga)` thành `@Html.Partial("_FollowedMangaItemPartial", manga)`.
-        *   **Áp dụng tương tự cho tất cả các file `.cshtml` có gọi Partial View nằm trong các thư mục feature.** (Các partial trong `Shared` thường không cần thay đổi).
+        // Thêm các manga ID vào queryParams
+        foreach (var mangaId in currentBatchIds)
+        {
+            AddOrUpdateParam(queryParams, "manga[]", mangaId);
+        }
 
-5.  **Build và Chạy thử:**
-    *   Build lại dự án (`dotnet build`).
-    *   Chạy ứng dụng (`dotnet run`).
-    *   Truy cập tất cả các trang và chức năng, đặc biệt là những trang có View hoặc Partial View đã được di chuyển.
-    *   Kiểm tra xem tất cả các trang có hiển thị đúng không và không còn lỗi `InvalidOperationException: The view '...' was not found`.
-    *   Kiểm tra kỹ các chức năng sử dụng HTMX để đảm bảo các partial view được tải chính xác khi chỉ dùng tên.
+        var url = BuildUrlWithParams("cover", queryParams);
+        Logger.LogInformation($"Fetching representative covers batch: {url}");
 
-## Giải thích cách hoạt động
+        try
+        {
+            var response = await HttpClient.GetAsync(url);
+             // Xử lý lỗi Rate Limit (429) - Chờ và thử lại
+            if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            {
+                Logger.LogWarning($"Rate limit hit fetching representative covers. Waiting and retrying...");
+                await Task.Delay(TimeSpan.FromSeconds(5));
+                response = await HttpClient.GetAsync(url);
+            }
 
-*   `IViewLocationExpander` cho phép bạn can thiệp vào quá trình tìm kiếm View của Razor.
-*   Phương thức `ExpandViewLocations` trả về một danh sách các mẫu đường dẫn mà View Engine sẽ thử.
-*   Chúng ta đã thêm các mẫu đường dẫn trỏ đến các thư mục feature mới (`~/Views/FeatureFolder/{0}.cshtml` và `~/Views/FeatureFolder/_{0}.cshtml`).
-*   Chúng ta cũng giữ lại đường dẫn tìm kiếm trong `~/Views/Shared/`.
-*   Do đó, khi Controller gọi `View("Search")` hoặc View gọi `<partial name="_SearchFormPartial" />`, View Engine sẽ thử các đường dẫn chúng ta đã cung cấp (bao gồm `~/Views/MangaSearch/Search.cshtml` và `~/Views/MangaSearch/_SearchFormPartial.cshtml`) và tìm thấy file chính xác.
+            var contentStream = await response.Content.ReadAsStreamAsync();
 
-Bằng cách này, bạn có thể giữ code trong Controller và View gọn gàng hơn trong khi vẫn duy trì cấu trúc thư mục `Views` có tổ chức.
+            if (response.IsSuccessStatusCode)
+            {
+                var coverListResponse = await JsonSerializer.DeserializeAsync<CoverList>(contentStream, JsonOptions);
+
+                if (coverListResponse?.Data != null && coverListResponse.Data.Any())
+                {
+                    foreach (var cover in coverListResponse.Data)
+                    {
+                        // Tìm mangaId từ relationship của cover
+                        string? relatedMangaId = cover.Relationships?
+                            .FirstOrDefault(r => r.Type == "manga")?.Id.ToString();
+
+                        // Nếu cover này thuộc về một manga trong batch VÀ manga đó chưa có cover trong kết quả
+                        if (relatedMangaId != null && mangaIdsToProcess.Contains(relatedMangaId) && !resultCovers.ContainsKey(relatedMangaId))
+                        {
+                            if (cover.Attributes?.FileName != null)
+                            {
+                                string fileName = cover.Attributes.FileName;
+                                // Tạo URL thumbnail (.512.jpg) qua proxy
+                                string thumbnailUrl = $"{_imageProxyBaseUrl}/mangadex/proxy-image?url={Uri.EscapeDataString($"https://uploads.mangadex.org/covers/{relatedMangaId}/{fileName}.512.jpg")}";
+                                resultCovers.Add(relatedMangaId, thumbnailUrl);
+                                Logger.LogDebug($"Found representative cover for {relatedMangaId}: {thumbnailUrl}");
+                            }
+                        }
+
+                        // Nếu đã tìm đủ cover cho batch này thì dừng sớm
+                        if (resultCovers.Count >= currentBatchIds.Count) break;
+                    }
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    LogApiError(nameof(FetchRepresentativeCoverUrlsAsync), response, errorContent);
+                    // Không trả về null ngay, tiếp tục với batch khác nếu có
+                }
+            }
+            // ... catch exceptions ...
+            catch (Exception ex)
+            {
+                 Logger.LogError(ex, $"Error fetching representative covers batch.");
+                 // Không trả về null ngay, tiếp tục với batch khác nếu có
+            }
+
+            // Delay nhỏ giữa các batch để tránh rate limit
+            if (i + batchSize < mangaIds.Count)
+            {
+                await Task.Delay(_apiDelay);
+            }
+        }
+
+    Logger.LogInformation($"Finished fetching representative covers. Found {resultCovers.Count} covers for {mangaIds.Count} requested manga IDs.");
+    return resultCovers;
+}
+
+// ... (GetAllCoversForMangaAsync đã implement ở Bước 2) ...
+
+// Implement FetchCoverUrlAsync ở bước tiếp theo
+public async Task<string> FetchCoverUrlAsync(string mangaId)
+{
+    // Sẽ implement ở Bước 4
+    throw new NotImplementedException();
+}
+```
+
+### Bước 4: Cập nhật `FetchCoverUrlAsync` trong `CoverApiService.cs`
+
+Phương thức này giờ sẽ gọi `FetchRepresentativeCoverUrlsAsync` cho một manga duy nhất.
+
+```csharp
+// File: Services/APIServices/CoverApiService.cs
+// ... (using, constructor, GetAllCoversForMangaAsync, FetchRepresentativeCoverUrlsAsync giữ nguyên) ...
+
+public async Task<string> FetchCoverUrlAsync(string mangaId)
+{
+    if (string.IsNullOrEmpty(mangaId))
+    {
+        Logger.LogWarning("MangaId is null or empty in FetchCoverUrlAsync.");
+        return string.Empty;
+    }
+
+    Logger.LogInformation($"Fetching single representative cover URL for manga ID: {mangaId}...");
+
+    try
+    {
+        // Gọi phương thức lấy cover đại diện cho list chỉ chứa 1 mangaId
+        var coversDict = await FetchRepresentativeCoverUrlsAsync(new List<string> { mangaId });
+
+        // Lấy URL từ dictionary trả về
+        if (coversDict != null && coversDict.TryGetValue(mangaId, out var coverUrl) && !string.IsNullOrEmpty(coverUrl))
+        {
+            Logger.LogInformation($"Successfully fetched single cover URL for {mangaId}.");
+            return coverUrl;
+        }
+        else
+        {
+            Logger.LogWarning($"Could not find representative cover URL for manga ID: {mangaId} after calling FetchRepresentativeCoverUrlsAsync.");
+            return string.Empty; // Trả về rỗng nếu không tìm thấy
+        }
+    }
+    catch (Exception ex)
+    {
+        Logger.LogError(ex, $"Exception in FetchCoverUrlAsync for manga ID: {mangaId}");
+        return string.Empty; // Trả về rỗng nếu có lỗi
+    }
+}
+```

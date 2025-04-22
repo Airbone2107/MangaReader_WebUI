@@ -1,5 +1,6 @@
 using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Services.MangaServices;
+using MangaReader.WebUI.Services.APIServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Dynamic;
@@ -9,12 +10,20 @@ namespace MangaReader.WebUI.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly MangaDexService _mangaDexService;
+        private readonly IApiStatusService _apiStatusService;
+        private readonly IMangaApiService _mangaApiService;
+        private readonly ICoverApiService _coverApiService;
         private readonly ILogger<HomeController> _logger;
 
-        public HomeController(MangaDexService mangaDexService, ILogger<HomeController> logger)
+        public HomeController(
+            IApiStatusService apiStatusService, 
+            IMangaApiService mangaApiService,
+            ICoverApiService coverApiService,
+            ILogger<HomeController> logger)
         {
-            _mangaDexService = mangaDexService;
+            _apiStatusService = apiStatusService;
+            _mangaApiService = mangaApiService;
+            _coverApiService = coverApiService;
             _logger = logger;
         }
 
@@ -26,7 +35,7 @@ namespace MangaReader.WebUI.Controllers
                 ViewData["PageType"] = "home";
                 
                 // Kiểm tra kết nối API trước
-                bool isConnected = await _mangaDexService.TestConnectionAsync();
+                bool isConnected = await _apiStatusService.TestConnectionAsync();
                 if (!isConnected)
                 {
                     _logger.LogWarning("Không thể kết nối đến API MangaDex");
@@ -46,7 +55,7 @@ namespace MangaReader.WebUI.Controllers
                     };
                     
                     Console.WriteLine("Đang lấy danh sách manga mới nhất...");
-                    var recentManga = await _mangaDexService.FetchMangaAsync(10, 0, sortOptions);
+                    var recentManga = await _mangaApiService.FetchMangaAsync(10, 0, sortOptions);
 
                     // Nếu không có dữ liệu
                     if (recentManga == null || recentManga.Count == 0)
@@ -78,7 +87,7 @@ namespace MangaReader.WebUI.Controllers
                             var title = GetLocalizedTitle(attributesDict["title"].ToString()) ?? "Không có tiêu đề";
                             
                             // Tải ảnh bìa
-                            string coverUrl = await _mangaDexService.FetchCoverUrlAsync(id);
+                            string coverUrl = await _coverApiService.FetchCoverUrlAsync(id);
 
                             viewModels.Add(new MangaViewModel
                             {
@@ -141,12 +150,12 @@ namespace MangaReader.WebUI.Controllers
             try
             {
                 // Kiểm tra kết nối chung
-                testResults.Add("API Connection", await _mangaDexService.TestConnectionAsync() ? "Success" : "Failed");
+                testResults.Add("API Connection", await _apiStatusService.TestConnectionAsync() ? "Success" : "Failed");
                 
                 // Kiểm tra lấy manga với limit = 1
                 try
                 {
-                    var manga = await _mangaDexService.FetchMangaAsync(1, 0);
+                    var manga = await _mangaApiService.FetchMangaAsync(1, 0);
                     testResults.Add("Fetch Manga", $"Success - Found {manga?.Count ?? 0} items");
                 }
                 catch (Exception ex)
@@ -206,16 +215,25 @@ namespace MangaReader.WebUI.Controllers
             try
             {
                 var titles = JsonSerializer.Deserialize<Dictionary<string, string>>(titleJson);
-                // Ưu tiên tiếng Việt, sau đó đến tiếng Anh
-                if (titles.ContainsKey("vi"))
-                    return titles["vi"];
-                if (titles.ContainsKey("en"))
-                    return titles["en"];
-                // Nếu không có, lấy giá trị đầu tiên
-                return titles.FirstOrDefault().Value;
+                
+                // Ưu tiên trả về tiêu đề tiếng Việt nếu có
+                if (titles.TryGetValue("vi", out var viTitle) && !string.IsNullOrEmpty(viTitle))
+                {
+                    return viTitle;
+                }
+                
+                // Sau đó là tiếng Anh
+                if (titles.TryGetValue("en", out var enTitle) && !string.IsNullOrEmpty(enTitle))
+                {
+                    return enTitle;
+                }
+                
+                // Cuối cùng là ngôn ngữ gốc (key đầu tiên trong từ điển)
+                return titles.Values.FirstOrDefault(t => !string.IsNullOrEmpty(t));
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError($"Lỗi khi parse tiêu đề manga: {ex.Message}");
                 return null;
             }
         }
@@ -227,105 +245,55 @@ namespace MangaReader.WebUI.Controllers
         {
             try
             {
-                // Kiểm tra kết nối API trước
-                bool isConnected = await _mangaDexService.TestConnectionAsync();
-                if (!isConnected)
+                // Lấy danh sách manga mới nhất
+                var sortOptions = new SortManga { 
+                    SortBy = "Mới cập nhật",
+                    Languages = new List<string> { "vi", "en" }
+                };
+                
+                var recentManga = await _mangaApiService.FetchMangaAsync(10, 0, sortOptions);
+                
+                // Chuyển đổi thành MangaViewModel
+                var viewModels = new List<MangaViewModel>();
+                
+                // Bỏ qua phần tử đầu tiên vì nó chỉ chứa thông tin tổng số
+                var mangaListToProcess = recentManga.Count > 1 ? recentManga.Skip(1).ToList() : new List<dynamic>();
+                
+                foreach (var manga in mangaListToProcess)
                 {
-                    _logger.LogWarning("Không thể kết nối đến API MangaDex");
-                    return PartialView("_NoResultsPartial");
+                    try
+                    {
+                        var mangaObj = JsonSerializer.Deserialize<ExpandoObject>(manga.ToString());
+                        var mangaDict = (IDictionary<string, object>)mangaObj;
+                        
+                        var id = mangaDict["id"].ToString();
+                        var attributes = JsonSerializer.Deserialize<ExpandoObject>(mangaDict["attributes"].ToString());
+                        var attributesDict = (IDictionary<string, object>)attributes;
+                        
+                        var title = GetLocalizedTitle(attributesDict["title"].ToString()) ?? "Không có tiêu đề";
+                        
+                        // Tải ảnh bìa
+                        string coverUrl = await _coverApiService.FetchCoverUrlAsync(id);
+
+                        viewModels.Add(new MangaViewModel
+                        {
+                            Id = id,
+                            Title = title,
+                            CoverUrl = coverUrl
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Lỗi khi xử lý manga trong partial: {ex.Message}");
+                    }
                 }
                 
-                // Lấy danh sách manga mới nhất
-                try
-                {
-                    var sortOptions = new SortManga { 
-                        SortBy = "Mới cập nhật",
-                        Languages = new List<string> { "vi", "en" }
-                    };
-                    
-                    var recentManga = await _mangaDexService.FetchMangaAsync(24, 0, sortOptions);
-
-                    // Nếu không có dữ liệu
-                    if (recentManga == null || recentManga.Count == 0)
-                    {
-                        _logger.LogWarning("API đã kết nối nhưng không trả về dữ liệu manga");
-                        return PartialView("_NoResultsPartial");
-                    }
-
-                    // Chuyển đổi thành MangaViewModel
-                    var viewModels = new List<MangaViewModel>();
-                    
-                    // Bỏ qua phần tử đầu tiên vì nó chỉ chứa thông tin tổng số (metadata)
-                    var mangaListToProcess = recentManga.Count > 1 ? recentManga.Skip(1).ToList() : new List<dynamic>();
-                    
-                    foreach (var manga in mangaListToProcess)
-                    {
-                        try
-                        {
-                            // Parse dynamic object
-                            var mangaObj = JsonSerializer.Deserialize<ExpandoObject>(manga.ToString());
-                            var mangaDict = (IDictionary<string, object>)mangaObj;
-                            
-                            var id = mangaDict["id"].ToString();
-                            var attributes = JsonSerializer.Deserialize<ExpandoObject>(mangaDict["attributes"].ToString());
-                            var attributesDict = (IDictionary<string, object>)attributes;
-                            
-                            var title = GetLocalizedTitle(attributesDict["title"].ToString()) ?? "Không có tiêu đề";
-                            
-                            // Tải ảnh bìa
-                            string coverUrl = await _mangaDexService.FetchCoverUrlAsync(id);
-                            
-                            // Thêm thông tin tác giả
-                            string author = "Không rõ";
-                            if (mangaDict.ContainsKey("relationships"))
-                            {
-                                var relationships = JsonSerializer.Deserialize<List<object>>(mangaDict["relationships"].ToString());
-                                foreach (var rel in relationships)
-                                {
-                                    var relObj = JsonSerializer.Deserialize<ExpandoObject>(rel.ToString());
-                                    var relDict = (IDictionary<string, object>)relObj;
-                                    
-                                    if (relDict["type"].ToString() == "author" && relDict.ContainsKey("attributes"))
-                                    {
-                                        var authorAttrs = JsonSerializer.Deserialize<ExpandoObject>(relDict["attributes"].ToString());
-                                        var authorDict = (IDictionary<string, object>)authorAttrs;
-                                        
-                                        if (authorDict.ContainsKey("name"))
-                                        {
-                                            author = authorDict["name"].ToString();
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-
-                            viewModels.Add(new MangaViewModel
-                            {
-                                Id = id,
-                                Title = title,
-                                CoverUrl = coverUrl,
-                                Author = author
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError($"Lỗi khi xử lý manga: {ex.Message}");
-                            // Ghi log nhưng vẫn tiếp tục với manga tiếp theo
-                        }
-                    }
-
-                    return PartialView("_MangaGridPartial", viewModels);
-                }
-                catch (Exception apiEx)
-                {
-                    _logger.LogError($"Lỗi khi gọi API MangaDex: {apiEx.Message}");
-                    return PartialView("_NoResultsPartial");
-                }
+                return PartialView("_MangaListPartial", viewModels);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi lấy danh sách manga mới nhất: {ex.Message}");
-                return PartialView("_NoResultsPartial");
+                _logger.LogError($"Lỗi khi tải danh sách manga mới nhất: {ex.Message}");
+                return PartialView("_ErrorPartial", "Không thể tải danh sách manga mới nhất.");
             }
         }
     }

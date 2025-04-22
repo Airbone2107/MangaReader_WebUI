@@ -1,5 +1,6 @@
 using MangaReader.WebUI.Infrastructure;
 using MangaReader.WebUI.Services.AuthServices;
+using MangaReader.WebUI.Services.APIServices;
 using Microsoft.AspNetCore.Mvc.Razor;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -56,14 +57,12 @@ builder.Services.AddHttpClient("MangaDexClient", client =>
 // Đăng ký các service liên quan đến xác thực 
 builder.Services.AddScoped<IUserService, UserService>();
 
-// Đăng ký MangaDexService với HttpClient được cấu hình
-builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaDexService>(sp =>
-{
-    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var logger = sp.GetRequiredService<ILogger<MangaReader.WebUI.Services.MangaServices.MangaDexService>>();
-    var httpClient = httpClientFactory.CreateClient("MangaDexClient");
-    return new MangaReader.WebUI.Services.MangaServices.MangaDexService(httpClient, logger);
-});
+// Đăng ký các API Services mới thay thế cho MangaDexService
+builder.Services.AddScoped<IMangaApiService, MangaApiService>();
+builder.Services.AddScoped<IChapterApiService, ChapterApiService>();
+builder.Services.AddScoped<ICoverApiService, CoverApiService>();
+builder.Services.AddScoped<ITagApiService, TagApiService>();
+builder.Services.AddScoped<IApiStatusService, ApiStatusService>();
 
 // Đăng ký ViewRenderService
 builder.Services.AddScoped<MangaReader.WebUI.Services.UtilityServices.ViewRenderService>();
@@ -108,14 +107,7 @@ builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServi
 builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterReadingServices>();
 
 // Đăng ký ChapterAttributeService
-builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterAttributeService>(sp =>
-{
-    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var logger = sp.GetRequiredService<ILogger<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterAttributeService>>();
-    var configuration = sp.GetRequiredService<IConfiguration>();
-    var httpClient = httpClientFactory.CreateClient("MangaDexClient");
-    return new MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterAttributeService(httpClient, configuration, logger);
-});
+builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterAttributeService>();
 
 // Đăng ký ChapterInfoService
 builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.IChapterInfoService, MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterInfoService>();

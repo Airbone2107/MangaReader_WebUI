@@ -1,23 +1,24 @@
 using MangaReader.WebUI.Services.MangaServices.Models;
 using MangaReader.WebUI.Services.UtilityServices;
+using MangaReader.WebUI.Services.APIServices;
 using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
     public class ChapterInfoService : IChapterInfoService
     {
-        private readonly MangaDexService _mangaDexService;
+        private readonly IChapterApiService _chapterApiService;
         private readonly JsonConversionService _jsonConversionService;
         private readonly ChapterAttributeService _chapterAttributeService;
         private readonly ILogger<ChapterInfoService> _logger;
 
         public ChapterInfoService(
-            MangaDexService mangaDexService,
+            IChapterApiService chapterApiService,
             JsonConversionService jsonConversionService,
             ChapterAttributeService chapterAttributeService,
             ILogger<ChapterInfoService> logger)
         {
-            _mangaDexService = mangaDexService;
+            _chapterApiService = chapterApiService;
             _jsonConversionService = jsonConversionService;
             _chapterAttributeService = chapterAttributeService;
             _logger = logger;

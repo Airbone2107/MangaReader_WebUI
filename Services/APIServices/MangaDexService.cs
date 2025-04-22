@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
-namespace MangaReader.WebUI.Services.MangaServices
+namespace MangaReader.WebUI.Services.APIServices
 {
     public class MangaDexService
     {

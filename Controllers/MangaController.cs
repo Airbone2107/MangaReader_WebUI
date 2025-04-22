@@ -5,6 +5,7 @@ using MangaReader.WebUI.Services.MangaServices.MangaInformation;
 using MangaReader.WebUI.Services.MangaServices.MangaPageService;
 using MangaReader.WebUI.Services.MangaServices.Models;
 using MangaReader.WebUI.Services.UtilityServices;
+using MangaReader.WebUI.Services.APIServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
 using System.Text;
@@ -14,7 +15,8 @@ namespace MangaReader.WebUI.Controllers
 {
     public class MangaController : Controller
     {
-        private readonly MangaDexService _mangaDexService;
+        private readonly ITagApiService _tagApiService;
+        private readonly IApiStatusService _apiStatusService;
         private readonly ILogger<MangaController> _logger;
         private readonly JsonConversionService _jsonConversionService;
         private readonly MangaTitleService _mangaTitleService;
@@ -28,7 +30,8 @@ namespace MangaReader.WebUI.Controllers
         private readonly IReadingHistoryService _readingHistoryService;
 
         public MangaController(
-            MangaDexService mangaDexService, 
+            ITagApiService tagApiService,
+            IApiStatusService apiStatusService,
             ILogger<MangaController> logger,
             JsonConversionService jsonConversionService,
             MangaTitleService mangaTitleService,
@@ -41,7 +44,8 @@ namespace MangaReader.WebUI.Controllers
             IFollowedMangaService followedMangaService,
             IReadingHistoryService readingHistoryService)
         {
-            _mangaDexService = mangaDexService;
+            _tagApiService = tagApiService;
+            _apiStatusService = apiStatusService;
             _logger = logger;
             _jsonConversionService = jsonConversionService;
             _mangaTitleService = mangaTitleService;
@@ -71,7 +75,7 @@ namespace MangaReader.WebUI.Controllers
             try
             {
                 _logger.LogInformation("Đang lấy danh sách tags từ MangaDex");
-                var tags = await _mangaDexService.FetchTagsAsync();
+                var tags = await _tagApiService.FetchTagsAsync();
                 return Json(new { success = true, data = tags });
             }
             catch (Exception ex)

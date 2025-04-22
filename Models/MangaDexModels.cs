@@ -5,7 +5,7 @@ namespace MangaReader.WebUI.Models
     /// Được sử dụng trong các service liên quan đến việc quản lý và hiển thị thông tin chương.
     /// Sử dụng chủ yếu trong ChapterService và MangaDexService để xử lý dữ liệu chương từ API MangaDex.
     /// </summary>
-    public class Chapter
+    public class Chapter    
     {
         public string MangaId { get; set; }
         public string ChapterId { get; set; }

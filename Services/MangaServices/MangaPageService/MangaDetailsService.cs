@@ -2,13 +2,15 @@ using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Services.MangaServices.ChapterServices;
 using MangaReader.WebUI.Services.MangaServices.MangaInformation;
 using MangaReader.WebUI.Services.UtilityServices;
+using MangaReader.WebUI.Services.APIServices;
 using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
 {
     public class MangaDetailsService
     {
-        private readonly MangaDexService _mangaDexService;
+        private readonly IMangaApiService _mangaApiService;
+        private readonly ICoverApiService _coverApiService;
         private readonly ILogger<MangaDetailsService> _logger;
         private readonly LocalizationService _localizationService;
         private readonly JsonConversionService _jsonConversionService;
@@ -22,7 +24,8 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
         private readonly MangaDescription _mangaDescription;
 
         public MangaDetailsService(
-            MangaDexService mangaDexService,
+            IMangaApiService mangaApiService,
+            ICoverApiService coverApiService,
             ILogger<MangaDetailsService> logger,
             LocalizationService localizationService,
             JsonConversionService jsonConversionService,
@@ -35,7 +38,8 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
             IHttpContextAccessor httpContextAccessor,
             MangaDescription mangaDescription)
         {
-            _mangaDexService = mangaDexService;
+            _mangaApiService = mangaApiService;
+            _coverApiService = coverApiService;
             _logger = logger;
             _localizationService = localizationService;
             _jsonConversionService = jsonConversionService;
@@ -56,7 +60,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
         {
             try
             {
-                var manga = await _mangaDexService.FetchMangaDetailsAsync(id);
+                var manga = await _mangaApiService.FetchMangaDetailsAsync(id);
                 var mangaElement = JsonSerializer.Deserialize<JsonElement>(manga.ToString());
                 var mangaDict = _jsonConversionService.ConvertJsonElementToDict(mangaElement);
                 
@@ -90,7 +94,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
         {
             try
             {
-                var manga = await _mangaDexService.FetchMangaDetailsAsync(id);
+                var manga = await _mangaApiService.FetchMangaDetailsAsync(id);
                 var mangaElement = JsonSerializer.Deserialize<JsonElement>(manga.ToString());
                 var mangaDict = _jsonConversionService.ConvertJsonElementToDict(mangaElement);
                 
@@ -163,7 +167,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                 var tags = _mangaTagService.GetMangaTags(mangaDict);
                 
                 // Tải ảnh bìa
-                string coverUrl = await _mangaDexService.FetchCoverUrlAsync(id);
+                string coverUrl = await _coverApiService.FetchCoverUrlAsync(id);
                 
                 // Xử lý thời gian cập nhật
                 DateTime? lastUpdated = null;
