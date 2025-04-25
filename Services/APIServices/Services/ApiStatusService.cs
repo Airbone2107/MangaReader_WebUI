@@ -1,4 +1,6 @@
-namespace MangaReader.WebUI.Services.APIServices
+using MangaReader.WebUI.Services.APIServices.Interfaces;
+
+namespace MangaReader.WebUI.Services.APIServices.Services
 {
     public class ApiStatusService : BaseApiService, IApiStatusService
     {

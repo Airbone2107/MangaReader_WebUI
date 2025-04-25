@@ -1,3 +1,4 @@
+using MangaReader.WebUI.Models.Mangadex;
 using MangaReader.WebUI.Services.UtilityServices;
 using System.Text.Json;
 
@@ -17,8 +18,44 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
         }
 
         /// <summary>
-        /// Lấy mô tả manga từ nhiều ngôn ngữ (ưu tiên tiếng Việt, tiếng Anh)
+        /// Lấy mô tả manga từ MangaAttributes (ưu tiên tiếng Việt, tiếng Anh)
         /// </summary>
+        /// <param name="attributes">MangaAttributes chứa thông tin description</param>
+        /// <returns>Mô tả đã được chọn theo ngôn ngữ ưu tiên</returns>
+        public string GetDescription(MangaAttributes? attributes)
+        {
+            if (attributes?.Description == null || !attributes.Description.Any())
+            {
+                return "";
+            }
+
+            try
+            {
+                // Ưu tiên tiếng Việt, sau đó đến tiếng Anh
+                if (attributes.Description.TryGetValue("vi", out var viDesc) && !string.IsNullOrEmpty(viDesc))
+                {
+                    return viDesc;
+                }
+                if (attributes.Description.TryGetValue("en", out var enDesc) && !string.IsNullOrEmpty(enDesc))
+                {
+                    return enDesc;
+                }
+
+                // Lấy giá trị đầu tiên nếu không có vi/en
+                return attributes.Description.FirstOrDefault().Value ?? "";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi xử lý description manga từ MangaAttributes.");
+                return "";
+            }
+        }
+
+        /// <summary>
+        /// Lấy mô tả manga từ Dictionary attributes (phương thức cũ để tương thích ngược)
+        /// </summary>
+        /// <param name="attributesDict">Dictionary chứa thông tin attributes</param>
+        /// <returns>Mô tả đã được chọn theo ngôn ngữ ưu tiên</returns>
         public string GetDescription(Dictionary<string, object> attributesDict)
         {
             var description = "";
@@ -30,10 +67,10 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
                 if (descriptionObj is Dictionary<string, object> descriptionDict)
                 {
                     // Ưu tiên tiếng Việt, sau đó đến tiếng Anh
-                    if (descriptionDict.ContainsKey("vi"))
+                    if (descriptionDict.ContainsKey("vi") && descriptionDict["vi"] != null)
                         description = descriptionDict["vi"].ToString();
                     // Nếu không có tiếng Việt, lấy tiếng Anh
-                    else if (descriptionDict.ContainsKey("en"))
+                    else if (descriptionDict.ContainsKey("en") && descriptionDict["en"] != null)
                         description = descriptionDict["en"].ToString();
                     // Hoặc lấy giá trị đầu tiên nếu không có các ngôn ngữ ưu tiên
                     else if (descriptionDict.Count > 0)
@@ -50,7 +87,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError($"Lỗi khi xử lý description manga: {ex.Message}");
+                        _logger.LogError(ex, "Lỗi khi xử lý description manga từ JSON.");
                         description = "";
                     }
                 }

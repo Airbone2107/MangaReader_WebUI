@@ -1,10 +1,10 @@
 using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Services.MangaServices;
-using MangaReader.WebUI.Services.APIServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Dynamic;
 using System.Text.Json;
+using MangaReader.WebUI.Services.APIServices.Interfaces;
 
 namespace MangaReader.WebUI.Controllers
 {
@@ -58,7 +58,7 @@ namespace MangaReader.WebUI.Controllers
                     var recentManga = await _mangaApiService.FetchMangaAsync(10, 0, sortOptions);
 
                     // Nếu không có dữ liệu
-                    if (recentManga == null || recentManga.Count == 0)
+                    if (recentManga?.Data == null || !recentManga.Data.Any())
                     {
                         _logger.LogWarning("API đã kết nối nhưng không trả về dữ liệu manga");
                         ViewBag.ErrorMessage = "Không có dữ liệu manga. Vui lòng thử lại sau.";
@@ -68,23 +68,34 @@ namespace MangaReader.WebUI.Controllers
                     // Chuyển đổi thành MangaViewModel
                     var viewModels = new List<MangaViewModel>();
                     
-                    // Bỏ qua phần tử đầu tiên vì nó chỉ chứa thông tin tổng số (metadata)
-                    // không phải đối tượng manga thông thường nên không có thuộc tính id
-                    var mangaListToProcess = recentManga.Count > 1 ? recentManga.Skip(1).ToList() : new List<dynamic>();
+                    // Bỏ qua phần tử đầu tiên không còn cần thiết vì response mới đã có Data là List<Manga>
+                    var mangaListToProcess = recentManga?.Data != null && recentManga.Data.Any()
+                        ? recentManga.Data.ToList()
+                        : new List<MangaReader.WebUI.Models.Mangadex.Manga>();
                     
                     foreach (var manga in mangaListToProcess)
                     {
                         try
                         {
-                            // Parse dynamic object
-                            var mangaObj = JsonSerializer.Deserialize<ExpandoObject>(manga.ToString());
-                            var mangaDict = (IDictionary<string, object>)mangaObj;
+                            string id = manga.Id.ToString();
+                            var attributes = manga.Attributes;
                             
-                            var id = mangaDict["id"].ToString();
-                            var attributes = JsonSerializer.Deserialize<ExpandoObject>(mangaDict["attributes"].ToString());
-                            var attributesDict = (IDictionary<string, object>)attributes;
+                            if (attributes == null)
+                            {
+                                _logger.LogWarning($"Manga ID: {id} không có thuộc tính Attributes");
+                                continue;
+                            }
                             
-                            var title = GetLocalizedTitle(attributesDict["title"].ToString()) ?? "Không có tiêu đề";
+                            // Lấy title từ Dictionary<string, string> Title
+                            string title;
+                            if (attributes.Title != null)
+                            {
+                                title = GetLocalizedTitle(JsonSerializer.Serialize(attributes.Title)) ?? "Không có tiêu đề";
+                            }
+                            else
+                            {
+                                title = "Không có tiêu đề";
+                            }
                             
                             // Tải ảnh bìa
                             string coverUrl = await _coverApiService.FetchCoverUrlAsync(id);
@@ -156,7 +167,7 @@ namespace MangaReader.WebUI.Controllers
                 try
                 {
                     var manga = await _mangaApiService.FetchMangaAsync(1, 0);
-                    testResults.Add("Fetch Manga", $"Success - Found {manga?.Count ?? 0} items");
+                    testResults.Add("Fetch Manga", $"Success - Found {manga?.Total ?? 0} items trong tổng số; {manga?.Data?.Count ?? 0} items trả về");
                 }
                 catch (Exception ex)
                 {
@@ -216,6 +227,11 @@ namespace MangaReader.WebUI.Controllers
             {
                 var titles = JsonSerializer.Deserialize<Dictionary<string, string>>(titleJson);
                 
+                if (titles == null || !titles.Any())
+                {
+                    return "Không có tiêu đề";
+                }
+                
                 // Ưu tiên trả về tiêu đề tiếng Việt nếu có
                 if (titles.TryGetValue("vi", out var viTitle) && !string.IsNullOrEmpty(viTitle))
                 {
@@ -229,12 +245,12 @@ namespace MangaReader.WebUI.Controllers
                 }
                 
                 // Cuối cùng là ngôn ngữ gốc (key đầu tiên trong từ điển)
-                return titles.Values.FirstOrDefault(t => !string.IsNullOrEmpty(t));
+                return titles.Values.FirstOrDefault(t => !string.IsNullOrEmpty(t)) ?? "Không có tiêu đề";
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Lỗi khi parse tiêu đề manga: {ex.Message}");
-                return null;
+                return "Lỗi tiêu đề";
             }
         }
 
@@ -256,21 +272,34 @@ namespace MangaReader.WebUI.Controllers
                 // Chuyển đổi thành MangaViewModel
                 var viewModels = new List<MangaViewModel>();
                 
-                // Bỏ qua phần tử đầu tiên vì nó chỉ chứa thông tin tổng số
-                var mangaListToProcess = recentManga.Count > 1 ? recentManga.Skip(1).ToList() : new List<dynamic>();
+                // Bỏ qua phần tử đầu tiên không còn cần thiết vì response mới đã có Data là List<Manga>
+                var mangaListToProcess = recentManga?.Data != null && recentManga.Data.Any()
+                    ? recentManga.Data.ToList()
+                    : new List<MangaReader.WebUI.Models.Mangadex.Manga>();
                 
                 foreach (var manga in mangaListToProcess)
                 {
                     try
                     {
-                        var mangaObj = JsonSerializer.Deserialize<ExpandoObject>(manga.ToString());
-                        var mangaDict = (IDictionary<string, object>)mangaObj;
+                        string id = manga.Id.ToString();
+                        var attributes = manga.Attributes;
                         
-                        var id = mangaDict["id"].ToString();
-                        var attributes = JsonSerializer.Deserialize<ExpandoObject>(mangaDict["attributes"].ToString());
-                        var attributesDict = (IDictionary<string, object>)attributes;
+                        if (attributes == null)
+                        {
+                            _logger.LogWarning($"Manga ID: {id} không có thuộc tính Attributes");
+                            continue;
+                        }
                         
-                        var title = GetLocalizedTitle(attributesDict["title"].ToString()) ?? "Không có tiêu đề";
+                        // Lấy title từ Dictionary<string, string> Title
+                        string title;
+                        if (attributes.Title != null)
+                        {
+                            title = GetLocalizedTitle(JsonSerializer.Serialize(attributes.Title)) ?? "Không có tiêu đề";
+                        }
+                        else
+                        {
+                            title = "Không có tiêu đề";
+                        }
                         
                         // Tải ảnh bìa
                         string coverUrl = await _coverApiService.FetchCoverUrlAsync(id);
@@ -288,7 +317,7 @@ namespace MangaReader.WebUI.Controllers
                     }
                 }
                 
-                return PartialView("_MangaListPartial", viewModels);
+                return PartialView("_MangaGridPartial", viewModels);
             }
             catch (Exception ex)
             {

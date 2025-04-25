@@ -5,11 +5,11 @@ using MangaReader.WebUI.Services.MangaServices.MangaInformation;
 using MangaReader.WebUI.Services.MangaServices.MangaPageService;
 using MangaReader.WebUI.Services.MangaServices.Models;
 using MangaReader.WebUI.Services.UtilityServices;
-using MangaReader.WebUI.Services.APIServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using MangaReader.WebUI.Services.APIServices.Interfaces;
 
 namespace MangaReader.WebUI.Controllers
 {

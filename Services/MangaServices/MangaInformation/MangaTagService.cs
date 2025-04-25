@@ -1,3 +1,5 @@
+using MangaReader.WebUI.Models.Mangadex;
+
 namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
 {
     public class MangaTagService
@@ -99,28 +101,26 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
         }
 
         /// <summary>
-        /// Xử lý và lấy danh sách tags từ dữ liệu manga
+        /// Xử lý và lấy danh sách tags từ MangaAttributes
         /// </summary>
-        /// <param name="mangaDict">Dictionary chứa thông tin manga</param>
+        /// <param name="attributes">MangaAttributes chứa thông tin tags</param>
         /// <returns>Danh sách các tag đã được xử lý và sắp xếp</returns>
-        public List<string> GetMangaTags(Dictionary<string, object> mangaDict)
+        public List<string> GetMangaTags(MangaAttributes? attributes)
         {
             var tags = new List<string>();
+            if (attributes?.Tags == null) return tags;
 
             try
             {
-                // Truy cập trực tiếp vào attributes
-                var attributesDict = (Dictionary<string, object>)mangaDict["attributes"];
-                
-                // Lấy tags tiếng Anh
-                var englishTags = GetTagsFromAttributes(attributesDict);
-                
+                // Lấy tags tiếng Anh từ model
+                var englishTags = GetTagsFromModel(attributes.Tags);
+
                 // Dịch sang tiếng Việt
                 tags = TranslateTagsToVietnamese(englishTags);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi truy cập attributes manga: {ex.Message}");
+                _logger.LogError(ex, "Lỗi khi xử lý tags từ MangaAttributes.");
             }
 
             // Sắp xếp tags theo thứ tự alphabet cho dễ đọc
@@ -138,9 +138,9 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
             
             foreach (var tag in englishTags)
             {
-                if (_tagTranslations.ContainsKey(tag))
+                if (_tagTranslations.TryGetValue(tag, out var translation))
                 {
-                    vietnameseTags.Add(_tagTranslations[tag]);
+                    vietnameseTags.Add(translation);
                 }
                 else
                 {
@@ -154,8 +154,89 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
         }
 
         /// <summary>
-        /// Lấy danh sách tags từ attributes của manga
+        /// Lấy danh sách tags từ danh sách Tag model
         /// </summary>
+        /// <param name="tagsList">Danh sách các Tag model</param>
+        /// <returns>Danh sách tên tag tiếng Anh</returns>
+        private List<string> GetTagsFromModel(List<Tag>? tagsList)
+        {
+            var tags = new List<string>();
+            if (tagsList == null) return tags;
+
+            try
+            {
+                foreach (var tag in tagsList)
+                {
+                    if (tag?.Attributes != null)
+                    {
+                        var tagName = ExtractTagName(tag.Attributes);
+                        if (!string.IsNullOrEmpty(tagName) && tagName != "Không rõ")
+                        {
+                             tags.Add(tagName);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi xử lý tags từ List<Tag>.");
+            }
+
+            return tags;
+        }
+
+        /// <summary>
+        /// Trích xuất tên tag từ TagAttributes
+        /// </summary>
+        /// <param name="tagAttributes">TagAttributes chứa thông tin tên tag</param>
+        /// <returns>Tên tag tiếng Anh</returns>
+        private string ExtractTagName(TagAttributes? tagAttributes)
+        {
+             if (tagAttributes?.Name == null) return "Không rõ";
+
+            try
+            {
+                // Ưu tiên lấy tên tiếng Anh
+                if (tagAttributes.Name.TryGetValue("en", out var enName) && !string.IsNullOrEmpty(enName))
+                {
+                    return enName;
+                }
+                // Nếu không có tiếng Anh, lấy tên đầu tiên tìm thấy
+                return tagAttributes.Name.FirstOrDefault().Value ?? "Không rõ";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi trích xuất tên tag từ TagAttributes.");
+            }
+            return "Không rõ";
+        }
+
+        // Giữ lại phương thức cũ để tương thích ngược
+        public List<string> GetMangaTags(Dictionary<string, object> mangaDict)
+        {
+            var tags = new List<string>();
+
+            try
+            {
+                // Truy cập trực tiếp vào attributes
+                var attributesDict = (Dictionary<string, object>)mangaDict["attributes"];
+                
+                // Lấy tags tiếng Anh
+                var englishTags = GetTagsFromAttributes(attributesDict);
+                
+                // Dịch sang tiếng Việt
+                tags = TranslateTagsToVietnamese(englishTags);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi truy cập attributes manga");
+            }
+
+            // Sắp xếp tags theo thứ tự alphabet cho dễ đọc
+            return tags.Distinct().OrderBy(t => t).ToList();
+        }
+
+        // Giữ lại phương thức cũ để tương thích ngược
         private List<string> GetTagsFromAttributes(Dictionary<string, object> attributesDict)
         {
             var tags = new List<string>();
@@ -163,6 +244,9 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
             try
             {
                 // Truy cập trực tiếp vào thuộc tính tags
+                if (!attributesDict.ContainsKey("tags") || attributesDict["tags"] == null)
+                    return tags;
+
                 var tagsList = (List<object>)attributesDict["tags"];
                 
                 // Xử lý List<object>
@@ -171,27 +255,34 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
                     if (tag is Dictionary<string, object> tagDict)
                     {
                         var tagName = ExtractTagName(tagDict);
-                        tags.Add(tagName);
+                        if (!string.IsNullOrEmpty(tagName) && tagName != "Không rõ")
+                        {
+                            tags.Add(tagName);
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi xử lý tags từ attributes: {ex.Message}");
+                _logger.LogError(ex, $"Lỗi khi xử lý tags từ attributes");
             }
 
             return tags;
         }
 
-        /// <summary>
-        /// Trích xuất tên tag từ dictionary chứa thông tin tag
-        /// </summary>
+        // Giữ lại phương thức cũ để tương thích ngược
         private string ExtractTagName(Dictionary<string, object> tagDict)
         {
             try
             {
                 // Truy cập trực tiếp vào attributes
+                if (!tagDict.ContainsKey("attributes") || tagDict["attributes"] == null)
+                    return "Không rõ";
+
                 var tagAttrs = (Dictionary<string, object>)tagDict["attributes"];
+                if (!tagAttrs.ContainsKey("name") || tagAttrs["name"] == null)
+                    return "Không rõ";
+
                 var nameObj = (Dictionary<string, object>)tagAttrs["name"];
                 
                 // Chuyển đổi dictionary sang kiểu Dictionary<string, string>
@@ -201,11 +292,14 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
                 );
 
                 // Lấy tên tag tiếng Anh
-                return tagNameDict["en"];
+                if (tagNameDict.TryGetValue("en", out var enName) && !string.IsNullOrEmpty(enName))
+                    return enName;
+
+                return tagNameDict.FirstOrDefault().Value ?? "Không rõ";
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi trích xuất tên tag: {ex.Message}");
+                _logger.LogError(ex, $"Lỗi khi trích xuất tên tag");
             }
             return "Không rõ";
         }

@@ -1,42 +1,46 @@
+using MangaReader.WebUI.Models.Mangadex;
+using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.UtilityServices;
+using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
 {
     public class MangaTitleService
     {
         private readonly ILogger<MangaTitleService> _logger;
-        private readonly HttpClient _httpClient;
+        private readonly IMangaApiService _mangaApiService;
         private readonly JsonConversionService _jsonConversionService;
-        private readonly string _baseUrl = "https://manga-reader-app-backend.onrender.com/api/mangadex";
 
         public MangaTitleService(
             ILogger<MangaTitleService> logger,
-            HttpClient httpClient,
+            IMangaApiService mangaApiService,
             JsonConversionService jsonConversionService)
         {
             _logger = logger;
-            _httpClient = httpClient;
+            _mangaApiService = mangaApiService;
             _jsonConversionService = jsonConversionService;
         }
 
         /// <summary>
-        /// Lấy tiêu đề manga mặc định từ đối tượng title
+        /// Lấy tiêu đề manga mặc định từ Dictionary tiêu đề
         /// </summary>
-        /// <param name="titleObj">Đối tượng title từ attributes</param>
+        /// <param name="titleDict">Dictionary tiêu đề từ attributes</param>
         /// <returns>Tiêu đề manga mặc định</returns>
-        public string GetDefaultMangaTitle(object titleObj)
+        public string GetDefaultMangaTitle(Dictionary<string, string>? titleDict)
         {
+            if (titleDict == null || !titleDict.Any())
+                return "Không có tiêu đề";
+
             try
             {
-                if (titleObj == null)
-                    return "Không có tiêu đề";
-                
-                // Truy cập trực tiếp vào giá trị đầu tiên
-                return ((Dictionary<string, object>)titleObj).Values.FirstOrDefault()?.ToString() ?? "Không có tiêu đề";
+                // Ưu tiên 'en' nếu có
+                if (titleDict.TryGetValue("en", out var enTitle) && !string.IsNullOrEmpty(enTitle)) return enTitle;
+                // Lấy giá trị đầu tiên
+                return titleDict.FirstOrDefault().Value ?? "Không có tiêu đề";
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi xử lý tiêu đề mặc định: {ex.Message}");
+                _logger.LogError(ex, "Lỗi khi xử lý tiêu đề mặc định từ Dictionary.");
                 return "Không có tiêu đề";
             }
         }
@@ -44,71 +48,67 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
         /// <summary>
         /// Lấy tiêu đề manga ưu tiên
         /// </summary>
-        /// <param name="titleObj">Đối tượng title từ attributes</param>
-        /// <param name="altTitlesObj">Đối tượng altTitles từ attributes</param>
+        /// <param name="titleDict">Dictionary tiêu đề từ attributes</param>
+        /// <param name="altTitlesList">Danh sách tiêu đề thay thế từ attributes</param>
         /// <returns>Tiêu đề manga ưu tiên</returns>
-        public string GetMangaTitle(object titleObj, object altTitlesObj)
+        public string GetMangaTitle(Dictionary<string, string>? titleDict, List<Dictionary<string, string>>? altTitlesList)
         {
             try
             {
                 // Lấy danh sách tiêu đề thay thế
-                var altTitlesDictionary = GetAlternativeTitles(altTitlesObj);
-                
+                var altTitlesDictionary = GetAlternativeTitles(altTitlesList);
+
                 // Kiểm tra xem có tên tiếng Việt (vi) không
-                if (altTitlesDictionary.ContainsKey("vi"))
+                if (altTitlesDictionary.TryGetValue("vi", out var viTitles) && viTitles.Any())
                 {
-                    return altTitlesDictionary["vi"].FirstOrDefault();
+                    return viTitles.First(); // Lấy tiêu đề tiếng Việt đầu tiên
                 }
-                
+
                 // Nếu không có tên tiếng Việt, sử dụng tên mặc định
-                return GetDefaultMangaTitle(titleObj);
+                return GetDefaultMangaTitle(titleDict);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi xử lý tiêu đề ưu tiên: {ex.Message}");
-                return "Không có tiêu đề";
+                _logger.LogError(ex, "Lỗi khi xử lý tiêu đề ưu tiên.");
+                return GetDefaultMangaTitle(titleDict); // Fallback về tiêu đề mặc định
             }
         }
 
         /// <summary>
         /// Xử lý và lấy danh sách tiêu đề thay thế
         /// </summary>
-        /// <param name="altTitlesObj">Đối tượng altTitles từ attributes</param>
+        /// <param name="altTitlesList">Danh sách tiêu đề thay thế từ attributes</param>
         /// <returns>Dictionary chứa danh sách tiêu đề thay thế theo ngôn ngữ</returns>
-        public Dictionary<string, List<string>> GetAlternativeTitles(object altTitlesObj)
+        public Dictionary<string, List<string>> GetAlternativeTitles(List<Dictionary<string, string>>? altTitlesList)
         {
             var altTitlesDictionary = new Dictionary<string, List<string>>();
-            
+            if (altTitlesList == null) return altTitlesDictionary;
+
             try
             {
-                if (altTitlesObj == null)
-                    return altTitlesDictionary;
-                
-                // Chuyển đổi trực tiếp thành List<object>
-                var altTitlesList = (List<object>)altTitlesObj;
-                
-                foreach (var altTitle in altTitlesList)
+                foreach (var altTitleDict in altTitlesList)
                 {
-                    // Xử lý trực tiếp mỗi altTitle như một Dictionary
-                    var altTitleDict = (Dictionary<string, object>)altTitle;
-                    var langKey = altTitleDict.Keys.First();
-                    var titleText = altTitleDict[langKey]?.ToString();
-                    
-                    if (altTitlesDictionary.ContainsKey(langKey))
+                    if (altTitleDict != null && altTitleDict.Any())
                     {
-                        altTitlesDictionary[langKey].Add(titleText);
-                    }
-                    else
-                    {
-                        altTitlesDictionary[langKey] = new List<string> { titleText };
+                        var langKey = altTitleDict.Keys.First();
+                        var titleText = altTitleDict[langKey];
+
+                        if (!string.IsNullOrEmpty(titleText))
+                        {
+                            if (!altTitlesDictionary.ContainsKey(langKey))
+                            {
+                                altTitlesDictionary[langKey] = new List<string>();
+                            }
+                            altTitlesDictionary[langKey].Add(titleText);
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi xử lý tiêu đề thay thế: {ex.Message}");
+                _logger.LogError(ex, "Lỗi khi xử lý tiêu đề thay thế từ List.");
             }
-            
+
             return altTitlesDictionary;
         }
 
@@ -119,24 +119,10 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
         /// <returns>Một tiêu đề thay thế ưu tiên</returns>
         public string GetPreferredAlternativeTitle(Dictionary<string, List<string>> altTitlesDictionary)
         {
-            // Kiểm tra theo thứ tự ưu tiên: tiếng Anh, tiếng Nhật, bất kỳ
-            if (altTitlesDictionary.ContainsKey("en"))
-            {
-                return altTitlesDictionary["en"].FirstOrDefault() ?? "";
-            }
-            
-            if (altTitlesDictionary.ContainsKey("jp"))
-            {
-                return altTitlesDictionary["jp"].FirstOrDefault() ?? "";
-            }
-            
-            // Nếu không có tiếng Anh hoặc tiếng Nhật, lấy ngôn ngữ đầu tiên có sẵn
-            if (altTitlesDictionary.Count > 0)
-            {
-                var firstLang = altTitlesDictionary.Keys.First();
-                return altTitlesDictionary[firstLang].FirstOrDefault() ?? "";
-            }
-            return "";
+            if (altTitlesDictionary.TryGetValue("en", out var enTitles) && enTitles.Any()) return enTitles.First();
+            if (altTitlesDictionary.TryGetValue("jp", out var jpTitles) && jpTitles.Any()) return jpTitles.First(); // Thường là romaji
+            if (altTitlesDictionary.TryGetValue("ja-ro", out var jaRoTitles) && jaRoTitles.Any()) return jaRoTitles.First(); // Romaji
+            return altTitlesDictionary.FirstOrDefault().Value?.FirstOrDefault() ?? "";
         }
 
         /// <summary>
@@ -155,68 +141,77 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaInformation
                 }
 
                 _logger.LogInformation($"Đang lấy tiêu đề cho manga: {mangaId}");
-                
-                // Gọi API để lấy thông tin manga
-                string url = $"{_baseUrl}/manga/{mangaId}";
-                _logger.LogInformation($"Đang gọi API: {url}");
-                
-                var response = await _httpClient.GetAsync(url);
-                var content = await response.Content.ReadAsStringAsync();
-                
-                if (!response.IsSuccessStatusCode)
+
+                // Gọi API service mới
+                var mangaResponse = await _mangaApiService.FetchMangaDetailsAsync(mangaId);
+
+                if (mangaResponse?.Result != "ok" || mangaResponse.Data?.Attributes == null)
                 {
-                    _logger.LogError($"Lỗi khi gọi API: {response.StatusCode} - {response.ReasonPhrase}");
-                    _logger.LogDebug($"Nội dung phản hồi: {content}");
-                    throw new HttpRequestException($"API trả về lỗi {response.StatusCode}: {response.ReasonPhrase}");
+                     _logger.LogError($"Không lấy được thông tin hoặc attributes cho manga {mangaId}. Response: {mangaResponse?.Result}");
+                     return "Không có tiêu đề"; // Trả về giá trị mặc định nếu lỗi
                 }
 
-                // Đọc và phân tích dữ liệu JSON
-                var mangaData = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(content);
+                var attributes = mangaResponse.Data.Attributes;
 
-                // Kiểm tra xem API có trả về kết quả thành công không
-                if (!mangaData.TryGetProperty("result", out var resultElement) || 
-                    resultElement.GetString() != "ok")
-                {
-                    _logger.LogError($"API trả về kết quả không thành công: {content}");
-                    throw new InvalidOperationException("API trả về kết quả không thành công");
-                }
-
-                if (!mangaData.TryGetProperty("data", out var dataElement) ||
-                    !dataElement.TryGetProperty("attributes", out var attributesElement))
-                {
-                    _logger.LogError($"Dữ liệu trả về từ API không có trường data hoặc attributes: {content}");
-                    throw new InvalidOperationException("Dữ liệu API không đúng định dạng mong đợi");
-                }
-
-                // Chuyển JSON thành Dictionary để xử lý
-                var mangaDict = _jsonConversionService.ConvertJsonElementToDict(dataElement);
-                var attributesDict = (Dictionary<string, object>)mangaDict["attributes"];
-                
-                // Lấy tiêu đề từ attributes
-                if (!attributesDict.ContainsKey("title") || attributesDict["title"] == null)
-                {
-                    _logger.LogWarning($"Manga {mangaId} không có thuộc tính title");
-                    return "Không có tiêu đề";
-                }
-                
-                // Sử dụng các phương thức có sẵn để lấy tiêu đề
-                if (attributesDict.ContainsKey("altTitles") && attributesDict["altTitles"] != null)
-                {
-                    string title = GetMangaTitle(attributesDict["title"], attributesDict["altTitles"]);
-                    _logger.LogInformation($"Đã lấy tiêu đề manga {mangaId}: {title}");
-                    return title;
-                }
-                else
-                {
-                    _logger.LogInformation("Không tìm thấy tiêu đề trong dữ liệu được API trả về");
-                    return "Không có tiêu đề";
-                }
+                // Sử dụng các phương thức đã cập nhật để lấy tiêu đề
+                string title = GetMangaTitle(attributes.Title, attributes.AltTitles);
+                _logger.LogInformation($"Đã lấy tiêu đề manga {mangaId}: {title}");
+                return title;
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi lấy tiêu đề manga {mangaId}: {ex.Message}", ex);
+                _logger.LogError(ex, $"Lỗi khi lấy tiêu đề manga {mangaId}");
                 return "Không có tiêu đề";
             }
+        }
+
+        // --- Các phương thức tương thích ngược để duy trì API hiện tại ---
+
+        public string GetDefaultMangaTitle(object titleObj)
+        {
+             if (titleObj is Dictionary<string, string> titleDict)
+             {
+                 return GetDefaultMangaTitle(titleDict);
+             }
+             // Fallback hoặc xử lý lỗi nếu kiểu không đúng
+             _logger.LogWarning($"GetDefaultMangaTitle(object): Kiểu dữ liệu không mong đợi: {titleObj?.GetType()}");
+             return "Không có tiêu đề";
+        }
+
+        public string GetMangaTitle(object titleObj, object altTitlesObj)
+        {
+             Dictionary<string, string>? titleDict = titleObj as Dictionary<string, string>;
+             List<Dictionary<string, string>>? altTitlesList = null;
+
+             // Cần xử lý altTitlesObj cẩn thận hơn vì nó là List<Dictionary<string, object>> từ json
+             if (altTitlesObj is List<object> altObjList)
+             {
+                 altTitlesList = altObjList.OfType<Dictionary<string, object>>()
+                                          .Select(d => d.ToDictionary(kv => kv.Key, kv => kv.Value?.ToString() ?? ""))
+                                          .ToList();
+             }
+             else if (altTitlesObj is List<Dictionary<string, string>> altDictList) // Trường hợp đã đúng kiểu
+             {
+                 altTitlesList = altDictList;
+             }
+
+             return GetMangaTitle(titleDict, altTitlesList);
+        }
+
+        public Dictionary<string, List<string>> GetAlternativeTitles(object altTitlesObj)
+        {
+             List<Dictionary<string, string>>? altTitlesList = null;
+             if (altTitlesObj is List<object> altObjList)
+             {
+                 altTitlesList = altObjList.OfType<Dictionary<string, object>>()
+                                          .Select(d => d.ToDictionary(kv => kv.Key, kv => kv.Value?.ToString() ?? ""))
+                                          .ToList();
+             }
+             else if (altTitlesObj is List<Dictionary<string, string>> altDictList)
+             {
+                 altTitlesList = altDictList;
+             }
+             return GetAlternativeTitles(altTitlesList);
         }
     }
 }

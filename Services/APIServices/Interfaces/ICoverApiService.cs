@@ -1,8 +1,6 @@
 using MangaReader.WebUI.Models.Mangadex;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
-namespace MangaReader.WebUI.Services.APIServices
+namespace MangaReader.WebUI.Services.APIServices.Interfaces
 {
     public interface ICoverApiService
     {

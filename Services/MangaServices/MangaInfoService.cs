@@ -1,4 +1,4 @@
-using MangaReader.WebUI.Services.APIServices;
+using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.MangaInformation;
 using MangaReader.WebUI.Services.MangaServices.Models;
 
@@ -7,18 +7,21 @@ namespace MangaReader.WebUI.Services.MangaServices
     public class MangaInfoService : IMangaInfoService
     {
         private readonly MangaTitleService _mangaTitleService;
-        private readonly MangaDexService _mangaDexService;
+        private readonly IMangaApiService _mangaApiService;
+        private readonly ICoverApiService _coverApiService;
         private readonly ILogger<MangaInfoService> _logger;
         // Xem xét thêm rate limit nếu cần gọi nhiều lần liên tục từ các service khác nhau
         // private readonly TimeSpan _rateLimitDelay = TimeSpan.FromMilliseconds(550);
 
         public MangaInfoService(
             MangaTitleService mangaTitleService,
-            MangaDexService mangaDexService,
+            IMangaApiService mangaApiService,
+            ICoverApiService coverApiService,
             ILogger<MangaInfoService> logger)
         {
             _mangaTitleService = mangaTitleService;
-            _mangaDexService = mangaDexService;
+            _mangaApiService = mangaApiService;
+            _coverApiService = coverApiService;
             _logger = logger;
         }
 
@@ -49,7 +52,7 @@ namespace MangaReader.WebUI.Services.MangaServices
                 // await Task.Delay(_rateLimitDelay); // Bỏ comment nếu cần delay giữa 2 API call
 
                 // 2. Lấy ảnh bìa
-                string coverUrl = await _mangaDexService.FetchCoverUrlAsync(mangaId);
+                string coverUrl = await _coverApiService.FetchCoverUrlAsync(mangaId);
 
                 _logger.LogInformation($"Lấy thông tin cơ bản thành công cho manga ID: {mangaId}");
 

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MangaReader.WebUI.Models.Mangadex;
 
 namespace MangaReader.WebUI.Services.UtilityServices
 {
@@ -154,11 +155,10 @@ namespace MangaReader.WebUI.Services.UtilityServices
         }
 
         /// <summary>
-        /// Lấy trạng thái đã dịch từ attributes
+        /// Lấy trạng thái đã dịch từ chuỗi status
         /// </summary>
-        public string GetStatus(Dictionary<string, object> attributesDict)
+        public string GetStatus(string status)
         {
-            string status = attributesDict.ContainsKey("status") ? attributesDict["status"]?.ToString() ?? "unknown" : "unknown";
             return status switch
             {
                 "ongoing" => "Đang tiến hành",
@@ -167,6 +167,32 @@ namespace MangaReader.WebUI.Services.UtilityServices
                 "cancelled" => "Đã hủy",
                 _ => "Không rõ"
             };
+        }
+
+        /// <summary>
+        /// Lấy trạng thái đã dịch từ MangaAttributes
+        /// </summary>
+        public string GetStatus(MangaAttributes? attributes)
+        {
+            if (attributes == null || string.IsNullOrEmpty(attributes.Status)) return "Không rõ";
+
+            return attributes.Status switch
+            {
+                "ongoing" => "Đang tiến hành",
+                "completed" => "Hoàn thành",
+                "hiatus" => "Tạm ngưng",
+                "cancelled" => "Đã hủy",
+                _ => "Không rõ"
+            };
+        }
+
+        /// <summary>
+        /// Lấy trạng thái đã dịch từ attributes
+        /// </summary>
+        public string GetStatus(Dictionary<string, object> attributesDict)
+        {
+            string status = attributesDict.ContainsKey("status") ? attributesDict["status"]?.ToString() ?? "unknown" : "unknown";
+            return GetStatus(status);
         }
     }
 }

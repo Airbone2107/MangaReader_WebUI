@@ -1,5 +1,6 @@
 using System.Text.Json;
-using MangaReader.WebUI.Services.APIServices;
+using MangaReader.WebUI.Models.Mangadex;
+using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.UtilityServices;
 
 namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
@@ -26,39 +27,30 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         }
 
         /// <summary>
-        /// Lấy thông tin chapter từ API
+        /// Lấy thông tin chapter attributes từ API
         /// </summary>
         /// <param name="chapterId">ID của chapter cần lấy thông tin</param>
-        /// <returns>Dictionary chứa dữ liệu attributes của chapter</returns>
-        private async Task<Dictionary<string, object>> FetchChapterDataAsync(string chapterId)
+        /// <returns>ChapterAttributes hoặc null nếu không lấy được</returns>
+        private async Task<ChapterAttributes?> FetchChapterAttributesAsync(string chapterId)
         {
             if (string.IsNullOrEmpty(chapterId))
             {
-                _logger.LogWarning("ChapterId không được cung cấp khi gọi FetchChapterDataAsync");
+                _logger.LogWarning("ChapterId không được cung cấp khi gọi FetchChapterAttributesAsync");
                 throw new ArgumentNullException(nameof(chapterId), "ChapterId không được để trống");
             }
 
-            _logger.LogInformation($"Đang lấy thông tin cho Chapter: {chapterId}");
-            
+            _logger.LogInformation($"Đang lấy thông tin Attributes cho Chapter: {chapterId}");
+
             // Gọi API để lấy thông tin chapter thông qua IChapterApiService
-            var chapterData = await _chapterApiService.FetchChapterInfoAsync(chapterId);
-            if (chapterData == null)
+            var chapterResponse = await _chapterApiService.FetchChapterInfoAsync(chapterId);
+
+            if (chapterResponse?.Result != "ok" || chapterResponse.Data?.Attributes == null)
             {
-                _logger.LogError($"Không lấy được thông tin chapter {chapterId}");
-                throw new InvalidOperationException($"Không lấy được thông tin cho chapter {chapterId}");
+                _logger.LogError($"Không lấy được thông tin hoặc attributes cho chapter {chapterId}. Response: {chapterResponse?.Result}");
+                return null;
             }
 
-            // Chuyển đổi kết quả thành Dictionary
-            var chapterElement = JsonSerializer.Deserialize<JsonElement>(chapterData.ToString());
-            var chapterDict = _jsonConversionService.ConvertJsonElementToDict(chapterElement);
-
-            if (!chapterDict.ContainsKey("attributes") || chapterDict["attributes"] == null)
-            {
-                _logger.LogError($"Dữ liệu trả về từ API không có trường attributes cho chapter {chapterId}");
-                return new Dictionary<string, object>();
-            }
-
-            return (Dictionary<string, object>)chapterDict["attributes"];
+            return chapterResponse.Data.Attributes;
         }
 
         /// <summary>
@@ -70,17 +62,10 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         {
             try
             {
-                var attributes = await FetchChapterDataAsync(chapterId);
-                if (attributes.Count == 0)
-                {
-                    return "?";
-                }
+                var attributes = await FetchChapterAttributesAsync(chapterId);
+                if (attributes == null) return "?";
 
-                string chapterNumber = "?";
-                if (attributes.ContainsKey("chapter") && attributes["chapter"] != null)
-                {
-                    chapterNumber = attributes["chapter"].ToString();
-                }
+                string chapterNumber = attributes.ChapterNumber ?? "?";
 
                 _logger.LogInformation($"Đã lấy được số chapter: {chapterNumber} cho Chapter: {chapterId}");
                 return chapterNumber;
@@ -101,17 +86,10 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         {
             try
             {
-                var attributes = await FetchChapterDataAsync(chapterId);
-                if (attributes.Count == 0)
-                {
-                    return "";
-                }
+                var attributes = await FetchChapterAttributesAsync(chapterId);
+                if (attributes == null) return "";
 
-                string chapterTitle = "";
-                if (attributes.ContainsKey("title") && attributes["title"] != null)
-                {
-                    chapterTitle = attributes["title"].ToString();
-                }
+                string chapterTitle = attributes.Title ?? "";
 
                 _logger.LogInformation($"Đã lấy được tiêu đề chapter: '{chapterTitle}' cho Chapter: {chapterId}");
                 return chapterTitle;
@@ -132,24 +110,10 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         {
             try
             {
-                var attributes = await FetchChapterDataAsync(chapterId);
-                if (attributes.Count == 0)
-                {
-                    return DateTime.MinValue;
-                }
+                var attributes = await FetchChapterAttributesAsync(chapterId);
+                if (attributes == null) return DateTime.MinValue;
 
-                DateTime publishedAt = DateTime.MinValue;
-                if (attributes.ContainsKey("publishAt") && attributes["publishAt"] != null)
-                {
-                    if (DateTime.TryParse(attributes["publishAt"].ToString(), out var date))
-                    {
-                        publishedAt = date;
-                    }
-                    else
-                    {
-                        _logger.LogWarning($"Không thể parse ngày publishAt: {attributes["publishAt"]} cho chapter {chapterId}");
-                    }
-                }
+                DateTime publishedAt = attributes.PublishAt.DateTime;
 
                 _logger.LogInformation($"Đã lấy được ngày xuất bản: {publishedAt} cho Chapter: {chapterId}");
                 return publishedAt;

@@ -1,7 +1,8 @@
 using MangaReader.WebUI.Infrastructure;
 using MangaReader.WebUI.Services.AuthServices;
-using MangaReader.WebUI.Services.APIServices;
 using Microsoft.AspNetCore.Mvc.Razor;
+using MangaReader.WebUI.Services.APIServices.Interfaces;
+using MangaReader.WebUI.Services.APIServices.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -86,21 +87,17 @@ builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaFollowS
 builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterService>();
 builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.MangaIdService>(sp =>
 {
-    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var chapterApiService = sp.GetRequiredService<IChapterApiService>();
     var logger = sp.GetRequiredService<ILogger<MangaReader.WebUI.Services.MangaServices.ChapterServices.MangaIdService>>();
-    var configuration = sp.GetRequiredService<IConfiguration>();
-    var httpClient = httpClientFactory.CreateClient("MangaDexClient");
-    return new MangaReader.WebUI.Services.MangaServices.ChapterServices.MangaIdService(httpClient, configuration, logger);
+    return new MangaReader.WebUI.Services.MangaServices.ChapterServices.MangaIdService(chapterApiService, logger);
 });
 
 // Đăng ký ChapterLanguageServices
 builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterLanguageServices>(sp =>
 {
-    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var chapterApiService = sp.GetRequiredService<IChapterApiService>();
     var logger = sp.GetRequiredService<ILogger<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterLanguageServices>>();
-    var configuration = sp.GetRequiredService<IConfiguration>();
-    var httpClient = httpClientFactory.CreateClient("MangaDexClient");
-    return new MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterLanguageServices(httpClient, configuration, logger);
+    return new MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterLanguageServices(chapterApiService, logger);
 });
 
 // Đăng ký ChapterReadingServices

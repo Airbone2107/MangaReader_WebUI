@@ -1,10 +1,8 @@
 using MangaReader.WebUI.Models.Mangadex;
+using MangaReader.WebUI.Services.APIServices.Interfaces;
 using System.Text.Json;
-using System.Net.Http;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
 
-namespace MangaReader.WebUI.Services.APIServices
+namespace MangaReader.WebUI.Services.APIServices.Services
 {
     public class ChapterApiService : BaseApiService, IChapterApiService
     {
@@ -79,7 +77,7 @@ namespace MangaReader.WebUI.Services.APIServices
                         offset += limit;
 
                         // Dừng nếu đã fetch đủ số lượng yêu cầu (maxChapters) hoặc đã fetch hết
-                        if ((maxChapters.HasValue && totalFetched >= maxChapters.Value) || totalFetched >= totalAvailable)
+                        if (maxChapters.HasValue && totalFetched >= maxChapters.Value || totalFetched >= totalAvailable)
                         {
                             break;
                         }

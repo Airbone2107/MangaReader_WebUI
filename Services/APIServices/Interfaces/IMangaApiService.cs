@@ -1,7 +1,7 @@
 using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Models.Mangadex;
 
-namespace MangaReader.WebUI.Services.APIServices
+namespace MangaReader.WebUI.Services.APIServices.Interfaces
 {
     public interface IMangaApiService
     {

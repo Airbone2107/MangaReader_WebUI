@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
 
 namespace MangaReader.WebUI.Services.APIServices
 {
@@ -32,7 +30,7 @@ namespace MangaReader.WebUI.Services.APIServices
         // Ghi log lỗi với thông tin chi tiết
         protected void LogApiError(string functionName, HttpResponseMessage response, string content)
         {
-            string errorMessage = $"Lỗi trong hàm {functionName} ({this.GetType().Name}):\n" +
+            string errorMessage = $"Lỗi trong hàm {functionName} ({GetType().Name}):\n" +
                                 $"URL: {response.RequestMessage?.RequestUri}\n" +
                                 $"Mã trạng thái: {(int)response.StatusCode}\n" +
                                 $"Nội dung phản hồi: {content}";

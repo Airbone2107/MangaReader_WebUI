@@ -1,8 +1,8 @@
 using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Services.MangaServices.MangaInformation;
 using MangaReader.WebUI.Services.UtilityServices;
-using MangaReader.WebUI.Services.APIServices;
 using System.Text.Json;
+using MangaReader.WebUI.Services.APIServices.Interfaces;
 
 namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
 {
@@ -171,39 +171,27 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                 // Lấy tổng số manga từ kết quả API (nếu có)
                 int totalCount = 0;
 
-                // Kiểm tra nếu kết quả trả về là JsonElement (có thể chứa thông tin totalCount)
-                if (result != null && result.Count > 0)
+                // Kiểm tra nếu kết quả có dữ liệu và lấy thông tin tổng số từ thuộc tính Total
+                if (result?.Data != null && result.Data.Any())
                 {
-                    try
-                    {
-                        // Thử lấy totalCount từ response metadata
-                        var firstItem = result[0];
-                        if (firstItem is JsonElement element)
-                        {
-                            // Kiểm tra xem có property total không
-                            if (element.TryGetProperty("total", out JsonElement totalElement))
-                            {
-                                totalCount = totalElement.GetInt32();
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError($"Lỗi khi lấy tổng số manga: {ex.Message}");
-                    }
+                    totalCount = result.Total;
+                    _logger.LogInformation($"Lấy được tổng số manga từ API: {totalCount}");
                 }
 
                 // Nếu không lấy được tổng số, sử dụng số lượng kết quả nhân với tỷ lệ page hiện tại
-                if (totalCount <= 0)
+                if (totalCount <= 0 && result?.Data != null)
                 {
                     // Ước tính tổng số manga dựa trên số lượng kết quả và offset
-                    totalCount = Math.Max(result.Count * 10, (page - 1) * pageSize + result.Count + pageSize);
+                    int resultCount = result.Data.Count;
+                    totalCount = Math.Max(resultCount * 10, (page - 1) * pageSize + resultCount + pageSize);
+                    _logger.LogInformation($"Ước tính tổng số manga: {totalCount} dựa trên {resultCount} kết quả");
                 }
 
                 // Tính toán số trang tối đa dựa trên giới hạn 10000 kết quả của API
                 int maxPages = (int)Math.Ceiling(Math.Min(totalCount, MAX_API_RESULTS) / (double)pageSize);
 
-                var mangaViewModels = await ConvertToMangaViewModelsAsync(result);
+                // Chuyển danh sách Manga thành MangaViewModel
+                var mangaViewModels = await ConvertToMangaViewModelsAsync(result?.Data);
 
                 return new MangaListViewModel
                 {
@@ -234,58 +222,54 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
         /// <summary>
         /// Chuyển đổi kết quả từ API sang danh sách MangaViewModel
         /// </summary>
-        private async Task<List<MangaViewModel>> ConvertToMangaViewModelsAsync(List<object> result)
+        private async Task<List<MangaViewModel>> ConvertToMangaViewModelsAsync(List<MangaReader.WebUI.Models.Mangadex.Manga>? mangaList)
         {
             var mangaViewModels = new List<MangaViewModel>();
+            if (mangaList == null || !mangaList.Any())
+            {
+                return mangaViewModels;
+            }
 
-            foreach (var manga in result)
+            // Lấy danh sách ID để fetch cover một lần
+            var mangaIds = mangaList.Select(m => m.Id.ToString()).ToList();
+            // Lấy cover URLs cho tất cả manga một lần (cải thiện hiệu suất)
+            var coverUrls = new Dictionary<string, string>();
+            
+            // Xử lý từng manga
+            foreach (var manga in mangaList)
             {
                 try
                 {
-                    // Sử dụng JsonSerializer để chuyển đổi chính xác
-                    var mangaElement = JsonSerializer.Deserialize<JsonElement>(manga.ToString());
-                    // Chuyển đổi JsonElement thành Dictionary
-                    var mangaDict = _jsonConversionService.ConvertJsonElementToDict(mangaElement);
-
-                    if (mangaDict.ContainsKey("total"))
+                    if (manga.Attributes == null)
                     {
+                        _logger.LogWarning($"Manga ID: {manga.Id} không có thuộc tính Attributes");
                         continue;
                     }
 
-                    if (!mangaDict.ContainsKey("id") || mangaDict["id"] == null)
-                    {
-                        _logger.LogWarning("Manga không có ID");
-                        continue;
-                    }
-
-                    string id = mangaDict["id"].ToString();
-                    var attributesDict = (Dictionary<string, object>)mangaDict["attributes"];
+                    string id = manga.Id.ToString();
+                    var attributes = manga.Attributes;
                     
-                    // Lấy title từ MangaTitleService
-                    string title = _mangaTitleService.GetMangaTitle(attributesDict["title"], attributesDict["altTitles"]);
+                    // Lấy title từ MangaTitleService - cần truyền dictionary
+                    string title = _mangaTitleService.GetMangaTitle(
+                        attributes.Title,
+                        attributes.AltTitles
+                    );
                     
                     // Lấy author/artist từ MangaRelationshipService
-                    var (author, artist) = _mangaRelationshipService.GetAuthorArtist(mangaDict);
+                    var (author, artist) = _mangaRelationshipService.GetAuthorArtist(
+                        manga.Relationships ?? new List<MangaReader.WebUI.Models.Mangadex.Relationship>()
+                    );
                     
                     // Lấy description từ MangaDescriptionService
-                    string description = _mangaDescriptionService.GetDescription(attributesDict);
+                    string description = _mangaDescriptionService.GetDescription(
+                        attributes
+                    );
                     
                     // Lấy status từ LocalizationService
-                    string status = _localizationService.GetStatus(attributesDict);
+                    string status = _localizationService.GetStatus(attributes.Status);
                     
-                    // Xử lý DateTime?
-                    DateTime? lastUpdated = null;
-                    if (attributesDict.ContainsKey("updatedAt") && attributesDict["updatedAt"] != null)
-                    {
-                        if (DateTime.TryParse(attributesDict["updatedAt"].ToString(), out DateTime updatedAt))
-                        {
-                            lastUpdated = updatedAt;
-                        }
-                        else
-                        {
-                            _logger.LogWarning($"Không thể parse ngày cập nhật '{attributesDict["updatedAt"]}' cho manga {id}");
-                        }
-                    }
+                    // Lấy datetime từ thuộc tính UpdatedAt
+                    DateTime? lastUpdated = attributes.UpdatedAt.DateTime;
 
                     string coverUrl = "";
 

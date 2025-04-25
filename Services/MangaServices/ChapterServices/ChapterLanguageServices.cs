@@ -1,22 +1,19 @@
+using MangaReader.WebUI.Services.APIServices.Interfaces;
 using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
     public class ChapterLanguageServices
     {
-        private readonly HttpClient _httpClient;
+        private readonly IChapterApiService _chapterApiService;
         private readonly ILogger<ChapterLanguageServices> _logger;
-        private readonly string _baseUrl = "https://manga-reader-app-backend.onrender.com/api/mangadex";
-        private readonly JsonSerializerOptions _jsonOptions;
 
-        public ChapterLanguageServices(HttpClient httpClient, IConfiguration configuration, ILogger<ChapterLanguageServices> logger)
+        public ChapterLanguageServices(
+            IChapterApiService chapterApiService,
+            ILogger<ChapterLanguageServices> logger)
         {
-            _httpClient = httpClient;
+            _chapterApiService = chapterApiService;
             _logger = logger;
-            _jsonOptions = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
         }
 
         /// <summary>
@@ -33,43 +30,29 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
             }
 
             _logger.LogInformation($"Đang lấy thông tin ngôn ngữ cho Chapter: {chapterId}");
-            
-            // Gọi API để lấy thông tin chapter
-            string url = $"{_baseUrl}/chapter/{chapterId}";
-            _logger.LogInformation($"Đang gọi API: {url}");
-            
-            var response = await _httpClient.GetAsync(url);
-            var content = await response.Content.ReadAsStringAsync();
-            
-            if (!response.IsSuccessStatusCode)
+
+            try
             {
-                _logger.LogError($"Lỗi khi gọi API: {response.StatusCode} - {response.ReasonPhrase}");
-                _logger.LogDebug($"Nội dung phản hồi: {content}");
-                throw new HttpRequestException($"API trả về lỗi {response.StatusCode}: {response.ReasonPhrase}");
+                // Gọi API service mới
+                var chapterResponse = await _chapterApiService.FetchChapterInfoAsync(chapterId);
+
+                if (chapterResponse?.Result == "ok" && chapterResponse.Data?.Attributes?.TranslatedLanguage != null)
+                {
+                    string language = chapterResponse.Data.Attributes.TranslatedLanguage;
+                    _logger.LogInformation($"Đã lấy được ngôn ngữ: {language} cho Chapter: {chapterId}");
+                    return language;
+                }
+                else
+                {
+                    _logger.LogError($"Không lấy được thông tin ngôn ngữ cho chapter {chapterId}. Response: {chapterResponse?.Result}");
+                    throw new InvalidOperationException($"Không thể lấy ngôn ngữ cho chapter {chapterId}");
+                }
             }
-
-            // Đọc và phân tích dữ liệu JSON
-            var chapterData = JsonSerializer.Deserialize<JsonElement>(content);
-
-            // Kiểm tra xem API có trả về kết quả thành công không
-            if (!chapterData.TryGetProperty("result", out JsonElement resultElement) || 
-                resultElement.GetString() != "ok")
+            catch (Exception ex)
             {
-                _logger.LogError($"API trả về kết quả không thành công: {content}");
-                throw new InvalidOperationException("API trả về kết quả không thành công");
+                _logger.LogError(ex, $"Lỗi khi lấy ngôn ngữ cho chapter {chapterId}");
+                throw; // Ném lại lỗi để lớp gọi xử lý
             }
-
-            if (!chapterData.TryGetProperty("data", out JsonElement dataElement) ||
-                !dataElement.TryGetProperty("attributes", out JsonElement attributesElement) ||
-                !attributesElement.TryGetProperty("translatedLanguage", out JsonElement languageElement))
-            {
-                _logger.LogError($"Dữ liệu trả về từ API không có trường ngôn ngữ: {content}");
-                throw new InvalidOperationException("Dữ liệu API không đúng định dạng mong đợi");
-            }
-
-            string language = languageElement.GetString();
-            _logger.LogInformation($"Đã lấy được ngôn ngữ: {language} cho Chapter: {chapterId}");
-            return language;
         }
     }
 }
