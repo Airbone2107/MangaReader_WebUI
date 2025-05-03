@@ -8,7 +8,7 @@ namespace MangaReader.WebUI.Models.Mangadex
         public Guid Id { get; set; }
 
         [JsonPropertyName("type")]
-        public string Type { get; set; } = default!; // Sẽ được gán khi deserialize
+        public string Type { get; set; } = default!;
 
         [JsonPropertyName("attributes")]
         public TagAttributes? Attributes { get; set; }

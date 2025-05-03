@@ -3,6 +3,7 @@ using MangaReader.WebUI.Services.MangaServices.MangaInformation;
 using MangaReader.WebUI.Services.UtilityServices;
 using System.Text.Json;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
+using MangaReader.WebUI.Services.APIServices.Services;
 
 namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
 {
@@ -230,11 +231,6 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                 return mangaViewModels;
             }
 
-            // Lấy danh sách ID để fetch cover một lần
-            var mangaIds = mangaList.Select(m => m.Id.ToString()).ToList();
-            // Lấy cover URLs cho tất cả manga một lần (cải thiện hiệu suất)
-            var coverUrls = new Dictionary<string, string>();
-            
             // Xử lý từng manga
             foreach (var manga in mangaList)
             {
@@ -249,7 +245,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                     string id = manga.Id.ToString();
                     var attributes = manga.Attributes;
                     
-                    // Lấy title từ MangaTitleService - cần truyền dictionary
+                    // Lấy title từ MangaTitleService
                     string title = _mangaTitleService.GetMangaTitle(
                         attributes.Title,
                         attributes.AltTitles
@@ -271,18 +267,20 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                     // Lấy datetime từ thuộc tính UpdatedAt
                     DateTime? lastUpdated = attributes.UpdatedAt.DateTime;
 
-                    string coverUrl = "";
-
-                    // Tải cover art
-                    try
+                    // *** LẤY COVER TỪ RELATIONSHIP ***
+                    string coverUrl = "/images/cover-placeholder.jpg"; // Mặc định
+                    // Truyền _logger vào hàm helper
+                    var coverFileName = CoverApiService.ExtractCoverFileNameFromRelationships(manga.Relationships, _logger);
+                    if (!string.IsNullOrEmpty(coverFileName))
                     {
-                        coverUrl = await _coverApiService.FetchCoverUrlAsync(id);
+                        // Sử dụng instance _coverApiService để gọi GetProxiedCoverUrl
+                        coverUrl = _coverApiService.GetProxiedCoverUrl(id, coverFileName);
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        _logger.LogError($"Lỗi khi tải cover cho manga ID {id}: {ex.Message}");
-                        coverUrl = "/images/no-cover.png"; // Sử dụng ảnh mặc định nếu không lấy được
+                        _logger.LogDebug($"Không tìm thấy cover filename cho manga ID {id} từ relationships trong SearchService.");
                     }
+                    // ********************************
 
                     var viewModel = new MangaViewModel
                     {
@@ -293,14 +291,18 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                         Description = description,
                         CoverUrl = coverUrl,
                         Status = status,
-                        LastUpdated = lastUpdated
+                        LastUpdated = lastUpdated,
+                        Tags = _mangaTagService.GetMangaTags(attributes),
+                        OriginalLanguage = attributes.OriginalLanguage,
+                        PublicationDemographic = attributes.PublicationDemographic,
+                        ContentRating = attributes.ContentRating
                     };
 
                     mangaViewModels.Add(viewModel);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"Lỗi khi chuyển đổi manga: {ex.Message}");
+                    _logger.LogError($"Lỗi khi chuyển đổi manga ID: {manga?.Id} trong SearchService. {ex.Message}");
                     continue;
                 }
             }

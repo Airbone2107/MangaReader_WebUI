@@ -128,17 +128,13 @@ Dưới đây là mô tả chi tiết cho từng service:
         *   **Luồng xử lý:**
             1.  **Xử lý Pagination Nội bộ:** Gọi API `GET /api/mangadex/cover` lặp lại với `limit=100`, `offset` tăng dần và tham số `manga[]={mangaId}`.
             2.  Tích lũy kết quả và trả về `CoverList` tổng hợp.
-    *   `Task<Dictionary<string, string>?> FetchRepresentativeCoverUrlsAsync(List<string> mangaIds)`
-        *   **Input:** `mangaIds` (List<string>): Danh sách ID manga.
-        *   **Output:** `Task<Dictionary<string, string>?>` - Dictionary map từ `MangaId` sang URL ảnh bìa thumbnail (qua proxy `/mangadex/proxy-image`), hoặc `null` nếu lỗi.
-        *   **Luồng xử lý:**
-            1.  **Tối ưu hóa:** Gọi API `GET /api/mangadex/cover` một lần (hoặc theo batch) với nhiều tham số `manga[]`.
-            2.  Sử dụng `order[volume]=desc` để ưu tiên cover mới nhất.
-            3.  Lọc kết quả và tạo URL ảnh thumbnail qua proxy `/mangadex/proxy-image`.
-    *   `Task<string> FetchCoverUrlAsync(string mangaId)`
-        *   **Input:** `mangaId` (string): ID của một manga.
-        *   **Output:** `Task<string>` - URL ảnh bìa thumbnail (qua proxy `/mangadex/proxy-image`) hoặc chuỗi rỗng.
-        *   **Luồng xử lý:** Gọi `FetchRepresentativeCoverUrlsAsync` với danh sách chỉ chứa `mangaId`.
+    *   `string GetProxiedCoverUrl(string mangaId, string fileName, int size = 512)`
+        *   **Input:**
+            *   `mangaId` (string): ID của manga.
+            *   `fileName` (string): Tên file của ảnh bìa.
+            *   `size` (int): Kích thước ảnh mong muốn (mặc định 512).
+        *   **Output:** `string` - URL của ảnh bìa đã được proxy bởi Backend API.
+        *   **Luồng xử lý:** Tạo URL đến MangaDex uploads và bọc nó trong URL proxy của Backend API (`/mangadex/proxy-image?url=...`).
 
 ---
 

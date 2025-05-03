@@ -35,7 +35,7 @@ namespace MangaReader.WebUI.Models.Mangadex
         public Dictionary<string, string>? Links { get; set; }
 
         [JsonPropertyName("originalLanguage")]
-        public string OriginalLanguage { get; set; } = default!; // Sẽ được gán khi deserialize
+        public string OriginalLanguage { get; set; } = default!;
 
         [JsonPropertyName("lastVolume")]
         public string? LastVolume { get; set; }

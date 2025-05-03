@@ -49,10 +49,11 @@ namespace MangaReader.WebUI.Models.Mangadex
         [JsonPropertyName("mangaUpdates")]
         public string? MangaUpdates { get; set; }
 
-        [JsonPropertyName("focusedLanguage")] // Lưu ý tên thuộc tính JSON
-        public List<string>? FocusedLanguages { get; set; } // Đổi tên C# để rõ nghĩa hơn
+        [JsonPropertyName("focusedLanguage")]
 
+        public List<string>? FocusedLanguages { get; set; }
         [JsonPropertyName("locked")]
+
         public bool Locked { get; set; }
 
         [JsonPropertyName("official")]
@@ -68,7 +69,7 @@ namespace MangaReader.WebUI.Models.Mangadex
         public bool ExLicensed { get; set; }
 
         [JsonPropertyName("publishDelay")]
-        public string? PublishDelay { get; set; } // ISO 8601 duration string
+        public string? PublishDelay { get; set; }
 
         [JsonPropertyName("version")]
         public int Version { get; set; }

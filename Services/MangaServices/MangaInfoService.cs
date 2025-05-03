@@ -1,6 +1,7 @@
 using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.MangaInformation;
 using MangaReader.WebUI.Services.MangaServices.Models;
+using MangaReader.WebUI.Services.APIServices.Services;
 
 namespace MangaReader.WebUI.Services.MangaServices
 {
@@ -37,22 +38,41 @@ namespace MangaReader.WebUI.Services.MangaServices
             {
                 _logger.LogInformation($"Bắt đầu lấy thông tin cơ bản cho manga ID: {mangaId}");
 
-                // Sử dụng Task.WhenAll để thực hiện các cuộc gọi API song song (nếu có thể và an toàn về rate limit)
-                // Tuy nhiên, để đảm bảo tuân thủ rate limit, gọi tuần tự có thể an toàn hơn.
-                // Hoặc thêm delay vào đây nếu service này được gọi nhiều lần liên tiếp.
+                // 1. Gọi API để lấy chi tiết Manga (bao gồm relationships và attributes)
+                var mangaResponse = await _mangaApiService.FetchMangaDetailsAsync(mangaId);
+                string mangaTitle = $"Manga ID: {mangaId}"; // Mặc định nếu lỗi
+                string coverUrl = "/images/cover-placeholder.jpg"; // Mặc định
 
-                // 1. Lấy tiêu đề manga
-                string mangaTitle = await _mangaTitleService.GetMangaTitleFromIdAsync(mangaId);
-                if (string.IsNullOrEmpty(mangaTitle) || mangaTitle == "Không có tiêu đề")
+                if (mangaResponse?.Result == "ok" && mangaResponse.Data != null && mangaResponse.Data.Attributes != null)
                 {
-                    _logger.LogWarning($"Không thể lấy tiêu đề cho manga ID: {mangaId}. Sử dụng ID làm tiêu đề.");
-                    mangaTitle = $"Manga ID: {mangaId}";
+                    var attributes = mangaResponse.Data.Attributes;
+                    var relationships = mangaResponse.Data.Relationships;
+
+                    // 2. Lấy tiêu đề từ attributes
+                    mangaTitle = _mangaTitleService.GetMangaTitle(attributes.Title, attributes.AltTitles);
+                    if (string.IsNullOrEmpty(mangaTitle) || mangaTitle == "Không có tiêu đề")
+                    {
+                         _logger.LogWarning($"Không thể lấy tiêu đề cho manga ID: {mangaId}. Sử dụng ID làm tiêu đề.");
+                         mangaTitle = $"Manga ID: {mangaId}";
+                    }
+
+                    // 3. Lấy cover từ relationships
+                    // Truyền _logger vào hàm helper
+                    var coverFileName = CoverApiService.ExtractCoverFileNameFromRelationships(relationships, _logger);
+                    if (!string.IsNullOrEmpty(coverFileName))
+                    {
+                        // Sử dụng instance _coverApiService để gọi GetProxiedCoverUrl
+                        coverUrl = _coverApiService.GetProxiedCoverUrl(mangaId, coverFileName);
+                    }
+                    else
+                    {
+                         _logger.LogDebug($"Không tìm thấy cover filename cho manga ID {mangaId} từ relationships trong MangaInfoService.");
+                    }
                 }
-
-                // await Task.Delay(_rateLimitDelay); // Bỏ comment nếu cần delay giữa 2 API call
-
-                // 2. Lấy ảnh bìa
-                string coverUrl = await _coverApiService.FetchCoverUrlAsync(mangaId);
+                else
+                {
+                     _logger.LogWarning($"Không thể lấy chi tiết manga {mangaId} trong MangaInfoService. Response: {mangaResponse?.Result}");
+                }
 
                 _logger.LogInformation($"Lấy thông tin cơ bản thành công cho manga ID: {mangaId}");
 
@@ -66,12 +86,11 @@ namespace MangaReader.WebUI.Services.MangaServices
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Lỗi khi lấy thông tin cơ bản cho manga ID: {mangaId}");
-                // Trả về null hoặc một đối tượng mặc định tùy theo yêu cầu xử lý lỗi
-                return new MangaInfoViewModel // Trả về object với thông tin mặc định/lỗi
+                return new MangaInfoViewModel
                 {
                      MangaId = mangaId,
                      MangaTitle = $"Lỗi lấy tiêu đề ({mangaId})",
-                     CoverUrl = "/images/cover-placeholder.jpg" // Ảnh mặc định
+                     CoverUrl = "/images/cover-placeholder.jpg"
                 };
             }
         }

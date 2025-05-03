@@ -5,6 +5,7 @@ using MangaReader.WebUI.Services.MangaServices.MangaInformation;
 using MangaReader.WebUI.Services.UtilityServices;
 using System.Text.Json;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
+using MangaReader.WebUI.Services.APIServices.Services;
 
 namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
 {
@@ -163,12 +164,20 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                 // Lấy author/artist
                 var (author, artist) = _mangaRelationshipService.GetAuthorArtist(mangaData.Relationships);
 
-                // Lấy ảnh bìa
-                string coverUrl = await _coverApiService.FetchCoverUrlAsync(id);
-                if (string.IsNullOrEmpty(coverUrl))
+                // *** LẤY COVER CHÍNH TỪ RELATIONSHIP ***
+                string coverUrl = "/images/cover-placeholder.jpg"; // Mặc định
+                // Truyền _logger vào hàm helper
+                var coverFileName = CoverApiService.ExtractCoverFileNameFromRelationships(mangaData.Relationships, _logger);
+                if (!string.IsNullOrEmpty(coverFileName))
                 {
-                    coverUrl = "/images/cover-placeholder.jpg"; // Ảnh mặc định
+                    // Sử dụng instance _coverApiService để gọi GetProxiedCoverUrl
+                    coverUrl = _coverApiService.GetProxiedCoverUrl(id, coverFileName);
                 }
+                else
+                {
+                     _logger.LogDebug($"Không tìm thấy cover filename cho manga ID {id} từ relationships trong MangaDetailsService.");
+                }
+                // *************************************
 
                 // Lấy trạng thái
                 string status = _localizationService.GetStatus(attributes);

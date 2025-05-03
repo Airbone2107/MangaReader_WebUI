@@ -1,4 +1,6 @@
 using MangaReader.WebUI.Models.Mangadex;
+using System;
+using System.Threading.Tasks;
 
 namespace MangaReader.WebUI.Services.APIServices.Interfaces
 {
@@ -9,7 +11,7 @@ namespace MangaReader.WebUI.Services.APIServices.Interfaces
     {
         /// <summary>
         /// Lấy TẤT CẢ ảnh bìa cho một manga cụ thể.
-        /// Service sẽ tự động xử lý việc gọi nhiều trang API nếu cần thiết.
+        /// Service sẽ tự động xử lý việc gọi nhiều trang API nếu cần thiết để lấy đủ dữ liệu.
         /// </summary>
         /// <param name="mangaId">ID của manga.</param>
         /// <returns>
@@ -20,40 +22,12 @@ namespace MangaReader.WebUI.Services.APIServices.Interfaces
         Task<CoverList?> GetAllCoversForMangaAsync(string mangaId);
 
         /// <summary>
-        /// Lấy URL ảnh bìa ĐẠI DIỆN (thường là ảnh bìa mới nhất hoặc volume=null) cho một danh sách các manga.
-        /// Hàm này tối ưu việc gọi API bằng cách fetch theo batch.
-        /// </summary>
-        /// <param name="mangaIds">Danh sách các ID manga cần lấy ảnh bìa đại diện.</param>
-        /// <returns>
-        /// Một <see cref="Task{TResult}"/> đại diện cho hoạt động bất đồng bộ.
-        /// Kết quả của task là một <see cref="Dictionary{TKey, TValue}"/>, trong đó key là MangaId và value là URL ảnh bìa thumbnail (phiên bản 512px) đã được proxy qua backend.
-        /// Trả về <c>null</c> nếu có lỗi nghiêm trọng xảy ra. Nếu một manga không có ảnh bìa, nó sẽ không có trong dictionary.
-        /// </returns>
-        Task<Dictionary<string, string>?> FetchRepresentativeCoverUrlsAsync(List<string> mangaIds);
-
-        /// <summary>
-        /// Lấy URL ảnh bìa ĐẠI DIỆN cho một manga duy nhất.
+        /// Tạo URL proxy cho ảnh bìa với kích thước tùy chọn thông qua Backend API.
         /// </summary>
         /// <param name="mangaId">ID của manga.</param>
-        /// <returns>
-        /// Một <see cref="Task{TResult}"/> đại diện cho hoạt động bất đồng bộ.
-        /// Kết quả của task là URL ảnh bìa thumbnail (phiên bản 512px) đã được proxy qua backend.
-        /// Trả về <see cref="string.Empty"/> nếu manga không có ảnh bìa hoặc có lỗi xảy ra.
-        /// </returns>
-        Task<string> FetchCoverUrlAsync(string mangaId);
-
-        /// <summary>
-        /// [Legacy] Lấy một số lượng giới hạn ảnh bìa cho một manga.
-        /// Phương thức này có thể không lấy ảnh bìa mới nhất nếu manga có nhiều ảnh bìa.
-        /// Nên ưu tiên sử dụng <see cref="FetchCoverUrlAsync"/> hoặc <see cref="FetchRepresentativeCoverUrlsAsync"/> để lấy ảnh đại diện.
-        /// </summary>
-        /// <param name="mangaId">ID của manga.</param>
-        /// <param name="limit">Số lượng ảnh bìa tối đa cần lấy (mặc định là 10).</param>
-        /// <returns>
-        /// Một <see cref="Task{TResult}"/> đại diện cho hoạt động bất đồng bộ.
-        /// Kết quả của task là một đối tượng <see cref="CoverList"/> chứa danh sách các <see cref="Cover"/> (có giới hạn số lượng),
-        /// hoặc <c>null</c> nếu có lỗi xảy ra.
-        /// </returns>
-        Task<CoverList?> FetchCoversForMangaAsync(string mangaId, int limit = 10);
+        /// <param name="fileName">Tên file của ảnh bìa (ví dụ: 'cover.jpg').</param>
+        /// <param name="size">Kích thước ảnh mong muốn (ví dụ: 512, 256). Kích thước này được MangaDex hỗ trợ.</param>
+        /// <returns>URL đầy đủ của ảnh bìa đã được proxy bởi Backend API.</returns>
+        string GetProxiedCoverUrl(string mangaId, string fileName, int size = 512);
     }
 } 
