@@ -335,21 +335,20 @@
                                 }
                             </div>
                             
-                            @if (ViewData["AlternativeTitlesByLanguage"] != null)
+                            @if (Model.AlternativeTitlesByLanguage != null && Model.AlternativeTitlesByLanguage.Any())
                             {
                                 <h5 class="card-title mt-4 mb-3">Tên khác</h5>
                                 <div class="card-text details-manga-alt-titles">
                                     @{
-                                        var altTitlesByLanguage = (Dictionary<string, List<string>>)ViewData["AlternativeTitlesByLanguage"];
-                                        // Sắp xếp các ngôn ngữ, đưa tiếng Việt và tiếng Anh lên đầu
-                                        var altTitleLangs = altTitlesByLanguage.Keys
+                                        // Sử dụng trực tiếp từ Model
+                                        var altTitleLangs = Model.AlternativeTitlesByLanguage.Keys
                                             .OrderBy(lang => lang == "vi" ? 0 : (lang == "en" ? 1 : 2))
                                             .ThenBy(lang => lang)
                                             .ToList();
 
                                         foreach (var lang in altTitleLangs)
                                         {
-                                            var titles = altTitlesByLanguage[lang];
+                                            var titles = Model.AlternativeTitlesByLanguage[lang];
                                             foreach (var title in titles)
                                             {
                                                 <div class="mb-1 alt-title-item">

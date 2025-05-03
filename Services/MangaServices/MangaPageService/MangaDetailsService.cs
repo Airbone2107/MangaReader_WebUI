@@ -63,66 +63,61 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
             try
             {
                 _logger.LogInformation($"Đang lấy chi tiết manga ID: {id}");
-                // Gọi API service để lấy chi tiết manga
                 var mangaResponse = await _mangaApiService.FetchMangaDetailsAsync(id);
 
-                // Kiểm tra kết quả trả về từ API service
                 if (mangaResponse?.Result != "ok" || mangaResponse.Data == null)
                 {
                     _logger.LogError($"Không thể lấy chi tiết manga {id}. Response: {mangaResponse?.Result}");
-                    // Trả về ViewModel rỗng hoặc lỗi
-                    return new MangaDetailViewModel { Manga = new MangaViewModel { Id = id, Title = "Lỗi tải thông tin" }, Chapters = new List<ChapterViewModel>() };
+                    // Trả về ViewModel rỗng với Dictionary rỗng
+                    return new MangaDetailViewModel { 
+                        Manga = new MangaViewModel { Id = id, Title = "Lỗi tải thông tin" }, 
+                        Chapters = new List<ChapterViewModel>(), 
+                        AlternativeTitlesByLanguage = new Dictionary<string, List<string>>() 
+                    };
                 }
 
-                var mangaData = mangaResponse.Data; // Lấy trực tiếp đối tượng Manga
+                var mangaData = mangaResponse.Data;
+                var attributes = mangaData.Attributes; // Lấy attributes để sử dụng
 
-                // Tạo MangaViewModel từ đối tượng Manga
-                var mangaViewModel = await CreateMangaViewModelAsync(mangaData);
+                // Tạo MangaViewModel (không thay đổi nhiều)
+                var mangaViewModel = await CreateMangaViewModelAsync(mangaData); // Truyền mangaData
 
-                // Lấy danh sách chapters
+                // Lấy danh sách chapters (không thay đổi)
                 var chapterViewModels = await GetChaptersAsync(id);
 
+                // XỬ LÝ ALTERNATIVE TITLES TẠI ĐÂY
+                Dictionary<string, List<string>> altTitlesDictionary = new Dictionary<string, List<string>>();
+                if (attributes?.AltTitles != null) // Kiểm tra null cho attributes và AltTitles
+                {
+                    // Sử dụng service đã có để xử lý
+                    altTitlesDictionary = _mangaTitleService.GetAlternativeTitles(attributes.AltTitles);
+                }
+
+                // Trả về ViewModel với đầy đủ thông tin
                 return new MangaDetailViewModel
                 {
                     Manga = mangaViewModel,
-                    Chapters = chapterViewModels
+                    Chapters = chapterViewModels,
+                    AlternativeTitlesByLanguage = altTitlesDictionary // Gán Dictionary đã xử lý
                 };
             }
-            catch (JsonException jsonEx) // Bắt lỗi JSON cụ thể
+            catch (JsonException jsonEx)
             {
                 _logger.LogError(jsonEx, $"Lỗi JSON khi xử lý chi tiết manga {id}: {jsonEx.Message}");
-                // Trả về ViewModel lỗi
-                return new MangaDetailViewModel { Manga = new MangaViewModel { Id = id, Title = "Lỗi định dạng dữ liệu" }, Chapters = new List<ChapterViewModel>() };
+                return new MangaDetailViewModel { 
+                    Manga = new MangaViewModel { Id = id, Title = "Lỗi định dạng dữ liệu" }, 
+                    Chapters = new List<ChapterViewModel>(), 
+                    AlternativeTitlesByLanguage = new Dictionary<string, List<string>>() 
+                };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Lỗi nghiêm trọng khi lấy chi tiết manga {id}: {ex.Message}");
-                // Trả về ViewModel lỗi
-                return new MangaDetailViewModel { Manga = new MangaViewModel { Id = id, Title = "Lỗi tải thông tin" }, Chapters = new List<ChapterViewModel>() };
-            }
-        }
-
-        /// <summary>
-        /// Lấy danh sách tiêu đề thay thế theo ngôn ngữ cho manga
-        /// </summary>
-        /// <param name="id">ID của manga</param>
-        /// <returns>Dictionary chứa các tiêu đề thay thế được nhóm theo mã ngôn ngữ</returns>
-        public async Task<Dictionary<string, List<string>>> GetAlternativeTitlesByLanguageAsync(string id)
-        {
-            try
-            {
-                var mangaResponse = await _mangaApiService.FetchMangaDetailsAsync(id);
-                if (mangaResponse?.Result == "ok" && mangaResponse.Data?.Attributes?.AltTitles != null)
-                {
-                    // Gọi helper service với dữ liệu từ model mới
-                    return _mangaTitleService.GetAlternativeTitles(mangaResponse.Data.Attributes.AltTitles);
-                }
-                return new Dictionary<string, List<string>>();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Lỗi khi lấy tiêu đề thay thế cho manga {id}: {ex.Message}");
-                return new Dictionary<string, List<string>>();
+                return new MangaDetailViewModel { 
+                    Manga = new MangaViewModel { Id = id, Title = "Lỗi tải thông tin" }, 
+                    Chapters = new List<ChapterViewModel>(), 
+                    AlternativeTitlesByLanguage = new Dictionary<string, List<string>>() 
+                };
             }
         }
 

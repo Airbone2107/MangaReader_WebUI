@@ -90,42 +90,45 @@ namespace MangaReader.WebUI.Controllers
         {
             try
             {
-                // Thiết lập page type để chọn CSS phù hợp cho trang chi tiết manga
                 ViewData["PageType"] = "manga-details";
-                
-                // Sử dụng MangaDetailsService để lấy thông tin chi tiết manga
+
+                // Gọi GetMangaDetailsAsync chỉ MỘT LẦN
                 var viewModel = await _mangaDetailsService.GetMangaDetailsAsync(id);
-                
-                // Kiểm tra trạng thái theo dõi nếu người dùng đã đăng nhập
+
+                // Kiểm tra trạng thái theo dõi (giữ nguyên)
                 if (_userService.IsAuthenticated())
                 {
-                    // Gọi API để kiểm tra trạng thái theo dõi
                     bool isFollowing = await _mangaFollowService.IsFollowingMangaAsync(id);
-                    // Cập nhật trạng thái theo dõi trong model
-                    viewModel.Manga.IsFollowing = isFollowing;
+                    // Gán IsFollowing vào MangaViewModel bên trong viewModel nếu có Manga
+                    if (viewModel.Manga != null)
+                    {
+                        viewModel.Manga.IsFollowing = isFollowing;
+                    }
                 }
                 else
                 {
                     // Nếu chưa đăng nhập, mặc định là false
-                    viewModel.Manga.IsFollowing = false;
+                    if (viewModel.Manga != null)
+                    {
+                        viewModel.Manga.IsFollowing = false;
+                    }
                 }
 
-                // Nếu có dictionary tiêu đề thay thế, truyền vào ViewData
-                if (viewModel.Manga != null && !string.IsNullOrEmpty(viewModel.Manga.AlternativeTitles))
+                // XÓA BỎ ĐOẠN GỌI API LẦN 2 và thay bằng đoạn code mới
+                // Truyền trực tiếp Dictionary từ ViewModel vào ViewData (nếu View cần)
+                if (viewModel.AlternativeTitlesByLanguage != null && viewModel.AlternativeTitlesByLanguage.Any())
                 {
-                    // Sử dụng phương thức mới để lấy tiêu đề thay thế
-                    var altTitlesDictionary = await _mangaDetailsService.GetAlternativeTitlesByLanguageAsync(id);
-                    ViewData["AlternativeTitlesByLanguage"] = altTitlesDictionary;
+                    ViewData["AlternativeTitlesByLanguage"] = viewModel.AlternativeTitlesByLanguage;
                 }
-                
-                // Sử dụng ViewRenderService để trả về view phù hợp
+
                 return _viewRenderService.RenderViewBasedOnRequest(this, "Details", viewModel);
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Lỗi khi tải chi tiết manga: {ex.Message}");
                 ViewBag.ErrorMessage = "Không thể tải chi tiết manga. Vui lòng thử lại sau.";
-                return View("Details", new MangaDetailViewModel());
+                // Trả về ViewModel rỗng với Dictionary rỗng
+                return View("Details", new MangaDetailViewModel { AlternativeTitlesByLanguage = new Dictionary<string, List<string>>() });
             }
         }
         

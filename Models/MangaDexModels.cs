@@ -264,6 +264,7 @@ namespace MangaReader.WebUI.Models
     {
         public MangaViewModel Manga { get; set; }
         public List<ChapterViewModel> Chapters { get; set; } = new List<ChapterViewModel>();
+        public Dictionary<string, List<string>> AlternativeTitlesByLanguage { get; set; } = new Dictionary<string, List<string>>();
     }
 
     /// <summary>
