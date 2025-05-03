@@ -2,60 +2,37 @@ using MangaReader.WebUI.Services.APIServices.Interfaces;
 
 namespace MangaReader.WebUI.Services.APIServices.Services
 {
-    public class ApiStatusService : BaseApiService, IApiStatusService
+    /// <summary>
+    /// Cung cấp việc triển khai cho <see cref="IApiStatusService"/>.
+    /// </summary>
+    /// <remarks>
+    /// Sử dụng Primary Constructor để nhận dependency và gọi constructor lớp cơ sở.
+    /// </remarks>
+    /// <param name="httpClient">HttpClient đã được cấu hình.</param>
+    /// <param name="logger">Logger cho ApiStatusService.</param>
+    /// <param name="configuration">Đối tượng IConfiguration để lấy cấu hình.</param>
+    /// <param name="apiRequestHandler">Service xử lý yêu cầu API.</param>
+    public class ApiStatusService(
+        HttpClient httpClient,
+        ILogger<ApiStatusService> logger,
+        IConfiguration configuration,
+        IApiRequestHandler apiRequestHandler)
+        : BaseApiService(httpClient, logger, configuration, apiRequestHandler),
+          IApiStatusService
     {
-        public ApiStatusService(HttpClient httpClient, ILogger<ApiStatusService> logger, IConfiguration configuration)
-            : base(httpClient, logger, configuration)
-        {
-        }
-
+        /// <inheritdoc/>
         public async Task<bool> TestConnectionAsync()
         {
-            Logger.LogInformation("Testing connection to MangaDex API...");
             var url = BuildUrlWithParams("status");
-            Logger.LogInformation($"Sending request to: {url}");
 
-            try
-            {
-                // Đặt thời gian chờ ngắn hơn cho request kiểm tra kết nối
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
-                
-                var response = await HttpClient.SendAsync(requestMessage, cts.Token);
-                var content = await response.Content.ReadAsStringAsync();
-                
-                Logger.LogInformation($"Connection test result: {(int)response.StatusCode} - {content}");
-                
-                return response.IsSuccessStatusCode;
-            }
-            catch (TaskCanceledException ex)
-            {
-                // Xử lý timeout
-                Logger.LogWarning($"Timeout during connection test: {ex.Message}");
-                return false;
-            }
-            catch (HttpRequestException ex)
-            {
-                // Xử lý lỗi HTTP
-                Logger.LogWarning($"HTTP error during connection test: {ex.Message}");
-                return false;
-            }
-            catch (OperationCanceledException ex)
-            {
-                // Xử lý hủy thao tác
-                Logger.LogWarning($"Connection test was canceled: {ex.Message}");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                // Xử lý các lỗi khác
-                Logger.LogError($"Unexpected error during connection test: {ex.Message}");
-                if (ex.InnerException != null)
-                {
-                    Logger.LogError($"Inner Exception: {ex.InnerException.Message}");
-                }
-                return false;
-            }
+            // Đặt thời gian chờ ngắn hơn cho request kiểm tra kết nối
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+            // Gọi GetApiAsync để kiểm tra kết nối. Kiểu dữ liệu T không quan trọng.
+            var result = await GetApiAsync<object>(url, cts.Token);
+
+            // Nếu GetApiAsync trả về khác null, nghĩa là yêu cầu thành công (status code 2xx)
+            return result != null;
         }
     }
 } 

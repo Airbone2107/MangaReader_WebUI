@@ -62,7 +62,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
             try
             {
                 _logger.LogInformation($"Đang lấy chi tiết manga ID: {id}");
-                // Gọi API service mới để lấy chi tiết manga
+                // Gọi API service để lấy chi tiết manga
                 var mangaResponse = await _mangaApiService.FetchMangaDetailsAsync(id);
 
                 // Kiểm tra kết quả trả về từ API service

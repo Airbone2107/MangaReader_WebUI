@@ -58,6 +58,9 @@ builder.Services.AddHttpClient("MangaDexClient", client =>
 // Đăng ký các service liên quan đến xác thực 
 builder.Services.AddScoped<IUserService, UserService>();
 
+// Đăng ký API Request Handler
+builder.Services.AddScoped<IApiRequestHandler, ApiRequestHandler>();
+
 // Đăng ký các API Services mới thay thế cho MangaDexService
 builder.Services.AddScoped<IMangaApiService, MangaApiService>();
 builder.Services.AddScoped<IChapterApiService, ChapterApiService>();
