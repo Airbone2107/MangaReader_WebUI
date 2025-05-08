@@ -192,7 +192,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                 int maxPages = (int)Math.Ceiling(Math.Min(totalCount, MAX_API_RESULTS) / (double)pageSize);
 
                 // Chuyển danh sách Manga thành MangaViewModel
-                var mangaViewModels = await ConvertToMangaViewModelsAsync(result?.Data);
+                var mangaViewModels = ConvertToMangaViewModels(result?.Data);
 
                 return new MangaListViewModel
                 {
@@ -223,7 +223,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
         /// <summary>
         /// Chuyển đổi kết quả từ API sang danh sách MangaViewModel
         /// </summary>
-        private async Task<List<MangaViewModel>> ConvertToMangaViewModelsAsync(List<MangaReader.WebUI.Models.Mangadex.Manga>? mangaList)
+        private List<MangaViewModel> ConvertToMangaViewModels(List<MangaReader.WebUI.Models.Mangadex.Manga>? mangaList)
         {
             var mangaViewModels = new List<MangaViewModel>();
             if (mangaList == null || !mangaList.Any())

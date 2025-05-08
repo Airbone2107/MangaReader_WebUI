@@ -1,436 +1,778 @@
-Chào bạn, tôi đã xem qua các file trong thư mục `/APIServices`. Tôi sẽ giúp bạn cập nhật các chú thích, tài liệu và loại bỏ code thừa đã được đánh dấu là lỗi thời (`[Obsolete]`).
+# TODO: Tạo cấu trúc và Services cho /Services/MangaServices/DataProcessing
 
-**Lưu ý về tái sử dụng code:**
+Tài liệu này hướng dẫn các bước tạo thư mục và mã nguồn cần thiết cho việc xử lý dữ liệu chuyển đổi từ Model MangaDex sang ViewModel.
 
-*   Bạn đang sử dụng tốt lớp `BaseApiService` để chứa các logic chung như tạo URL (`BuildUrlWithParams`, `AddOrUpdateParam`) và các thành phần dùng chung (`HttpClient`, `ILogger`, `JsonSerializerOptions`).
-*   Lớp `ApiRequestHandler` giúp tập trung logic gọi API GET, xử lý lỗi và deserialize JSON, giúp các service khác gọn gàng hơn.
-*   Hãy tiếp tục tận dụng các lớp cơ sở và helper này khi phát triển thêm các service API mới nhé.
+## Bước 1: Tạo cấu trúc thư mục
 
-Dưới đây là các bước chi tiết để thực hiện các thay đổi, được ghi trong file `TODO.md`:
+1.  Trong thư mục `/Services/MangaServices`, tạo một thư mục mới tên là `DataProcessing`.
+2.  Bên trong `DataProcessing`, tạo hai thư mục con:
+    *   `Interfaces`
+    *   `Services`
 
-```markdown
-# TODO.md - Cập nhật APIServices
+Cấu trúc cuối cùng sẽ là:
 
-Hướng dẫn này mô tả các bước để cập nhật tài liệu và loại bỏ code lỗi thời trong thư mục `APIServices`.
+```
+/Services
+└── /MangaServices
+    └── /DataProcessing
+        ├── /Interfaces
+        └── /Services
+```
 
-## Mục lục
+## Bước 2: Tạo Interfaces
 
-1.  [Cập nhật Interface `ICoverApiService`](#1-cập-nhật-interface-icoverapiservice)
-2.  [Cập nhật Service `CoverApiService`](#2-cập-nhật-service-coverapiservice)
-3.  [Cập nhật `Services/APIServices/README.md`](#3-cập-nhật-servicesapiservicesreadme)
-4.  [Rà soát và cập nhật XML Comments cho các file còn lại](#4-rà-soát-và-cập-nhật-xml-comments-cho-các-file-còn-lại)
+### 2.1. Tạo Interface `IMangaViewModelMapper.cs`
 
----
-
-## 1. Cập nhật Interface `ICoverApiService`
-
-**Mục tiêu:** Loại bỏ các phương thức đã đánh dấu `[Obsolete]` và cập nhật chú thích.
-
-**File:** `Services/APIServices/Interfaces/ICoverApiService.cs`
-
-**Các bước:**
-
-1.  **Xóa bỏ các phương thức Obsolete:**
-    *   Xóa phương thức `FetchRepresentativeCoverUrlsAsync`.
-    *   Xóa phương thức `FetchCoverUrlAsync`.
-2.  **Cập nhật XML Comments:**
-    *   Đảm bảo chú thích cho `GetAllCoversForMangaAsync` và `GetProxiedCoverUrl` là chính xác và đầy đủ.
-
-**Code thay đổi:**
+Interface này định nghĩa các phương thức trả về trực tiếp một ViewModel hoàn chỉnh.
 
 ```csharp
-// Services/APIServices/Interfaces/ICoverApiService.cs
+// Services/MangaServices/DataProcessing/Interfaces/IMangaViewModelMapper.cs
+using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Models.Mangadex;
-using System;
+using MangaReader.WebUI.Services.MangaServices.Models; // Namespace cho ChapterViewModel, MangaDetailViewModel
 
-namespace MangaReader.WebUI.Services.APIServices.Interfaces
+namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
+
+/// <summary>
+/// Định nghĩa các phương thức để chuyển đổi dữ liệu MangaDex thành các ViewModel hoàn chỉnh.
+/// </summary>
+public interface IMangaViewModelMapper
 {
     /// <summary>
-    /// Định nghĩa interface cho service tương tác với các endpoint API liên quan đến Cover Art.
+    /// Chuyển đổi một đối tượng Manga (từ MangaDex) thành MangaViewModel.
+    /// Bao gồm cả việc lấy thông tin bổ sung như trạng thái theo dõi nếu cần.
     /// </summary>
-    public interface ICoverApiService
-    {
-        /// <summary>
-        /// Lấy TẤT CẢ ảnh bìa cho một manga cụ thể.
-        /// Service sẽ tự động xử lý việc gọi nhiều trang API nếu cần thiết để lấy đủ dữ liệu.
-        /// </summary>
-        /// <param name="mangaId">ID của manga.</param>
-        /// <returns>
-        /// Một <see cref="Task{TResult}"/> đại diện cho hoạt động bất đồng bộ.
-        /// Kết quả của task là một đối tượng <see cref="CoverList"/> chứa danh sách tất cả các <see cref="Cover"/> của manga đó,
-        /// hoặc <c>null</c> nếu có lỗi xảy ra trong quá trình gọi API.
-        /// </returns>
-        Task<CoverList?> GetAllCoversForMangaAsync(string mangaId);
+    /// <param name="mangaData">Đối tượng Manga gốc từ API.</param>
+    /// <returns>Một Task chứa MangaViewModel đã được điền dữ liệu.</returns>
+    Task<MangaViewModel> MapToMangaViewModelAsync(Manga mangaData);
 
-        // [PHẦN ĐÃ XÓA]
-        // /// <summary>
-        // /// [OBSOLETE] Lấy URL ảnh bìa ĐẠI DIỆN (thường là ảnh bìa mới nhất hoặc volume=null) cho một danh sách các manga.
-        // /// </summary>
-        // [Obsolete("Use cover art included in manga relationships instead.")]
-        // Task<Dictionary<string, string>?> FetchRepresentativeCoverUrlsAsync(List<string> mangaIds);
-        //
-        // /// <summary>
-        // /// [OBSOLETE] Lấy URL ảnh bìa ĐẠI DIỆN cho một manga duy nhất.
-        // /// </summary>
-        // [Obsolete("Use cover art included in manga relationships instead.")]
-        // Task<string> FetchCoverUrlAsync(string mangaId);
-        // [/PHẦN ĐÃ XÓA]
+    /// <summary>
+    /// Chuyển đổi một đối tượng Chapter (từ MangaDex) thành ChapterViewModel.
+    /// </summary>
+    /// <param name="chapterData">Đối tượng Chapter gốc từ API.</param>
+    /// <returns>ChapterViewModel đã được điền dữ liệu.</returns>
+    ChapterViewModel MapToChapterViewModel(Chapter chapterData);
 
-        /// <summary>
-        /// Tạo URL proxy cho ảnh bìa với kích thước tùy chọn thông qua Backend API.
-        /// </summary>
-        /// <param name="mangaId">ID của manga.</param>
-        /// <param name="fileName">Tên file của ảnh bìa (ví dụ: 'cover.jpg').</param>
-        /// <param name="size">Kích thước ảnh mong muốn (ví dụ: 512, 256). Kích thước này được MangaDex hỗ trợ.</param>
-        /// <returns>URL đầy đủ của ảnh bìa đã được proxy bởi Backend API.</returns>
-        string GetProxiedCoverUrl(string mangaId, string fileName, int size = 512);
-    }
+    /// <summary>
+    /// Chuyển đổi dữ liệu Manga và danh sách Chapter thành MangaDetailViewModel.
+    /// </summary>
+    /// <param name="mangaData">Đối tượng Manga gốc.</param>
+    /// <param name="chapters">Danh sách ChapterViewModel đã được xử lý.</param>
+    /// <returns>Một Task chứa MangaDetailViewModel hoàn chỉnh.</returns>
+    Task<MangaDetailViewModel> MapToMangaDetailViewModelAsync(Manga mangaData, List<ChapterViewModel> chapters);
+
+    /// <summary>
+    /// Chuyển đổi một đối tượng Manga thành MangaInfoViewModel (chỉ chứa ID, Title, CoverUrl).
+    /// </summary>
+    /// <param name="mangaData">Đối tượng Manga gốc từ API.</param>
+    /// <returns>Một Task chứa MangaInfoViewModel.</returns>
+    Task<MangaInfoViewModel> MapToMangaInfoViewModelAsync(Manga mangaData);
+
+    /// <summary>
+    /// Chuyển đổi một đối tượng Chapter thành SimpleChapterInfo (dùng cho danh sách chapter mới nhất).
+    /// </summary>
+    /// <param name="chapterData">Đối tượng Chapter gốc từ API.</param>
+    /// <returns>SimpleChapterInfo.</returns>
+    SimpleChapterInfo MapToSimpleChapterInfo(Chapter chapterData);
+    
+    /// <summary>
+    /// Chuyển đổi thông tin Manga và Chapter thành LastReadMangaViewModel (dùng cho lịch sử đọc).
+    /// </summary>
+    /// <param name="mangaInfo">Thông tin cơ bản của Manga.</param>
+    /// <param name="chapterInfo">Thông tin cơ bản của Chapter.</param>
+    /// <param name="lastReadAt">Thời điểm đọc cuối.</param>
+    /// <returns>LastReadMangaViewModel.</returns>
+    LastReadMangaViewModel MapToLastReadMangaViewModel(MangaInfoViewModel mangaInfo, ChapterInfo chapterInfo, DateTime lastReadAt);
+
+    /// <summary>
+    /// Chuyển đổi thông tin Manga và danh sách Chapter thành FollowedMangaViewModel (dùng cho trang đang theo dõi).
+    /// </summary>
+    /// <param name="mangaInfo">Thông tin cơ bản của Manga.</param>
+    /// <param name="latestChapters">Danh sách các chapter mới nhất (dạng SimpleChapterInfo).</param>
+    /// <returns>FollowedMangaViewModel.</returns>
+    FollowedMangaViewModel MapToFollowedMangaViewModel(MangaInfoViewModel mangaInfo, List<SimpleChapterInfo> latestChapters);
 }
 ```
 
----
+### 2.2. Tạo Interface `IMangaDataExtractor.cs`
 
-## 2. Cập nhật Service `CoverApiService`
-
-**Mục tiêu:** Loại bỏ các phương thức đã đánh dấu `[Obsolete]` và cập nhật chú thích.
-
-**File:** `Services/APIServices/Services/CoverApiService.cs`
-
-**Các bước:**
-
-1.  **Xóa bỏ các phương thức Obsolete:**
-    *   Xóa phương thức `FetchRepresentativeCoverUrlsAsync`.
-    *   Xóa phương thức `FetchCoverUrlAsync`.
-    *   Xóa phương thức `FetchCoversForMangaAsync` (cũng được đánh dấu obsolete).
-2.  **Cập nhật XML Comments:**
-    *   Xem lại chú thích cho hàm tạo (constructor).
-    *   Xem lại chú thích cho `ExtractCoverFileNameFromRelationships` đảm bảo mô tả đúng về việc nó là `static` và cách sử dụng `ILogger`.
-    *   Xem lại chú thích cho `GetAllCoversForMangaAsync` và `GetProxiedCoverUrl`.
-
-**Code thay đổi:**
+Interface này định nghĩa các phương thức để trích xuất các phần dữ liệu riêng lẻ từ Model MangaDex.
 
 ```csharp
-// Services/APIServices/Services/CoverApiService.cs
+// Services/MangaServices/DataProcessing/Interfaces/IMangaDataExtractor.cs
 using MangaReader.WebUI.Models.Mangadex;
-using MangaReader.WebUI.Services.APIServices.Interfaces;
-using System.Diagnostics;
-using System.Text.Json;
 
-namespace MangaReader.WebUI.Services.APIServices.Services
+namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
+
+/// <summary>
+/// Định nghĩa các phương thức để trích xuất các phần dữ liệu cụ thể từ Model MangaDex.
+/// </summary>
+public interface IMangaDataExtractor
 {
     /// <summary>
-    /// Cung cấp việc triển khai cho <see cref="ICoverApiService"/>.
-    /// Tương tác với các endpoint API liên quan đến Cover Art của MangaDex thông qua Backend API proxy.
+    /// Trích xuất tiêu đề ưu tiên (Việt -> Anh -> Mặc định) từ thuộc tính Title và AltTitles.
     /// </summary>
-    /// <remarks>
-    /// Sử dụng Primary Constructor để nhận dependency và gọi constructor lớp cơ sở.
-    /// </remarks>
-    /// <param name="httpClient">HttpClient đã được cấu hình để gọi Backend API.</param>
-    /// <param name="logger">Logger dành riêng cho CoverApiService.</param>
-    /// <param name="configuration">Đối tượng IConfiguration để lấy cấu hình, đặc biệt là BaseUrl.</param>
-    /// <param name="apiRequestHandler">Service xử lý yêu cầu API chung.</param>
-    public class CoverApiService(
-        HttpClient httpClient,
-        ILogger<CoverApiService> logger,
-        IConfiguration configuration,
-        IApiRequestHandler apiRequestHandler)
-        : BaseApiService(httpClient, logger, configuration, apiRequestHandler),
-          ICoverApiService
+    /// <param name="titleDict">Dictionary chứa các tiêu đề chính.</param>
+    /// <param name="altTitlesList">Danh sách các Dictionary chứa tiêu đề thay thế.</param>
+    /// <returns>Tiêu đề ưu tiên.</returns>
+    string ExtractMangaTitle(Dictionary<string, string>? titleDict, List<Dictionary<string, string>>? altTitlesList);
+
+    /// <summary>
+    /// Trích xuất mô tả ưu tiên (Việt -> Anh -> Mặc định) từ thuộc tính Description.
+    /// </summary>
+    /// <param name="descriptionDict">Dictionary chứa các mô tả.</param>
+    /// <returns>Mô tả ưu tiên.</returns>
+    string ExtractMangaDescription(Dictionary<string, string>? descriptionDict);
+
+    /// <summary>
+    /// Trích xuất danh sách các tags đã được dịch sang tiếng Việt và sắp xếp.
+    /// </summary>
+    /// <param name="tagsList">Danh sách các đối tượng Tag từ MangaAttributes.</param>
+    /// <returns>Danh sách các tên tag đã dịch.</returns>
+    List<string> ExtractAndTranslateTags(List<Tag>? tagsList);
+
+    /// <summary>
+    /// Trích xuất tên tác giả và họa sĩ từ danh sách Relationships.
+    /// </summary>
+    /// <param name="relationships">Danh sách Relationships của Manga.</param>
+    /// <returns>Tuple chứa (Tên tác giả, Tên họa sĩ).</returns>
+    (string Author, string Artist) ExtractAuthorArtist(List<Relationship>? relationships);
+
+    /// <summary>
+    /// Trích xuất URL ảnh bìa chính đã được proxy.
+    /// </summary>
+    /// <param name="mangaId">ID của Manga.</param>
+    /// <param name="relationships">Danh sách Relationships của Manga.</param>
+    /// <returns>URL ảnh bìa đã được proxy hoặc URL placeholder nếu không tìm thấy.</returns>
+    string ExtractCoverUrl(string mangaId, List<Relationship>? relationships);
+
+    /// <summary>
+    /// Trích xuất trạng thái của Manga và dịch sang tiếng Việt.
+    /// </summary>
+    /// <param name="status">Chuỗi trạng thái gốc từ MangaAttributes.</param>
+    /// <returns>Trạng thái đã được dịch.</returns>
+    string ExtractAndTranslateStatus(string? status);
+
+    /// <summary>
+    /// Trích xuất tiêu đề hiển thị cho Chapter (VD: "Chương 10: Tên chương").
+    /// </summary>
+    /// <param name="attributes">Đối tượng ChapterAttributes.</param>
+    /// <returns>Tiêu đề hiển thị.</returns>
+    string ExtractChapterDisplayTitle(ChapterAttributes attributes);
+
+    /// <summary>
+    /// Trích xuất số chương từ ChapterAttributes.
+    /// </summary>
+    /// <param name="attributes">Đối tượng ChapterAttributes.</param>
+    /// <returns>Số chương dưới dạng chuỗi, hoặc "?" nếu không có.</returns>
+    string ExtractChapterNumber(ChapterAttributes attributes);
+
+     /// <summary>
+    /// Trích xuất các tiêu đề thay thế được nhóm theo ngôn ngữ.
+    /// </summary>
+    /// <param name="altTitlesList">Danh sách tiêu đề thay thế từ MangaAttributes.</param>
+    /// <returns>Dictionary nhóm tiêu đề theo mã ngôn ngữ.</returns>
+    Dictionary<string, List<string>> ExtractAlternativeTitles(List<Dictionary<string, string>>? altTitlesList);
+
+    /// <summary>
+    /// Trích xuất một tiêu đề thay thế ưu tiên (thường là tiếng Anh).
+    /// </summary>
+    /// <param name="altTitlesDictionary">Dictionary chứa các tiêu đề thay thế đã nhóm.</param>
+    /// <returns>Tiêu đề thay thế ưu tiên hoặc chuỗi rỗng.</returns>
+    string ExtractPreferredAlternativeTitle(Dictionary<string, List<string>> altTitlesDictionary);
+}
+```
+
+## Bước 3: Tạo Services
+
+### 3.1. Tạo Service `MangaDataExtractorService.cs`
+
+Service này sẽ triển khai `IMangaDataExtractor`, chứa logic trích xuất dữ liệu.
+
+```csharp
+// Services/MangaServices/DataProcessing/Services/MangaDataExtractorService.cs
+using MangaReader.WebUI.Models.Mangadex;
+using MangaReader.WebUI.Services.APIServices.Interfaces; // Cần cho ICoverApiService
+using MangaReader.WebUI.Services.APIServices.Services; // Cần cho CoverApiService static helper
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
+using MangaReader.WebUI.Services.UtilityServices; // Cần cho LocalizationService
+using System.Diagnostics;
+using System.Text.Json; // Cần cho JsonException và JsonSerializer
+
+namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services;
+
+/// <summary>
+/// Triển khai IMangaDataExtractor, chịu trách nhiệm trích xuất dữ liệu cụ thể từ Model MangaDex.
+/// </summary>
+public class MangaDataExtractorService(
+    ILogger<MangaDataExtractorService> logger,
+    ICoverApiService coverApiService, // Để tạo URL ảnh bìa proxy
+    LocalizationService localizationService // Để dịch status
+    ) : IMangaDataExtractor
+{
+    // Từ điển dịch tag (có thể chuyển ra file config hoặc service riêng nếu lớn)
+    private static readonly Dictionary<string, string> _tagTranslations = InitializeTagTranslations();
+    private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    public string ExtractMangaTitle(Dictionary<string, string>? titleDict, List<Dictionary<string, string>>? altTitlesList)
     {
-        /// <summary>
-        /// URL cơ sở của Backend API (không bao gồm /mangadex) để xây dựng URL proxy ảnh.
-        /// </summary>
-        private readonly string _imageProxyBaseUrl = configuration?["BackendApi:BaseUrl"]?.TrimEnd('/')
-                                      ?? throw new InvalidOperationException("BackendApi:BaseUrl is not configured.");
+        Debug.Assert(titleDict != null || altTitlesList != null, "Phải có ít nhất titleDict hoặc altTitlesList để trích xuất tiêu đề.");
 
-        /// <summary>
-        /// Khoảng thời gian delay (ms) giữa các lần gọi API liên tiếp trong quá trình phân trang để tránh rate limit.
-        /// Giá trị được lấy từ cấu hình "ApiRateLimitDelayMs" hoặc mặc định là 250ms.
-        /// </summary>
-        private readonly TimeSpan _apiDelay = TimeSpan.FromMilliseconds(configuration?.GetValue<int>("ApiRateLimitDelayMs", 250) ?? 250);
-
-        /// <summary>
-        /// Helper tĩnh để trích xuất filename của cover art chính từ danh sách relationships của một đối tượng Manga.
-        /// Phương thức này tìm relationship có type 'cover_art' đầu tiên và trích xuất thuộc tính 'fileName' từ 'attributes' của nó (nếu có và được include trong lời gọi API gốc).
-        /// </summary>
-        /// <param name="relationships">Danh sách relationships từ đối tượng Manga.</param>
-        /// <param name="logger">Logger (tùy chọn) để ghi log trong quá trình trích xuất (ví dụ: logger của service gọi hàm này).</param>
-        /// <returns>Filename của cover art (ví dụ: 'abc.jpg') hoặc null nếu không tìm thấy relationship 'cover_art' hợp lệ hoặc không có thuộc tính 'fileName'.</returns>
-        public static string? ExtractCoverFileNameFromRelationships(List<Relationship>? relationships, ILogger? logger = null)
+        try
         {
-            // ... (Giữ nguyên phần implementation của ExtractCoverFileNameFromRelationships)
-             if (relationships == null || !relationships.Any())
+            // Ưu tiên Tiếng Việt từ AltTitles trước
+            if (altTitlesList != null)
             {
-                logger?.LogDebug("ExtractCoverFileName: Danh sách relationships rỗng hoặc null."); // Đổi thành Debug vì đây là trường hợp phổ biến
-                return null;
-            }
-
-            // Tìm relationship cover_art đầu tiên
-            var coverRelationship = relationships.FirstOrDefault(r => r != null && r.Type == "cover_art");
-
-            if (coverRelationship == null)
-            {
-                logger?.LogDebug("ExtractCoverFileName: Không tìm thấy relationship có type 'cover_art'."); // Đổi thành Debug
-                return null;
-            }
-
-            // Kiểm tra xem attributes có được include không và có phải là JsonElement không
-            if (coverRelationship.Attributes is JsonElement attributesElement && attributesElement.ValueKind == JsonValueKind.Object)
-            {
-                try
+                foreach (var altTitleDict in altTitlesList)
                 {
-                    // Thử lấy thuộc tính 'fileName'
-                    if (attributesElement.TryGetProperty("fileName", out var fileNameElement) && fileNameElement.ValueKind == JsonValueKind.String)
+                    if (altTitleDict != null && altTitleDict.TryGetValue("vi", out var viTitle) && !string.IsNullOrEmpty(viTitle))
                     {
-                        var fileName = fileNameElement.GetString();
-                        if (!string.IsNullOrEmpty(fileName))
+                        return viTitle;
+                    }
+                }
+            }
+
+            // Nếu không có Tiếng Việt trong AltTitles, thử Tiếng Anh trong Title chính
+            if (titleDict != null && titleDict.TryGetValue("en", out var enTitle) && !string.IsNullOrEmpty(enTitle))
+            {
+                return enTitle;
+            }
+
+            // Nếu không có Tiếng Anh, thử Tiếng Việt trong Title chính
+             if (titleDict != null && titleDict.TryGetValue("vi", out var mainViTitle) && !string.IsNullOrEmpty(mainViTitle))
+            {
+                return mainViTitle;
+            }
+
+            // Nếu không có, lấy tiêu đề đầu tiên từ Title chính
+            if (titleDict != null && titleDict.Any())
+            {
+                return titleDict.FirstOrDefault().Value ?? "Không có tiêu đề";
+            }
+
+            // Nếu Title chính rỗng, thử lấy tiêu đề đầu tiên từ AltTitles
+            if (altTitlesList != null)
+            {
+                foreach (var altTitleDict in altTitlesList)
+                {
+                    if (altTitleDict != null && altTitleDict.Any())
+                    {
+                        return altTitleDict.FirstOrDefault().Value ?? "Không có tiêu đề";
+                    }
+                }
+            }
+
+            return "Không có tiêu đề";
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Lỗi khi trích xuất tiêu đề manga.");
+            return "Lỗi tiêu đề";
+        }
+    }
+
+    public string ExtractMangaDescription(Dictionary<string, string>? descriptionDict)
+    {
+        if (descriptionDict == null || !descriptionDict.Any())
+        {
+            return "";
+        }
+
+        try
+        {
+            // Ưu tiên tiếng Việt, sau đó đến tiếng Anh
+            if (descriptionDict.TryGetValue("vi", out var viDesc) && !string.IsNullOrEmpty(viDesc))
+            {
+                return viDesc;
+            }
+            if (descriptionDict.TryGetValue("en", out var enDesc) && !string.IsNullOrEmpty(enDesc))
+            {
+                return enDesc;
+            }
+
+            // Lấy giá trị đầu tiên nếu không có vi/en
+            return descriptionDict.FirstOrDefault().Value ?? "";
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Lỗi khi trích xuất mô tả manga.");
+            return "";
+        }
+    }
+
+    public List<string> ExtractAndTranslateTags(List<Tag>? tagsList)
+    {
+        var translatedTags = new List<string>();
+        if (tagsList == null || !tagsList.Any())
+        {
+            return translatedTags;
+        }
+
+        try
+        {
+            foreach (var tag in tagsList)
+            {
+                if (tag?.Attributes?.Name == null) continue;
+
+                // Ưu tiên lấy tên tiếng Anh để dịch
+                if (tag.Attributes.Name.TryGetValue("en", out var enTagName) && !string.IsNullOrEmpty(enTagName))
+                {
+                    if (_tagTranslations.TryGetValue(enTagName, out var translation))
+                    {
+                        translatedTags.Add(translation);
+                    }
+                    else
+                    {
+                        // Nếu không có bản dịch, giữ nguyên tag tiếng Anh
+                        translatedTags.Add(enTagName);
+                        logger.LogDebug($"Không tìm thấy bản dịch cho tag: {enTagName}");
+                    }
+                }
+                // Nếu không có tiếng Anh, lấy tên đầu tiên và không dịch
+                else if (tag.Attributes.Name.Any())
+                {
+                     translatedTags.Add(tag.Attributes.Name.First().Value);
+                }
+            }
+
+            // Sắp xếp tags theo thứ tự alphabet tiếng Việt
+            return translatedTags.Distinct().OrderBy(t => t, StringComparer.Create(new System.Globalization.CultureInfo("vi-VN"), false)).ToList();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Lỗi khi trích xuất và dịch tags manga.");
+            return new List<string>();
+        }
+    }
+
+    public (string Author, string Artist) ExtractAuthorArtist(List<Relationship>? relationships)
+    {
+        string author = "Không rõ";
+        string artist = "Không rõ";
+
+        if (relationships == null) return (author, artist);
+
+        try
+        {
+            foreach (var rel in relationships)
+            {
+                if (rel == null) continue;
+                string relType = rel.Type;
+
+                if (relType == "author" || relType == "artist")
+                {
+                    string name = "Không rõ";
+                    // Kiểm tra xem attributes có được include và có phải là object JSON không
+                    if (rel.Attributes is JsonElement attributesElement && attributesElement.ValueKind == JsonValueKind.Object)
+                    {
+                        if (attributesElement.TryGetProperty("name", out var nameElement) && nameElement.ValueKind == JsonValueKind.String)
                         {
-                            logger?.LogDebug("ExtractCoverFileName: Đã trích xuất filename '{FileName}' từ relationship {RelationshipId}.", fileName, coverRelationship.Id);
-                            return fileName;
+                            name = nameElement.GetString() ?? "Không rõ";
                         }
                         else
                         {
-                            logger?.LogWarning("ExtractCoverFileName: Thuộc tính 'fileName' rỗng trong attributes của relationship {RelationshipId}.", coverRelationship.Id);
+                            logger.LogWarning($"Attributes của relationship {rel.Id} (type: {relType}) không chứa 'name' hoặc không phải string.");
                         }
                     }
                     else
                     {
-                        logger?.LogWarning("ExtractCoverFileName: Thuộc tính 'fileName' không tồn tại hoặc không phải string trong attributes của relationship {RelationshipId}.", coverRelationship.Id);
+                        logger.LogWarning($"Relationship {rel.Id} (type: {relType}) không có attributes hoặc attributes không phải object. Đảm bảo có includes trong API call.");
                     }
+
+                    if (relType == "author")
+                        author = name;
+                    else // relType == "artist"
+                        artist = name;
                 }
-                catch (Exception ex)
-                {
-                    logger?.LogError(ex, "ExtractCoverFileName: Lỗi khi đọc attributes của relationship {RelationshipId}.", coverRelationship.Id);
-                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Lỗi khi trích xuất tác giả/họa sĩ từ relationships.");
+        }
+
+        return (author, artist);
+    }
+
+    public string ExtractCoverUrl(string mangaId, List<Relationship>? relationships)
+    {
+         Debug.Assert(!string.IsNullOrEmpty(mangaId), "Manga ID không được rỗng khi trích xuất Cover URL.");
+        try
+        {
+            // Sử dụng helper tĩnh từ CoverApiService để trích xuất filename
+            // Truyền logger vào hàm helper
+            var coverFileName = CoverApiService.ExtractCoverFileNameFromRelationships(relationships, logger);
+            if (!string.IsNullOrEmpty(coverFileName))
+            {
+                // Sử dụng instance coverApiService để tạo URL proxy
+                return coverApiService.GetProxiedCoverUrl(mangaId, coverFileName);
             }
             else
             {
-                logger?.LogWarning("ExtractCoverFileName: Relationship 'cover_art' {RelationshipId} không có attributes hoặc attributes không phải là object. Đảm bảo 'includes[]=cover_art' được sử dụng. Type of Attributes: {AttributeType}",
-                    coverRelationship.Id, coverRelationship.Attributes?.GetType().Name ?? "null");
+                logger.LogDebug($"Không tìm thấy cover filename cho manga ID {mangaId} từ relationships.");
+                return "/images/cover-placeholder.jpg"; // Placeholder
             }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Lỗi khi trích xuất Cover URL cho manga ID: {mangaId}");
+            return "/images/cover-placeholder.jpg"; // Placeholder
+        }
+    }
 
-            logger?.LogWarning("ExtractCoverFileName: Không thể trích xuất filename từ attributes của cover art {RelationshipId}.", coverRelationship.Id);
-            return null;
+    public string ExtractAndTranslateStatus(string? status)
+    {
+        // Sử dụng LocalizationService để dịch
+        return localizationService.GetStatus(status);
+    }
+
+     public string ExtractChapterDisplayTitle(ChapterAttributes attributes)
+    {
+        Debug.Assert(attributes != null, "ChapterAttributes không được null khi trích xuất Display Title.");
+
+        string chapterNumber = attributes.ChapterNumber ?? "?"; // Lấy số chapter, mặc định là "?"
+        string chapterTitle = attributes.Title ?? ""; // Lấy tiêu đề, mặc định là rỗng
+
+        // Trường hợp đặc biệt cho Oneshot hoặc khi không có số chapter
+        if (string.IsNullOrEmpty(attributes.ChapterNumber) || attributes.ChapterNumber == "?")
+        {
+            return !string.IsNullOrEmpty(chapterTitle) ? chapterTitle : "Oneshot";
         }
 
-        /// <inheritdoc/>
-        public async Task<CoverList?> GetAllCoversForMangaAsync(string mangaId)
+        // Format tiêu đề chuẩn
+        string displayTitle = $"Chương {chapterNumber}";
+        if (!string.IsNullOrEmpty(chapterTitle) && chapterTitle != chapterNumber)
         {
-             // ... (Giữ nguyên phần implementation của GetAllCoversForMangaAsync)
-            var allCovers = new List<Cover>();
-            int offset = 0;
-            const int limit = 100;
-            int totalAvailable = 0;
+            displayTitle += $": {chapterTitle}";
+        }
 
-            Logger.LogInformation("Fetching ALL covers for manga ID: {MangaId} with pagination...", mangaId);
+        return displayTitle;
+    }
 
-            do
+    public string ExtractChapterNumber(ChapterAttributes attributes)
+    {
+         Debug.Assert(attributes != null, "ChapterAttributes không được null khi trích xuất Chapter Number.");
+         return attributes.ChapterNumber ?? "?";
+    }
+
+    public Dictionary<string, List<string>> ExtractAlternativeTitles(List<Dictionary<string, string>>? altTitlesList)
+    {
+        var altTitlesDictionary = new Dictionary<string, List<string>>();
+        if (altTitlesList == null) return altTitlesDictionary;
+
+        try
+        {
+            foreach (var altTitleDict in altTitlesList)
             {
-                var queryParams = new Dictionary<string, List<string>>();
-                AddOrUpdateParam(queryParams, "manga[]", mangaId);
-                AddOrUpdateParam(queryParams, "limit", limit.ToString());
-                AddOrUpdateParam(queryParams, "offset", offset.ToString());
-                AddOrUpdateParam(queryParams, "order[volume]", "asc"); // Sắp xếp theo volume tăng dần
-
-                var url = BuildUrlWithParams("cover", queryParams);
-                Logger.LogDebug("Fetching covers page: {Url}", url);
-
-                try
+                if (altTitleDict != null && altTitleDict.Any())
                 {
-                    var coverListResponse = await GetApiAsync<CoverList>(url);
+                    // Giả định mỗi dictionary con chỉ có một cặp key-value (lang-title)
+                    var langKey = altTitleDict.Keys.First();
+                    var titleText = altTitleDict[langKey];
 
-                    // Xử lý lỗi API hoặc response null
-                    if (coverListResponse == null)
+                    if (!string.IsNullOrEmpty(titleText))
                     {
-                        Logger.LogWarning("Error fetching covers for manga {MangaId} at offset {Offset}. Retrying...", mangaId, offset);
-                        await Task.Delay(TimeSpan.FromSeconds(1)); // Delay trước khi retry
-                        coverListResponse = await GetApiAsync<CoverList>(url);
-
-                        if (coverListResponse == null)
+                        if (!altTitlesDictionary.ContainsKey(langKey))
                         {
-                            Logger.LogError("Failed to fetch covers for manga {MangaId} at offset {Offset} after retry. Stopping pagination.", mangaId, offset);
-                            break; // Dừng nếu retry cũng lỗi
+                            altTitlesDictionary[langKey] = new List<string>();
                         }
-                    }
-
-                    if (coverListResponse.Data == null || !coverListResponse.Data.Any())
-                    {
-                        Logger.LogInformation("No more covers found or data is invalid for manga {MangaId} at offset {Offset}.", mangaId, offset);
-                        if (totalAvailable == 0 && offset == 0) totalAvailable = coverListResponse.Total;
-                        break; // Dừng nếu không còn dữ liệu
-                    }
-
-                    allCovers.AddRange(coverListResponse.Data);
-                    if (totalAvailable == 0) totalAvailable = coverListResponse.Total;
-                    offset += limit;
-                    Logger.LogDebug("Fetched {Count} covers. Offset now: {Offset}. Total available: {TotalAvailable}",
-                        coverListResponse.Data.Count, offset, totalAvailable);
-
-                    // Delay giữa các lần gọi API nếu còn trang tiếp theo
-                    if (offset < totalAvailable && totalAvailable > 0)
-                    {
-                        await Task.Delay(_apiDelay);
+                        altTitlesDictionary[langKey].Add(titleText);
                     }
                 }
-                catch (Exception ex) // Bắt lỗi không mong muốn trong vòng lặp
-                {
-                    Logger.LogError(ex, "Unexpected exception during cover pagination for manga ID: {MangaId}", mangaId);
-                    return null; // Trả về null nếu có lỗi nghiêm trọng
-                }
-
-            } while (offset < totalAvailable && totalAvailable > 0);
-
-            Logger.LogInformation("Finished fetching. Total covers retrieved: {RetrievedCount} for manga ID: {MangaId}. API reported total: {ApiTotal}",
-                allCovers.Count, mangaId, totalAvailable);
-
-            // Trả về đối tượng CoverList tổng hợp
-            return new CoverList
-            {
-                Result = "ok",
-                Response = "collection",
-                Data = allCovers,
-                Limit = allCovers.Count, // Giới hạn là tổng số đã lấy
-                Offset = 0,
-                Total = totalAvailable // Tổng số thực tế từ API
-            };
+            }
         }
-
-        // [PHẦN ĐÃ XÓA]
-        // /// <inheritdoc/>
-        // [Obsolete("Use cover art included in manga relationships instead.")]
-        // public async Task<Dictionary<string, string>?> FetchRepresentativeCoverUrlsAsync(List<string> mangaIds)
-        // { ... }
-        //
-        // /// <inheritdoc/>
-        // [Obsolete("Use cover art included in manga relationships instead.")]
-        // public async Task<string> FetchCoverUrlAsync(string mangaId)
-        // { ... }
-        //
-        // /// <inheritdoc/>
-        // [Obsolete("Use FetchCoverUrlAsync or FetchRepresentativeCoverUrlsAsync for better performance and representative covers.")]
-        // public async Task<CoverList?> FetchCoversForMangaAsync(string mangaId, int limit = 10)
-        // { ... }
-        // [/PHẦN ĐÃ XÓA]
-
-        /// <inheritdoc/>
-        public string GetProxiedCoverUrl(string mangaId, string fileName, int size = 512)
+        catch (Exception ex)
         {
-             // ... (Giữ nguyên phần implementation của GetProxiedCoverUrl)
-            var originalImageUrl = $"https://uploads.mangadex.org/covers/{mangaId}/{fileName}.{size}.jpg";
-            return $"{_imageProxyBaseUrl}/mangadex/proxy-image?url={Uri.EscapeDataString(originalImageUrl)}";
+            logger.LogError(ex, "Lỗi khi xử lý tiêu đề thay thế từ List.");
         }
+
+        return altTitlesDictionary;
+    }
+
+    public string ExtractPreferredAlternativeTitle(Dictionary<string, List<string>> altTitlesDictionary)
+    {
+        if (altTitlesDictionary == null || !altTitlesDictionary.Any()) return "";
+
+        // Ưu tiên tiếng Anh
+        if (altTitlesDictionary.TryGetValue("en", out var enTitles) && enTitles.Any()) return enTitles.First();
+        // Sau đó là romaji
+        if (altTitlesDictionary.TryGetValue("ja-ro", out var jaRoTitles) && jaRoTitles.Any()) return jaRoTitles.First();
+        // Lấy cái đầu tiên nếu không có
+        return altTitlesDictionary.FirstOrDefault().Value?.FirstOrDefault() ?? "";
+    }
+
+
+    // Helper khởi tạo từ điển dịch tag
+    private static Dictionary<string, string> InitializeTagTranslations()
+    {
+        // (Giữ nguyên từ điển dịch từ MangaTagService cũ)
+        return new Dictionary<string, string>
+        {
+            { "Oneshot", "Oneshot" }, { "Thriller", "Hồi hộp" }, { "Award Winning", "Đạt giải thưởng" },
+            { "Reincarnation", "Chuyển sinh" }, { "Sci-Fi", "Khoa học viễn tưởng" }, { "Time Travel", "Du hành thời gian" },
+            { "Genderswap", "Chuyển giới" }, { "Loli", "Loli" }, { "Traditional Games", "Trò chơi truyền thống" },
+            { "Official Colored", "Bản màu chính thức" }, { "Historical", "Lịch sử" }, { "Monsters", "Quái vật" },
+            { "Action", "Hành động" }, { "Demons", "Ác quỷ" }, { "Psychological", "Tâm lý" }, { "Ghosts", "Ma" },
+            { "Animals", "Động vật" }, { "Long Strip", "Truyện dài" }, { "Romance", "Lãng mạn" }, { "Ninja", "Ninja" },
+            { "Comedy", "Hài hước" }, { "Mecha", "Robot" }, { "Anthology", "Tuyển tập" }, { "Boys' Love", "Tình yêu nam giới" },
+            { "Incest", "Loạn luân" }, { "Crime", "Tội phạm" }, { "Survival", "Sinh tồn" }, { "Zombies", "Zombie" },
+            { "Reverse Harem", "Harem đảo" }, { "Sports", "Thể thao" }, { "Superhero", "Siêu anh hùng" },
+            { "Martial Arts", "Võ thuật" }, { "Fan Colored", "Bản màu fanmade" }, { "Samurai", "Samurai" },
+            { "Magical Girls", "Ma pháp thiếu nữ" }, { "Mafia", "Mafia" }, { "Adventure", "Phiêu lưu" },
+            { "Self-Published", "Tự xuất bản" }, { "Virtual Reality", "Thực tế ảo" }, { "Office Workers", "Nhân viên văn phòng" },
+            { "Video Games", "Trò chơi điện tử" }, { "Post-Apocalyptic", "Hậu tận thế" }, { "Sexual Violence", "Bạo lực tình dục" },
+            { "Crossdressing", "Giả trang khác giới" }, { "Magic", "Phép thuật" }, { "Girls' Love", "Tình yêu nữ giới" },
+            { "Harem", "Harem" }, { "Military", "Quân đội" }, { "Wuxia", "Võ hiệp" }, { "Isekai", "Dị giới" },
+            { "4-Koma", "4-Koma" }, { "Doujinshi", "Doujinshi" }, { "Philosophical", "Triết học" }, { "Gore", "Bạo lực" },
+            { "Drama", "Kịch tính" }, { "Medical", "Y học" }, { "School Life", "Học đường" }, { "Horror", "Kinh dị" },
+            { "Fantasy", "Kỳ ảo" }, { "Villainess", "Nữ phản diện" }, { "Vampires", "Ma cà rồng" },
+            { "Delinquents", "Học sinh cá biệt" }, { "Monster Girls", "Monster Girls" }, { "Shota", "Shota" },
+            { "Police", "Cảnh sát" }, { "Web Comic", "Web Comic" }, { "Slice of Life", "Đời thường" },
+            { "Aliens", "Người ngoài hành tinh" }, { "Cooking", "Nấu ăn" }, { "Supernatural", "Siêu nhiên" },
+            { "Mystery", "Bí ẩn" }, { "Adaptation", "Chuyển thể" }, { "Music", "Âm nhạc" }, { "Full Color", "Bản màu đầy đủ" },
+            { "Tragedy", "Bi kịch" }, { "Gyaru", "Gyaru" }
+        };
     }
 }
 ```
 
----
+### 3.2. Tạo Service `MangaViewModelMapperService.cs`
 
-## 3. Cập nhật `Services/APIServices/README.md`
-
-**Mục tiêu:** Xóa bỏ mô tả về các phương thức đã lỗi thời trong phần `ICoverApiService` / `CoverApiService`.
-
-**File:** `Services/APIServices/README.md`
-
-**Các bước:**
-
-1.  Mở file `Services/APIServices/README.md`.
-2.  Tìm đến phần mô tả `ICoverApiService` / `CoverApiService`.
-3.  Xóa các dòng mô tả về `FetchRepresentativeCoverUrlsAsync` và `FetchCoverUrlAsync`.
-4.  Đảm bảo mô tả cho `GetAllCoversForMangaAsync` phản ánh đúng chức năng lấy *tất cả* ảnh bìa.
-5.  Lưu file.
-
-**Nội dung cần chỉnh sửa (ví dụ):**
-
-```diff
----
-
-### 4. `ICoverApiService` / `CoverApiService`
-
-*   **Mục đích:** Xử lý các lệnh gọi API liên quan đến Cover Art thông qua Backend API proxy.
-*   **Phương thức chính:**
-    *   `Task<CoverList?> GetAllCoversForMangaAsync(string mangaId)`
-        *   **Input:** `mangaId` (string): ID của manga.
-        *   **Output:** `Task<CoverList?>` - Một đối tượng `CoverList` chứa **tất cả** các `Cover` của manga, hoặc `null` nếu có lỗi.
-        *   **Luồng xử lý:**
-            1.  **Xử lý Pagination Nội bộ:** Gọi API `GET /api/mangadex/cover` lặp lại với `limit=100`, `offset` tăng dần và tham số `manga[]={mangaId}`.
-            2.  Tích lũy kết quả và trả về `CoverList` tổng hợp.
--   *   `Task<Dictionary<string, string>?> FetchRepresentativeCoverUrlsAsync(List<string> mangaIds)`
--       *   **Input:** `mangaIds` (List<string>): Danh sách ID manga.
--       *   **Output:** `Task<Dictionary<string, string>?>` - Dictionary map từ `MangaId` sang URL ảnh bìa thumbnail (qua proxy `/mangadex/proxy-image`), hoặc `null` nếu lỗi.
--       *   **Luồng xử lý:**
--           1.  **Tối ưu hóa:** Gọi API `GET /api/mangadex/cover` một lần (hoặc theo batch) với nhiều tham số `manga[]`.
--           2.  Sử dụng `order[volume]=desc` để ưu tiên cover mới nhất.
--           3.  Lọc kết quả và tạo URL ảnh thumbnail qua proxy `/mangadex/proxy-image`.
--   *   `Task<string> FetchCoverUrlAsync(string mangaId)`
--       *   **Input:** `mangaId` (string): ID của một manga.
--       *   **Output:** `Task<string>` - URL ảnh bìa thumbnail (qua proxy `/mangadex/proxy-image`) hoặc chuỗi rỗng.
--       *   **Luồng xử lý:** Gọi `FetchRepresentativeCoverUrlsAsync` với danh sách chỉ chứa `mangaId`.
-+   *   `string GetProxiedCoverUrl(string mangaId, string fileName, int size = 512)`
-+       *   **Input:**
-+           *   `mangaId` (string): ID của manga.
-+           *   `fileName` (string): Tên file của ảnh bìa.
-+           *   `size` (int): Kích thước ảnh mong muốn (mặc định 512).
-+       *   **Output:** `string` - URL của ảnh bìa đã được proxy bởi Backend API.
-+       *   **Luồng xử lý:** Tạo URL đến MangaDex uploads và bọc nó trong URL proxy của Backend API (`/mangadex/proxy-image?url=...`).
-
----
-```
-
----
-
-## 4. Rà soát và cập nhật XML Comments cho các file còn lại
-
-**Mục tiêu:** Đảm bảo các chú thích XML (`/// <summary>...`) trong các file còn lại của thư mục `Services/APIServices` là chính xác, đầy đủ và nhất quán.
-
-**Các file cần rà soát:**
-
-*   `Services/APIServices/BaseApiService.cs`
-*   `Services/APIServices/Interfaces/IApiRequestHandler.cs`
-*   `Services/APIServices/Interfaces/IApiStatusService.cs`
-*   `Services/APIServices/Interfaces/IChapterApiService.cs`
-*   `Services/APIServices/Interfaces/IMangaApiService.cs`
-*   `Services/APIServices/Interfaces/ITagApiService.cs`
-*   `Services/APIServices/Services/ApiRequestHandler.cs`
-*   `Services/APIServices/Services/ApiStatusService.cs`
-*   `Services/APIServices/Services/ChapterApiService.cs`
-*   `Services/APIServices/Services/MangaApiService.cs`
-*   `Services/APIServices/Services/TagApiService.cs`
-
-**Các bước:**
-
-1.  Mở từng file trong danh sách trên.
-2.  Đọc các chú thích XML hiện có cho lớp và từng phương thức/thuộc tính công khai (public).
-3.  **Đối chiếu với code:** Kiểm tra xem chú thích có còn phù hợp với logic hiện tại của code hay không, đặc biệt là sau các thay đổi gần đây của bạn.
-4.  **Bổ sung/Chỉnh sửa:**
-    *   Thêm chú thích cho các thành phần public chưa có.
-    *   Sửa lại nội dung chú thích cho rõ ràng, chính xác hơn. Mô tả rõ mục đích, tham số (`<param>`), giá trị trả về (`<returns>`), và các trường hợp ngoại lệ có thể xảy ra (`<exception>`) nếu cần.
-    *   Đảm bảo văn phong nhất quán (tiếng Việt, mô tả ngắn gọn, dễ hiểu).
-5.  Lưu lại các thay đổi.
-
-**Ví dụ (minh họa):**
-
-Giả sử trong `BaseApiService.cs`, bạn muốn làm rõ hơn về `BuildUrlWithParams`:
+Service này sẽ triển khai `IMangaViewModelMapper` và sử dụng `IMangaDataExtractor` để tạo ViewModel.
 
 ```csharp
-// File: Services/APIServices/BaseApiService.cs
+// Services/MangaServices/DataProcessing/Services/MangaViewModelMapperService.cs
+using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Models.Mangadex;
+using MangaReader.WebUI.Services.AuthServices; // Cần cho IUserService
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
+using MangaReader.WebUI.Services.MangaServices.Models;
+using MangaReader.WebUI.Services.MangaServices.MangaInformation; // Cần cho MangaUtilityService
+using System.Diagnostics;
 
-// ...
+namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services;
 
-        /// <summary>
-        /// Xây dựng URL đầy đủ với các tham số truy vấn từ một Dictionary.
-        /// Hỗ trợ các tham số có nhiều giá trị (ví dụ: `includes[]=a&includes[]=b` bằng cách lặp qua danh sách giá trị của key).
-        /// Tự động mã hóa (URL encode) tên và giá trị tham số.
-        /// </summary>
-        /// <param name="endpointPath">Đường dẫn tương đối của endpoint (ví dụ: "manga", "chapter/{id}/feed"). Sẽ được nối với BaseUrl.</param>
-        /// <param name="parameters">Dictionary chứa các tham số truy vấn. Key là tên tham số (ví dụ: "limit", "includes[]"), Value là danh sách các giá trị cho tham số đó.</param>
-        /// <returns>URL đầy đủ đã bao gồm các tham số truy vấn đã được mã hóa.</returns>
-        protected string BuildUrlWithParams(string endpointPath, Dictionary<string, List<string>>? parameters = null)
+/// <summary>
+/// Triển khai IMangaViewModelMapper, chịu trách nhiệm chuyển đổi Model MangaDex thành ViewModel.
+/// </summary>
+public class MangaViewModelMapperService(
+    ILogger<MangaViewModelMapperService> logger,
+    IMangaDataExtractor mangaDataExtractor, // Để lấy dữ liệu đã xử lý
+    IMangaFollowService mangaFollowService, // Để kiểm tra trạng thái theo dõi
+    IUserService userService,               // Để kiểm tra đăng nhập
+    MangaUtilityService mangaUtilityService // Để lấy rating/views giả
+    ) : IMangaViewModelMapper
+{
+    public async Task<MangaViewModel> MapToMangaViewModelAsync(Manga mangaData)
+    {
+        Debug.Assert(mangaData != null, "mangaData không được null khi mapping thành MangaViewModel.");
+        Debug.Assert(mangaData.Attributes != null, "mangaData.Attributes không được null khi mapping thành MangaViewModel.");
+
+        string id = mangaData.Id.ToString();
+        var attributes = mangaData.Attributes!; // Sử dụng ! vì đã assert ở trên
+        var relationships = mangaData.Relationships;
+
+        try
         {
-           // ... implementation ...
+            string title = mangaDataExtractor.ExtractMangaTitle(attributes.Title, attributes.AltTitles);
+            string description = mangaDataExtractor.ExtractMangaDescription(attributes.Description);
+            string coverUrl = mangaDataExtractor.ExtractCoverUrl(id, relationships);
+            string status = mangaDataExtractor.ExtractAndTranslateStatus(attributes.Status);
+            List<string> tags = mangaDataExtractor.ExtractAndTranslateTags(attributes.Tags);
+            var (author, artist) = mangaDataExtractor.ExtractAuthorArtist(relationships);
+            var altTitlesDict = mangaDataExtractor.ExtractAlternativeTitles(attributes.AltTitles);
+            string preferredAltTitle = mangaDataExtractor.ExtractPreferredAlternativeTitle(altTitlesDict);
+
+            // Kiểm tra trạng thái follow (yêu cầu User Service và Follow Service)
+            bool isFollowing = false;
+            if (userService.IsAuthenticated())
+            {
+                // Thêm try-catch riêng cho việc kiểm tra follow để không làm crash toàn bộ mapping
+                try
+                {
+                    isFollowing = await mangaFollowService.IsFollowingMangaAsync(id);
+                }
+                catch (Exception followEx)
+                {
+                    logger.LogError(followEx, "Lỗi khi kiểm tra trạng thái theo dõi cho manga {MangaId} trong Mapper.", id);
+                    // isFollowing vẫn là false
+                }
+            }
+
+            return new MangaViewModel
+            {
+                Id = id,
+                Title = title,
+                Description = description,
+                CoverUrl = coverUrl,
+                Status = status,
+                Tags = tags,
+                Author = author,
+                Artist = artist,
+                OriginalLanguage = attributes.OriginalLanguage ?? "",
+                PublicationDemographic = attributes.PublicationDemographic ?? "",
+                ContentRating = attributes.ContentRating ?? "",
+                AlternativeTitles = preferredAltTitle, // Lấy tiêu đề thay thế ưu tiên
+                LastUpdated = attributes.UpdatedAt.DateTime, // Chuyển DateTimeOffset thành DateTime
+                IsFollowing = isFollowing,
+                // Lấy dữ liệu giả từ Utility Service
+                Rating = mangaUtilityService.GetMangaRating(id),
+                Views = 0 // MangaDex API không cung cấp Views
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Lỗi nghiêm trọng khi mapping MangaData thành MangaViewModel cho ID: {MangaId}", id);
+            // Trả về ViewModel lỗi để không làm crash trang
+            return new MangaViewModel
+            {
+                Id = id,
+                Title = $"Lỗi tải ({id})",
+                Description = "Đã xảy ra lỗi khi xử lý dữ liệu.",
+                CoverUrl = "/images/cover-placeholder.jpg",
+                Status = "Lỗi",
+                Tags = new List<string>(),
+                Author = "Lỗi",
+                Artist = "Lỗi"
+            };
+        }
+    }
+
+    public ChapterViewModel MapToChapterViewModel(Chapter chapterData)
+    {
+        Debug.Assert(chapterData != null, "chapterData không được null khi mapping thành ChapterViewModel.");
+        Debug.Assert(chapterData.Attributes != null, "chapterData.Attributes không được null khi mapping thành ChapterViewModel.");
+
+        var attributes = chapterData.Attributes!; // Use ! because of the assert
+
+        try
+        {
+            string displayTitle = mangaDataExtractor.ExtractChapterDisplayTitle(attributes);
+            string chapterNumber = mangaDataExtractor.ExtractChapterNumber(attributes);
+
+            // Xử lý relationships (đơn giản hóa, chỉ lấy ID và Type)
+            var relationships = chapterData.Relationships?
+                .Where(r => r != null)
+                .Select(r => new ChapterRelationship { Id = r!.Id.ToString(), Type = r.Type })
+                .ToList() ?? new List<ChapterRelationship>();
+
+            return new ChapterViewModel
+            {
+                Id = chapterData.Id.ToString(),
+                Title = displayTitle,
+                Number = chapterNumber,
+                Language = attributes.TranslatedLanguage ?? "unknown",
+                PublishedAt = attributes.PublishAt.DateTime, // Convert DateTimeOffset to DateTime
+                Relationships = relationships
+            };
+        }
+        catch (Exception ex)
+        {
+             logger.LogError(ex, "Lỗi khi mapping ChapterData thành ChapterViewModel cho ID: {ChapterId}", chapterData?.Id);
+            // Trả về ViewModel lỗi
+            return new ChapterViewModel
+            {
+                Id = chapterData?.Id.ToString() ?? "error",
+                Title = "Lỗi tải chương",
+                Number = "?",
+                Language = "error",
+                PublishedAt = DateTime.MinValue,
+                Relationships = new List<ChapterRelationship>()
+            };
+        }
+    }
+
+     public async Task<MangaDetailViewModel> MapToMangaDetailViewModelAsync(Manga mangaData, List<ChapterViewModel> chapters)
+    {
+        Debug.Assert(mangaData != null, "mangaData không được null khi mapping thành MangaDetailViewModel.");
+        Debug.Assert(mangaData.Attributes != null, "mangaData.Attributes không được null khi mapping thành MangaDetailViewModel.");
+        Debug.Assert(chapters != null, "chapters không được null khi mapping thành MangaDetailViewModel.");
+
+        // Map thông tin manga cơ bản
+        var mangaViewModel = await MapToMangaViewModelAsync(mangaData);
+
+        // Trích xuất danh sách tiêu đề thay thế đã nhóm
+        var alternativeTitlesByLanguage = mangaDataExtractor.ExtractAlternativeTitles(mangaData.Attributes?.AltTitles);
+
+        return new MangaDetailViewModel
+        {
+            Manga = mangaViewModel,
+            Chapters = chapters ?? new List<ChapterViewModel>(), // Đảm bảo không null
+            AlternativeTitlesByLanguage = alternativeTitlesByLanguage
+        };
+    }
+
+    public async Task<MangaInfoViewModel> MapToMangaInfoViewModelAsync(Manga mangaData)
+    {
+        Debug.Assert(mangaData != null, "mangaData không được null khi mapping thành MangaInfoViewModel.");
+
+        string id = mangaData.Id.ToString();
+        var attributes = mangaData.Attributes;
+        var relationships = mangaData.Relationships;
+
+        string title = "Lỗi tải tiêu đề";
+        if (attributes != null)
+        {
+            title = mangaDataExtractor.ExtractMangaTitle(attributes.Title, attributes.AltTitles);
         }
 
-// ...
-```
+        string coverUrl = mangaDataExtractor.ExtractCoverUrl(id, relationships);
 
-Hãy thực hiện các bước trên để hoàn tất việc cập nhật. Chúc bạn thành công!
+        // MangaInfoViewModel không cần trạng thái follow hay các thông tin phức tạp khác
+        return new MangaInfoViewModel
+        {
+            MangaId = id,
+            MangaTitle = title,
+            CoverUrl = coverUrl
+        };
+    }
+
+     public SimpleChapterInfo MapToSimpleChapterInfo(Chapter chapterData)
+    {
+        Debug.Assert(chapterData != null, "chapterData không được null khi mapping thành SimpleChapterInfo.");
+        Debug.Assert(chapterData.Attributes != null, "chapterData.Attributes không được null khi mapping thành SimpleChapterInfo.");
+
+        var attributes = chapterData.Attributes!;
+
+        string displayTitle = mangaDataExtractor.ExtractChapterDisplayTitle(attributes);
+
+        return new SimpleChapterInfo
+        {
+            ChapterId = chapterData.Id.ToString(),
+            DisplayTitle = displayTitle,
+            PublishedAt = attributes.PublishAt.DateTime
+        };
+    }
+    
+    public LastReadMangaViewModel MapToLastReadMangaViewModel(MangaInfoViewModel mangaInfo, ChapterInfo chapterInfo, DateTime lastReadAt)
+    {
+        Debug.Assert(mangaInfo != null, "mangaInfo không được null khi mapping thành LastReadMangaViewModel.");
+        Debug.Assert(chapterInfo != null, "chapterInfo không được null khi mapping thành LastReadMangaViewModel.");
+
+        return new LastReadMangaViewModel
+        {
+            MangaId = mangaInfo.MangaId,
+            MangaTitle = mangaInfo.MangaTitle,
+            CoverUrl = mangaInfo.CoverUrl,
+            ChapterId = chapterInfo.Id,
+            ChapterTitle = chapterInfo.Title,
+            ChapterPublishedAt = chapterInfo.PublishedAt,
+            LastReadAt = lastReadAt
+        };
+    }
+
+    public FollowedMangaViewModel MapToFollowedMangaViewModel(MangaInfoViewModel mangaInfo, List<SimpleChapterInfo> latestChapters)
+    {
+        Debug.Assert(mangaInfo != null, "mangaInfo không được null khi mapping thành FollowedMangaViewModel.");
+        Debug.Assert(latestChapters != null, "latestChapters không được null khi mapping thành FollowedMangaViewModel.");
+
+        return new FollowedMangaViewModel
+        {
+            MangaId = mangaInfo.MangaId,
+            MangaTitle = mangaInfo.MangaTitle,
+            CoverUrl = mangaInfo.CoverUrl,
+            LatestChapters = latestChapters
+        };
+    }
+}
 ```
