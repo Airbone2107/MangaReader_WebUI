@@ -1,7 +1,6 @@
 using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Services.AuthServices;
 using MangaReader.WebUI.Services.MangaServices;
-using MangaReader.WebUI.Services.MangaServices.MangaInformation;
 using MangaReader.WebUI.Services.MangaServices.MangaPageService;
 using MangaReader.WebUI.Services.MangaServices.Models;
 using MangaReader.WebUI.Services.UtilityServices;
@@ -9,15 +8,16 @@ using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using MangaReader.WebUI.Services.APIServices.Interfaces;
 
 namespace MangaReader.WebUI.Controllers
 {
     public class MangaController : Controller
     {
-        private readonly MangaDexService _mangaDexService;
+        private readonly ITagApiService _tagApiService;
+        private readonly IApiStatusService _apiStatusService;
         private readonly ILogger<MangaController> _logger;
         private readonly JsonConversionService _jsonConversionService;
-        private readonly MangaTitleService _mangaTitleService;
         private readonly MangaDetailsService _mangaDetailsService;
         private readonly MangaSearchService _mangaSearchService;
         private readonly ViewRenderService _viewRenderService;
@@ -28,10 +28,10 @@ namespace MangaReader.WebUI.Controllers
         private readonly IReadingHistoryService _readingHistoryService;
 
         public MangaController(
-            MangaDexService mangaDexService, 
+            ITagApiService tagApiService,
+            IApiStatusService apiStatusService,
             ILogger<MangaController> logger,
             JsonConversionService jsonConversionService,
-            MangaTitleService mangaTitleService,
             MangaDetailsService mangaDetailsService,
             MangaSearchService mangaSearchService,
             ViewRenderService viewRenderService,
@@ -41,10 +41,10 @@ namespace MangaReader.WebUI.Controllers
             IFollowedMangaService followedMangaService,
             IReadingHistoryService readingHistoryService)
         {
-            _mangaDexService = mangaDexService;
+            _tagApiService = tagApiService;
+            _apiStatusService = apiStatusService;
             _logger = logger;
             _jsonConversionService = jsonConversionService;
-            _mangaTitleService = mangaTitleService;
             _mangaDetailsService = mangaDetailsService;
             _mangaSearchService = mangaSearchService;
             _viewRenderService = viewRenderService;
@@ -71,7 +71,7 @@ namespace MangaReader.WebUI.Controllers
             try
             {
                 _logger.LogInformation("Đang lấy danh sách tags từ MangaDex");
-                var tags = await _mangaDexService.FetchTagsAsync();
+                var tags = await _tagApiService.FetchTagsAsync();
                 return Json(new { success = true, data = tags });
             }
             catch (Exception ex)
@@ -86,42 +86,45 @@ namespace MangaReader.WebUI.Controllers
         {
             try
             {
-                // Thiết lập page type để chọn CSS phù hợp cho trang chi tiết manga
                 ViewData["PageType"] = "manga-details";
-                
-                // Sử dụng MangaDetailsService để lấy thông tin chi tiết manga
+
+                // Gọi GetMangaDetailsAsync chỉ MỘT LẦN
                 var viewModel = await _mangaDetailsService.GetMangaDetailsAsync(id);
-                
-                // Kiểm tra trạng thái theo dõi nếu người dùng đã đăng nhập
+
+                // Kiểm tra trạng thái theo dõi (giữ nguyên)
                 if (_userService.IsAuthenticated())
                 {
-                    // Gọi API để kiểm tra trạng thái theo dõi
                     bool isFollowing = await _mangaFollowService.IsFollowingMangaAsync(id);
-                    // Cập nhật trạng thái theo dõi trong model
-                    viewModel.Manga.IsFollowing = isFollowing;
+                    // Gán IsFollowing vào MangaViewModel bên trong viewModel nếu có Manga
+                    if (viewModel.Manga != null)
+                    {
+                        viewModel.Manga.IsFollowing = isFollowing;
+                    }
                 }
                 else
                 {
                     // Nếu chưa đăng nhập, mặc định là false
-                    viewModel.Manga.IsFollowing = false;
+                    if (viewModel.Manga != null)
+                    {
+                        viewModel.Manga.IsFollowing = false;
+                    }
                 }
 
-                // Nếu có dictionary tiêu đề thay thế, truyền vào ViewData
-                if (viewModel.Manga != null && !string.IsNullOrEmpty(viewModel.Manga.AlternativeTitles))
+                // XÓA BỎ ĐOẠN GỌI API LẦN 2 và thay bằng đoạn code mới
+                // Truyền trực tiếp Dictionary từ ViewModel vào ViewData (nếu View cần)
+                if (viewModel.AlternativeTitlesByLanguage != null && viewModel.AlternativeTitlesByLanguage.Any())
                 {
-                    // Sử dụng phương thức mới để lấy tiêu đề thay thế
-                    var altTitlesDictionary = await _mangaDetailsService.GetAlternativeTitlesByLanguageAsync(id);
-                    ViewData["AlternativeTitlesByLanguage"] = altTitlesDictionary;
+                    ViewData["AlternativeTitlesByLanguage"] = viewModel.AlternativeTitlesByLanguage;
                 }
-                
-                // Sử dụng ViewRenderService để trả về view phù hợp
+
                 return _viewRenderService.RenderViewBasedOnRequest(this, "Details", viewModel);
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Lỗi khi tải chi tiết manga: {ex.Message}");
                 ViewBag.ErrorMessage = "Không thể tải chi tiết manga. Vui lòng thử lại sau.";
-                return View("Details", new MangaDetailViewModel());
+                // Trả về ViewModel rỗng với Dictionary rỗng
+                return View("Details", new MangaDetailViewModel { AlternativeTitlesByLanguage = new Dictionary<string, List<string>>() });
             }
         }
         

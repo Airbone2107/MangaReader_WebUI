@@ -1,301 +1,244 @@
 using MangaReader.WebUI.Models;
-using MangaReader.WebUI.Services.MangaServices.MangaInformation;
+using MangaReader.WebUI.Models.Mangadex;
 using System.Text.Json;
+using MangaReader.WebUI.Services.APIServices.Interfaces;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
 
 namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
     public class ChapterReadingServices
     {
-        private readonly MangaDexService _mangaDexService;
+        private readonly IChapterApiService _chapterApiService;
         private readonly MangaIdService _mangaIdService;
         private readonly ChapterLanguageServices _chapterLanguageServices;
-        private readonly MangaTitleService _mangaTitleService;
         private readonly ChapterService _chapterService;
         private readonly ILogger<ChapterReadingServices> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly string _backendBaseUrl; // Lấy base URL của backend
+        private readonly IMangaDataExtractor _mangaDataExtractor;
+        private readonly IMangaApiService _mangaApiService;
 
         public ChapterReadingServices(
-            MangaDexService mangaDexService,
+            IChapterApiService chapterApiService,
             MangaIdService mangaIdService,
             ChapterLanguageServices chapterLanguageServices,
-            MangaTitleService mangaTitleService,
             ChapterService chapterService,
             IHttpContextAccessor httpContextAccessor,
-            ILogger<ChapterReadingServices> logger)
+            IConfiguration configuration,
+            ILogger<ChapterReadingServices> logger,
+            IMangaDataExtractor mangaDataExtractor,
+            IMangaApiService mangaApiService)
         {
-            _mangaDexService = mangaDexService;
+            _chapterApiService = chapterApiService;
             _mangaIdService = mangaIdService;
             _chapterLanguageServices = chapterLanguageServices;
-            _mangaTitleService = mangaTitleService;
             _chapterService = chapterService;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
+            _backendBaseUrl = configuration["BackendApi:BaseUrl"]?.TrimEnd('/')
+                             ?? throw new InvalidOperationException("BackendApi:BaseUrl is not configured.");
+            _mangaDataExtractor = mangaDataExtractor;
+            _mangaApiService = mangaApiService;
         }
 
-        public async Task<ChapterReadViewModel> GetChapterReadViewModel(string id)
+        public async Task<ChapterReadViewModel> GetChapterReadViewModel(string chapterId)
         {
             try
             {
-                _logger.LogInformation($"Đang tải chapter {id}");
-                
-                // Tải các trang của chapter
-                var pages = await _mangaDexService.FetchChapterPagesAsync(id);
-                
-                // Lấy mangaId từ API
-                _logger.LogInformation($"Đang xác định mangaId cho chapter {id}");
-                string mangaId;
-                
-                try 
+                _logger.LogInformation($"Đang tải chapter {chapterId}");
+
+                // 1. Tải thông tin server ảnh và tên file ảnh
+                var atHomeResponse = await _chapterApiService.FetchChapterPagesAsync(chapterId);
+                if (atHomeResponse == null || string.IsNullOrEmpty(atHomeResponse.BaseUrl) || atHomeResponse.Chapter?.Data == null)
                 {
-                    mangaId = await _mangaIdService.GetMangaIdFromChapterAsync(id);
-                    _logger.LogInformation($"Đã xác định được mangaId: {mangaId} cho chapter {id}");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"Không thể xác định mangaId cho chapter {id}: {ex.Message}");
-                    throw new Exception("Không thể xác định manga cho chapter này.", ex);
+                    _logger.LogError($"Không thể lấy thông tin trang ảnh cho chapter {chapterId}");
+                    throw new Exception("Không thể tải trang ảnh cho chapter này.");
                 }
 
-                // Tiến hành xử lý thông tin chapter
-                string currentChapterLanguage = "unknown";
-                List<ChapterViewModel> chaptersList = new List<ChapterViewModel>();
-                ChapterViewModel currentChapterViewModel = null;
-                string prevChapterId = null;
-                string nextChapterId = null;
-                string mangaTitle = null;
-                
-                // Kiểm tra xem có dữ liệu trong session không
-                var httpContext = _httpContextAccessor.HttpContext;
-                var allSessionChaptersJson = httpContext.Session.GetString($"Manga_{mangaId}_AllChapters");
-                var sessionTitle = httpContext.Session.GetString($"Manga_{mangaId}_Title");
-                bool hasDataInSession = !string.IsNullOrEmpty(allSessionChaptersJson) && !string.IsNullOrEmpty(sessionTitle);
-                
-                if (hasDataInSession)
+                // 2. Mapping: Tạo danh sách URL ảnh đầy đủ qua proxy
+                var pages = atHomeResponse.Chapter.Data
+                    .Select(pageFile => $"{_backendBaseUrl}/mangadex/proxy-image?url={Uri.EscapeDataString($"{atHomeResponse.BaseUrl}/data/{atHomeResponse.Chapter.Hash}/{pageFile}")}")
+                    .ToList();
+                _logger.LogInformation($"Đã tạo {pages.Count} URL ảnh cho chapter {chapterId}");
+
+                // 3. Lấy mangaId
+                string mangaId = await _mangaIdService.GetMangaIdFromChapterAsync(chapterId);
+                _logger.LogInformation($"Đã xác định được mangaId: {mangaId} cho chapter {chapterId}");
+
+                // 4. Lấy ngôn ngữ chapter hiện tại
+                string currentChapterLanguage = await _chapterLanguageServices.GetChapterLanguageAsync(chapterId);
+                _logger.LogInformation($"Đã lấy được ngôn ngữ {currentChapterLanguage} từ API");
+
+                // 5. Lấy tiêu đề manga
+                string mangaTitle = await GetMangaTitleAsync(mangaId);
+
+                // 6. Lấy danh sách chapters
+                var chaptersList = await GetChaptersAsync(mangaId, currentChapterLanguage);
+
+                // 7. Tìm chapter hiện tại và các chapter liền kề
+                var (currentChapterViewModel, prevChapterId, nextChapterId) =
+                    FindCurrentAndAdjacentChapters(chaptersList, chapterId, currentChapterLanguage);
+
+                // Lấy thông tin chapter hiện tại để trích xuất title và number
+                ChapterAttributes currentChapterAttributes = null;
+                var currentChapterDataResponse = await _chapterApiService.FetchChapterInfoAsync(chapterId);
+                if (currentChapterDataResponse?.Data?.Attributes != null)
                 {
-                    _logger.LogInformation("Tìm thấy dữ liệu chapters và tiêu đề trong session, tiến hành xử lý...");
-                    
-                    // Gán trực tiếp tiêu đề từ session
-                    mangaTitle = sessionTitle;
-                    _logger.LogInformation($"Đã lấy tiêu đề manga {mangaId} từ session: {mangaTitle}");
-                    
-                    // TRƯỜNG HỢP 1: CÓ DỮ LIỆU TRONG SESSION
-                    try
-                    {
-                        // Xác định ngôn ngữ của chapter hiện tại từ session
-                        var allChaptersList = JsonSerializer.Deserialize<List<ChapterViewModel>>(allSessionChaptersJson);
-                        var currentChapter = allChaptersList.FirstOrDefault(c => c.Id == id);
-                        
-                        if (currentChapter != null)
-                        {
-                            currentChapterLanguage = currentChapter.Language;
-                            _logger.LogInformation($"Đã xác định ngôn ngữ của chapter hiện tại từ session: {currentChapterLanguage}");
-                        }
-                        else
-                        {
-                            _logger.LogWarning($"Không tìm thấy chapter {id} trong session, sẽ cần lấy thông tin từ API");
-                            // Nếu không tìm thấy chapter trong session, chuyển sang xử lý như không có session
-                            hasDataInSession = false;
-                        }
-                        
-                        if (hasDataInSession)
-                        {
-                            // Lấy danh sách chapters theo ngôn ngữ từ session
-                            var sessionChaptersJson = httpContext.Session.GetString($"Manga_{mangaId}_Chapters_{currentChapterLanguage}");
-                            
-                            if (!string.IsNullOrEmpty(sessionChaptersJson))
-                            {
-                                chaptersList = JsonSerializer.Deserialize<List<ChapterViewModel>>(sessionChaptersJson);
-                                _logger.LogInformation($"Đã lấy {chaptersList.Count} chapters từ session");
-                                
-                                // Tìm chapter hiện tại và xác định chapter trước/sau
-                                (currentChapterViewModel, prevChapterId, nextChapterId) = 
-                                    FindCurrentAndAdjacentChapters(chaptersList, id, currentChapterLanguage);
-                            }
-                            else
-                            {
-                                _logger.LogWarning($"Không tìm thấy danh sách chapters ngôn ngữ {currentChapterLanguage} trong session, chuyển sang lấy từ API");
-                                hasDataInSession = false;
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError($"Lỗi khi xử lý dữ liệu từ session: {ex.Message}");
-                        hasDataInSession = false;
-                    }
+                    currentChapterAttributes = currentChapterDataResponse.Data.Attributes;
                 }
                 
-                // TRƯỜNG HỢP 2: KHÔNG CÓ DỮ LIỆU TRONG SESSION HOẶC XỬ LÝ SESSION BỊ LỖI
-                if (!hasDataInSession)
+                string displayChapterTitle = "Không xác định";
+                string displayChapterNumber = "?";
+
+                if (currentChapterAttributes != null)
                 {
-                    _logger.LogInformation("Không có đủ dữ liệu hợp lệ trong session, tiến hành lấy dữ liệu từ API...");
-                    
-                    // Xác định ngôn ngữ của chapter từ API
-                    currentChapterLanguage = await GetChapterLanguageFromApiAsync(id);
-                    _logger.LogInformation($"Đã lấy được ngôn ngữ {currentChapterLanguage} từ API");
-                    
-                    // Lấy danh sách chapters từ API và xử lý
-                    chaptersList = await GetChaptersFromApiAsync(mangaId, currentChapterLanguage);
-                    
-                    // Lấy tiêu đề manga từ API
-                    mangaTitle = await GetMangaTitleFromApiAsync(mangaId);
-                    
-                    // Lưu danh sách chapters vào session để sử dụng sau này
-                    if (chaptersList.Count > 0)
-                    {
-                        httpContext.Session.SetString(
-                            $"Manga_{mangaId}_Chapters_{currentChapterLanguage}", 
-                            JsonSerializer.Serialize(chaptersList));
-                        _logger.LogInformation($"Đã lưu {chaptersList.Count} chapters ngôn ngữ {currentChapterLanguage} vào session");
-                    }
-                    
-                    // Tìm chapter hiện tại và xác định chapter trước/sau
-                    (currentChapterViewModel, prevChapterId, nextChapterId) = 
-                        FindCurrentAndAdjacentChapters(chaptersList, id, currentChapterLanguage);
+                    displayChapterTitle = _mangaDataExtractor.ExtractChapterDisplayTitle(currentChapterAttributes);
+                    displayChapterNumber = _mangaDataExtractor.ExtractChapterNumber(currentChapterAttributes);
+                } 
+                else if (currentChapterViewModel != null) // Fallback nếu API lỗi, dùng từ Sibling
+                {
+                    displayChapterTitle = currentChapterViewModel.Title;
+                    displayChapterNumber = currentChapterViewModel.Number;
                 }
-                
-                // Tạo view model
+
+                // 8. Tạo view model
                 var viewModel = new ChapterReadViewModel
                 {
                     MangaId = mangaId,
                     MangaTitle = mangaTitle,
-                    ChapterId = id,
-                    ChapterTitle = currentChapterViewModel.Title,
-                    ChapterNumber = currentChapterViewModel.Number,
+                    ChapterId = chapterId,
+                    ChapterTitle = displayChapterTitle,
+                    ChapterNumber = displayChapterNumber,
                     ChapterLanguage = currentChapterLanguage,
-                    Pages = pages,
+                    Pages = pages, // Danh sách URL đã xử lý
                     PrevChapterId = prevChapterId,
                     NextChapterId = nextChapterId,
                     SiblingChapters = chaptersList
                 };
-                
+
                 return viewModel;
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi tải chapter: {ex.Message}\nStack Trace: {ex.StackTrace}");
+                _logger.LogError(ex, $"Lỗi khi tải chapter {chapterId}");
                 throw;
             }
         }
         
         public async Task<string> GetMangaTitleAsync(string mangaId)
         {
-            // Kiểm tra xem tiêu đề có trong session không
             var httpContext = _httpContextAccessor.HttpContext;
-            string sessionTitle = httpContext.Session.GetString($"Manga_{mangaId}_Title");
+            string sessionTitle = httpContext?.Session.GetString($"Manga_{mangaId}_Title");
             if (!string.IsNullOrEmpty(sessionTitle))
             {
                 _logger.LogInformation($"Đã lấy tiêu đề manga {mangaId} từ session: {sessionTitle}");
                 return sessionTitle;
             }
             
-            // Nếu không có trong session, gọi API để lấy tiêu đề
-            return await GetMangaTitleFromApiAsync(mangaId);
+            // Lấy từ API và dùng extractor
+            var mangaResponse = await _mangaApiService.FetchMangaDetailsAsync(mangaId);
+            if (mangaResponse?.Data?.Attributes != null)
+            {
+                string title = _mangaDataExtractor.ExtractMangaTitle(mangaResponse.Data.Attributes.Title, mangaResponse.Data.Attributes.AltTitles);
+                 if (httpContext != null && !string.IsNullOrEmpty(title) && title != "Không có tiêu đề")
+                {
+                    httpContext.Session.SetString($"Manga_{mangaId}_Title", title);
+                    _logger.LogInformation($"Đã lưu tiêu đề manga {mangaId} vào session: {title}");
+                }
+                return title;
+            }
+            return "Không có tiêu đề";
         }
         
-        private async Task<string> GetMangaTitleFromApiAsync(string mangaId)
+        private async Task<List<ChapterViewModel>> GetChaptersAsync(string mangaId, string language)
         {
-            _logger.LogInformation($"Tiến hành lấy tiêu đề manga {mangaId} từ API...");
-            
-            // Sử dụng phương thức từ MangaTitleService
-            string mangaTitle = await _mangaTitleService.GetMangaTitleFromIdAsync(mangaId);
-            
-            // Lưu tiêu đề vào session để sử dụng sau này
-            var httpContext = _httpContextAccessor.HttpContext;
-            if (!string.IsNullOrEmpty(mangaTitle) && mangaTitle != "Không có tiêu đề")
-            {
-                httpContext.Session.SetString($"Manga_{mangaId}_Title", mangaTitle);
-                _logger.LogInformation($"Đã lưu tiêu đề manga {mangaId} vào session: {mangaTitle}");
-            }
-            
-            return mangaTitle;
-        }
-        
-        private async Task<string> GetChapterLanguageFromApiAsync(string chapterId)
-        {
-            try
-            {
-                string language = await _chapterLanguageServices.GetChapterLanguageAsync(chapterId);
-                _logger.LogInformation($"Đã xác định ngôn ngữ của chapter từ API: {language}");
-                return language;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Lỗi khi lấy ngôn ngữ của chapter {chapterId}: {ex.Message}");
-                return "unknown";
-            }
+             var httpContext = _httpContextAccessor.HttpContext;
+             var sessionChaptersJson = httpContext?.Session.GetString($"Manga_{mangaId}_Chapters_{language}");
+
+             if (!string.IsNullOrEmpty(sessionChaptersJson))
+             {
+                 try
+                 {
+                     var chaptersList = JsonSerializer.Deserialize<List<ChapterViewModel>>(sessionChaptersJson);
+                     if (chaptersList != null && chaptersList.Any())
+                     {
+                         _logger.LogInformation($"Đã lấy {chaptersList.Count} chapters ngôn ngữ {language} từ session");
+                         return chaptersList;
+                     }
+                 }
+                 catch (JsonException ex)
+                 {
+                      _logger.LogWarning(ex, $"Lỗi deserialize chapters từ session cho manga {mangaId}, ngôn ngữ {language}. Sẽ lấy lại từ API.");
+                 }
+             }
+             return await GetChaptersFromApiAsync(mangaId, language);
         }
         
         private async Task<List<ChapterViewModel>> GetChaptersFromApiAsync(string mangaId, string language)
         {
             _logger.LogInformation($"Tiến hành lấy danh sách chapters cho manga {mangaId} với ngôn ngữ {language}");
-            
-            // Sử dụng ChapterService để lấy và xử lý danh sách chapters
             var allChapters = await _chapterService.GetChaptersAsync(mangaId, language);
-            
             _logger.LogInformation($"Đã lấy {allChapters.Count} chapters từ API");
-            
-            // Lưu danh sách tất cả chapters vào session
+
             var httpContext = _httpContextAccessor.HttpContext;
-            httpContext.Session.SetString($"Manga_{mangaId}_AllChapters", JsonSerializer.Serialize(allChapters));
-            
-            // Lọc và sắp xếp danh sách chapters theo ngôn ngữ hiện tại
-            var chaptersByLanguage = _chapterService.GetChaptersByLanguage(allChapters);
-            
-            // Lấy danh sách chapters theo ngôn ngữ chỉ định
-            if (chaptersByLanguage.ContainsKey(language))
+            if (httpContext != null)
             {
-                return chaptersByLanguage[language];
+                 // Lưu danh sách tất cả chapters vào session (nếu cần)
+                 // httpContext.Session.SetString($"Manga_{mangaId}_AllChapters", JsonSerializer.Serialize(allChapters));
+
+                 // Phân loại và lưu theo ngôn ngữ
+                 var chaptersByLanguage = _chapterService.GetChaptersByLanguage(allChapters);
+                 if (chaptersByLanguage.TryGetValue(language, out var chaptersInLanguage))
+                 {
+                     httpContext.Session.SetString($"Manga_{mangaId}_Chapters_{language}", JsonSerializer.Serialize(chaptersInLanguage));
+                     _logger.LogInformation($"Đã lưu {chaptersInLanguage.Count} chapters ngôn ngữ {language} vào session");
+                     return chaptersInLanguage;
+                 }
             }
-            
-            // Nếu không tìm thấy chapters với ngôn ngữ chỉ định, trả về danh sách rỗng
-            _logger.LogWarning($"Không tìm thấy chapters ngôn ngữ {language} cho manga {mangaId}");
             return new List<ChapterViewModel>();
         }
         
         private (ChapterViewModel currentChapter, string prevId, string nextId) FindCurrentAndAdjacentChapters(
             List<ChapterViewModel> chapters, string chapterId, string language)
         {
-            ChapterViewModel currentChapterViewModel;
-            string prevChapterId = null;
-            string nextChapterId = null;
-            
-            // Tìm chapter hiện tại trong danh sách các chapter cùng ngôn ngữ
-            int currentIndex = chapters.FindIndex(c => c.Id == chapterId);
-            _logger.LogInformation($"Chapter hiện tại ở vị trí: {currentIndex}, tổng số: {chapters.Count}");
-            
-            if (currentIndex > 0)
+            _logger.LogInformation($"Xác định chapter hiện tại và các chapter liền kề trong danh sách {chapters.Count} chapters");
+
+            var currentChapter = chapters.FirstOrDefault(c => c.Id == chapterId);
+
+            if (currentChapter == null)
             {
-                prevChapterId = chapters[currentIndex - 1].Id;
+                _logger.LogWarning($"Không tìm thấy chapter {chapterId} trong danh sách chapters ngôn ngữ {language}");
+                // Trả về ViewModel mặc định nếu không tìm thấy chapter hiện tại
+                return (new ChapterViewModel { Id = chapterId, Title = "Chương không xác định", Number = "?", Language = language }, null, null);
             }
-            
-            if (currentIndex < chapters.Count - 1 && currentIndex >= 0)
+
+            // Sắp xếp danh sách chapters theo số chương tăng dần để xác định chương trước/sau
+            // Cần xử lý trường hợp chapterNumber là null hoặc không phải số
+            var sortedChapters = chapters
+                .Select(c => new { Chapter = c, Number = ParseChapterNumber(c.Number) })
+                .OrderBy(c => c.Number ?? double.MaxValue) // Đẩy null/không phải số về cuối
+                .Select(c => c.Chapter)
+                .ToList();
+
+
+            int index = sortedChapters.FindIndex(c => c.Id == chapterId);
+
+            string prevId = (index > 0) ? sortedChapters[index - 1].Id : null;
+            string nextId = (index >= 0 && index < sortedChapters.Count - 1) ? sortedChapters[index + 1].Id : null;
+
+            _logger.LogInformation($"Chapter hiện tại: {currentChapter.Title}, Chapter trước: {(prevId != null ? "có" : "không có")}, Chapter sau: {(nextId != null ? "có" : "không có")}");
+
+            return (currentChapter, prevId, nextId);
+        }
+
+        // Helper để parse số chapter, trả về null nếu không parse được
+        private double? ParseChapterNumber(string chapterNumber)
+        {
+            if (double.TryParse(chapterNumber, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double number))
             {
-                nextChapterId = chapters[currentIndex + 1].Id;
+                return number;
             }
-            
-            _logger.LogInformation($"Chapter trước: {prevChapterId}, Chapter sau: {nextChapterId}");
-            
-            // Lấy thông tin về chapter hiện tại
-            if (currentIndex >= 0 && currentIndex < chapters.Count)
-            {
-                currentChapterViewModel = chapters[currentIndex];
-            }
-            else
-            {
-                _logger.LogWarning($"Không tìm thấy chapter {chapterId} trong danh sách");
-                
-                // Tạo một chapter mặc định với thông tin tối thiểu
-                currentChapterViewModel = new ChapterViewModel
-                {
-                    Id = chapterId,
-                    Number = "?",
-                    Title = "Chương không xác định",
-                    Language = language
-                };
-            }
-            
-            return (currentChapterViewModel, prevChapterId, nextChapterId);
+            return null;
         }
     }
 }

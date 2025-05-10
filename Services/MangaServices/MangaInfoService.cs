@@ -1,24 +1,23 @@
-using MangaReader.WebUI.Services.MangaServices.MangaInformation;
+using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.Models;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
 
 namespace MangaReader.WebUI.Services.MangaServices
 {
     public class MangaInfoService : IMangaInfoService
     {
-        private readonly MangaTitleService _mangaTitleService;
-        private readonly MangaDexService _mangaDexService;
+        private readonly IMangaApiService _mangaApiService;
         private readonly ILogger<MangaInfoService> _logger;
-        // Xem xét thêm rate limit nếu cần gọi nhiều lần liên tục từ các service khác nhau
-        // private readonly TimeSpan _rateLimitDelay = TimeSpan.FromMilliseconds(550);
+        private readonly IMangaToInfoViewModelMapper _mangaToInfoViewModelMapper;
 
         public MangaInfoService(
-            MangaTitleService mangaTitleService,
-            MangaDexService mangaDexService,
-            ILogger<MangaInfoService> logger)
+            IMangaApiService mangaApiService,
+            ILogger<MangaInfoService> logger,
+            IMangaToInfoViewModelMapper mangaToInfoViewModelMapper)
         {
-            _mangaTitleService = mangaTitleService;
-            _mangaDexService = mangaDexService;
+            _mangaApiService = mangaApiService;
             _logger = logger;
+            _mangaToInfoViewModelMapper = mangaToInfoViewModelMapper;
         }
 
         public async Task<MangaInfoViewModel> GetMangaInfoAsync(string mangaId)
@@ -33,41 +32,32 @@ namespace MangaReader.WebUI.Services.MangaServices
             {
                 _logger.LogInformation($"Bắt đầu lấy thông tin cơ bản cho manga ID: {mangaId}");
 
-                // Sử dụng Task.WhenAll để thực hiện các cuộc gọi API song song (nếu có thể và an toàn về rate limit)
-                // Tuy nhiên, để đảm bảo tuân thủ rate limit, gọi tuần tự có thể an toàn hơn.
-                // Hoặc thêm delay vào đây nếu service này được gọi nhiều lần liên tiếp.
+                var mangaResponse = await _mangaApiService.FetchMangaDetailsAsync(mangaId);
 
-                // 1. Lấy tiêu đề manga
-                string mangaTitle = await _mangaTitleService.GetMangaTitleFromIdAsync(mangaId);
-                if (string.IsNullOrEmpty(mangaTitle) || mangaTitle == "Không có tiêu đề")
+                if (mangaResponse?.Result != "ok" || mangaResponse.Data == null)
                 {
-                    _logger.LogWarning($"Không thể lấy tiêu đề cho manga ID: {mangaId}. Sử dụng ID làm tiêu đề.");
-                    mangaTitle = $"Manga ID: {mangaId}";
+                    _logger.LogWarning($"Không thể lấy chi tiết manga {mangaId} trong MangaInfoService. Response: {mangaResponse?.Result}");
+                    return new MangaInfoViewModel
+                    {
+                        MangaId = mangaId,
+                        MangaTitle = $"Lỗi tải tiêu đề ({mangaId})",
+                        CoverUrl = "/images/cover-placeholder.jpg"
+                    };
                 }
 
-                // await Task.Delay(_rateLimitDelay); // Bỏ comment nếu cần delay giữa 2 API call
-
-                // 2. Lấy ảnh bìa
-                string coverUrl = await _mangaDexService.FetchCoverUrlAsync(mangaId);
-
+                var mangaInfoViewModel = _mangaToInfoViewModelMapper.MapToMangaInfoViewModel(mangaResponse.Data);
+                
                 _logger.LogInformation($"Lấy thông tin cơ bản thành công cho manga ID: {mangaId}");
-
-                return new MangaInfoViewModel
-                {
-                    MangaId = mangaId,
-                    MangaTitle = mangaTitle,
-                    CoverUrl = coverUrl
-                };
+                return mangaInfoViewModel;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Lỗi khi lấy thông tin cơ bản cho manga ID: {mangaId}");
-                // Trả về null hoặc một đối tượng mặc định tùy theo yêu cầu xử lý lỗi
-                return new MangaInfoViewModel // Trả về object với thông tin mặc định/lỗi
+                return new MangaInfoViewModel
                 {
-                     MangaId = mangaId,
-                     MangaTitle = $"Lỗi lấy tiêu đề ({mangaId})",
-                     CoverUrl = "/images/cover-placeholder.jpg" // Ảnh mặc định
+                    MangaId = mangaId,
+                    MangaTitle = $"Lỗi lấy tiêu đề ({mangaId})",
+                    CoverUrl = "/images/cover-placeholder.jpg"
                 };
             }
         }
