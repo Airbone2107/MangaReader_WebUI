@@ -1,8 +1,8 @@
 using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Models.Mangadex;
-using MangaReader.WebUI.Services.MangaServices.MangaInformation;
 using System.Text.Json;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
 
 namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
@@ -11,31 +11,34 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         private readonly IChapterApiService _chapterApiService;
         private readonly MangaIdService _mangaIdService;
         private readonly ChapterLanguageServices _chapterLanguageServices;
-        private readonly MangaTitleService _mangaTitleService;
         private readonly ChapterService _chapterService;
         private readonly ILogger<ChapterReadingServices> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly string _backendBaseUrl; // Lấy base URL của backend
+        private readonly IMangaDataExtractor _mangaDataExtractor;
+        private readonly IMangaApiService _mangaApiService;
 
         public ChapterReadingServices(
             IChapterApiService chapterApiService,
             MangaIdService mangaIdService,
             ChapterLanguageServices chapterLanguageServices,
-            MangaTitleService mangaTitleService,
             ChapterService chapterService,
             IHttpContextAccessor httpContextAccessor,
             IConfiguration configuration,
-            ILogger<ChapterReadingServices> logger)
+            ILogger<ChapterReadingServices> logger,
+            IMangaDataExtractor mangaDataExtractor,
+            IMangaApiService mangaApiService)
         {
             _chapterApiService = chapterApiService;
             _mangaIdService = mangaIdService;
             _chapterLanguageServices = chapterLanguageServices;
-            _mangaTitleService = mangaTitleService;
             _chapterService = chapterService;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
             _backendBaseUrl = configuration["BackendApi:BaseUrl"]?.TrimEnd('/')
                              ?? throw new InvalidOperationException("BackendApi:BaseUrl is not configured.");
+            _mangaDataExtractor = mangaDataExtractor;
+            _mangaApiService = mangaApiService;
         }
 
         public async Task<ChapterReadViewModel> GetChapterReadViewModel(string chapterId)
@@ -76,14 +79,36 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
                 var (currentChapterViewModel, prevChapterId, nextChapterId) =
                     FindCurrentAndAdjacentChapters(chaptersList, chapterId, currentChapterLanguage);
 
+                // Lấy thông tin chapter hiện tại để trích xuất title và number
+                ChapterAttributes currentChapterAttributes = null;
+                var currentChapterDataResponse = await _chapterApiService.FetchChapterInfoAsync(chapterId);
+                if (currentChapterDataResponse?.Data?.Attributes != null)
+                {
+                    currentChapterAttributes = currentChapterDataResponse.Data.Attributes;
+                }
+                
+                string displayChapterTitle = "Không xác định";
+                string displayChapterNumber = "?";
+
+                if (currentChapterAttributes != null)
+                {
+                    displayChapterTitle = _mangaDataExtractor.ExtractChapterDisplayTitle(currentChapterAttributes);
+                    displayChapterNumber = _mangaDataExtractor.ExtractChapterNumber(currentChapterAttributes);
+                } 
+                else if (currentChapterViewModel != null) // Fallback nếu API lỗi, dùng từ Sibling
+                {
+                    displayChapterTitle = currentChapterViewModel.Title;
+                    displayChapterNumber = currentChapterViewModel.Number;
+                }
+
                 // 8. Tạo view model
                 var viewModel = new ChapterReadViewModel
                 {
                     MangaId = mangaId,
                     MangaTitle = mangaTitle,
                     ChapterId = chapterId,
-                    ChapterTitle = currentChapterViewModel?.Title ?? "Không xác định", // Xử lý null
-                    ChapterNumber = currentChapterViewModel?.Number ?? "?", // Xử lý null
+                    ChapterTitle = displayChapterTitle,
+                    ChapterNumber = displayChapterNumber,
                     ChapterLanguage = currentChapterLanguage,
                     Pages = pages, // Danh sách URL đã xử lý
                     PrevChapterId = prevChapterId,
@@ -109,20 +134,20 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
                 _logger.LogInformation($"Đã lấy tiêu đề manga {mangaId} từ session: {sessionTitle}");
                 return sessionTitle;
             }
-            return await GetMangaTitleFromApiAsync(mangaId);
-        }
-        
-        private async Task<string> GetMangaTitleFromApiAsync(string mangaId)
-        {
-            _logger.LogInformation($"Tiến hành lấy tiêu đề manga {mangaId} từ API...");
-            string mangaTitle = await _mangaTitleService.GetMangaTitleFromIdAsync(mangaId);
-            var httpContext = _httpContextAccessor.HttpContext;
-            if (httpContext != null && !string.IsNullOrEmpty(mangaTitle) && mangaTitle != "Không có tiêu đề")
+            
+            // Lấy từ API và dùng extractor
+            var mangaResponse = await _mangaApiService.FetchMangaDetailsAsync(mangaId);
+            if (mangaResponse?.Data?.Attributes != null)
             {
-                httpContext.Session.SetString($"Manga_{mangaId}_Title", mangaTitle);
-                _logger.LogInformation($"Đã lưu tiêu đề manga {mangaId} vào session: {mangaTitle}");
+                string title = _mangaDataExtractor.ExtractMangaTitle(mangaResponse.Data.Attributes.Title, mangaResponse.Data.Attributes.AltTitles);
+                 if (httpContext != null && !string.IsNullOrEmpty(title) && title != "Không có tiêu đề")
+                {
+                    httpContext.Session.SetString($"Manga_{mangaId}_Title", title);
+                    _logger.LogInformation($"Đã lưu tiêu đề manga {mangaId} vào session: {title}");
+                }
+                return title;
             }
-            return mangaTitle;
+            return "Không có tiêu đề";
         }
         
         private async Task<List<ChapterViewModel>> GetChaptersAsync(string mangaId, string language)

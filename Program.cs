@@ -3,6 +3,10 @@ using MangaReader.WebUI.Services.AuthServices;
 using Microsoft.AspNetCore.Mvc.Razor;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.APIServices.Services;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Services;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaMapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +59,16 @@ builder.Services.AddHttpClient("MangaDexClient", client =>
     AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
 });
 
+// Đăng ký các service trong DataProcessing
+builder.Services.AddScoped<IMangaDataExtractor, MangaDataExtractorService>();
+builder.Services.AddScoped<IMangaToMangaViewModelMapper, MangaToMangaViewModelMapperService>();
+builder.Services.AddScoped<IChapterToChapterViewModelMapper, ChapterToChapterViewModelMapperService>();
+builder.Services.AddScoped<IMangaToDetailViewModelMapper, MangaToDetailViewModelMapperService>();
+builder.Services.AddScoped<IChapterToSimpleInfoMapper, ChapterToSimpleInfoMapperService>();
+builder.Services.AddScoped<IMangaToInfoViewModelMapper, MangaToInfoViewModelMapperService>();
+builder.Services.AddScoped<IFollowedMangaViewModelMapper, FollowedMangaViewModelMapperService>();
+builder.Services.AddScoped<ILastReadMangaViewModelMapper, LastReadMangaViewModelMapperService>();
+
 // Đăng ký các service liên quan đến xác thực 
 builder.Services.AddScoped<IUserService, UserService>();
 
@@ -74,17 +88,16 @@ builder.Services.AddScoped<MangaReader.WebUI.Services.UtilityServices.ViewRender
 // Đăng ký các service mới tách từ MangaController
 builder.Services.AddScoped<MangaReader.WebUI.Services.UtilityServices.LocalizationService>();
 builder.Services.AddScoped<MangaReader.WebUI.Services.UtilityServices.JsonConversionService>();
-builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaInformation.MangaUtilityService>();
-builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaInformation.MangaTitleService>();
-builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaInformation.MangaTagService>();
-builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaInformation.MangaRelationshipService>();
-builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaInformation.MangaDescription>();
+
 // Đăng ký MangaFollowService với interface
 builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.IMangaFollowService, MangaReader.WebUI.Services.MangaServices.MangaFollowService>();
+
 // Đăng ký FollowedMangaService
 builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.IFollowedMangaService, MangaReader.WebUI.Services.MangaServices.FollowedMangaService>();
+
 // Đăng ký MangaInfoService
 builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.IMangaInfoService, MangaReader.WebUI.Services.MangaServices.MangaInfoService>();
+
 // Giữ lại đăng ký cũ để tương thích ngược (có thể xóa sau khi đã cập nhật tất cả các thành phần khác)
 builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaFollowService>();
 builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterService>();
@@ -105,12 +118,6 @@ builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServi
 
 // Đăng ký ChapterReadingServices
 builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterReadingServices>();
-
-// Đăng ký ChapterAttributeService
-builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterAttributeService>();
-
-// Đăng ký ChapterInfoService
-builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.ChapterServices.IChapterInfoService, MangaReader.WebUI.Services.MangaServices.ChapterServices.ChapterInfoService>();
 
 // Đăng ký ReadingHistoryService
 builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.IReadingHistoryService, MangaReader.WebUI.Services.MangaServices.ReadingHistoryService>();

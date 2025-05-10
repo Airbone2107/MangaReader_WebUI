@@ -1,44 +1,25 @@
 using MangaReader.WebUI.Models;
-using MangaReader.WebUI.Services.MangaServices.MangaInformation;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
 using MangaReader.WebUI.Services.UtilityServices;
 using System.Text.Json;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
-using MangaReader.WebUI.Services.APIServices.Services;
 
 namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
 {
     public class MangaSearchService
     {
         private readonly IMangaApiService _mangaApiService;
-        private readonly ICoverApiService _coverApiService;
         private readonly ILogger<MangaSearchService> _logger;
-        private readonly LocalizationService _localizationService;
-        private readonly JsonConversionService _jsonConversionService;
-        private readonly MangaTitleService _mangaTitleService;
-        private readonly MangaTagService _mangaTagService;
-        private readonly MangaDescription _mangaDescriptionService;
-        private readonly MangaRelationshipService _mangaRelationshipService;
+        private readonly IMangaToMangaViewModelMapper _mangaViewModelMapper;
 
         public MangaSearchService(
             IMangaApiService mangaApiService,
-            ICoverApiService coverApiService,
             ILogger<MangaSearchService> logger,
-            LocalizationService localizationService,
-            JsonConversionService jsonConversionService,
-            MangaTitleService mangaTitleService,
-            MangaTagService mangaTagService,
-            MangaDescription mangaDescriptionService,
-            MangaRelationshipService mangaRelationshipService)
+            IMangaToMangaViewModelMapper mangaViewModelMapper)
         {
             _mangaApiService = mangaApiService;
-            _coverApiService = coverApiService;
             _logger = logger;
-            _localizationService = localizationService;
-            _jsonConversionService = jsonConversionService;
-            _mangaTitleService = mangaTitleService;
-            _mangaTagService = mangaTagService;
-            _mangaDescriptionService = mangaDescriptionService;
-            _mangaRelationshipService = mangaRelationshipService;
+            _mangaViewModelMapper = mangaViewModelMapper;
         }
 
         /// <summary>
@@ -170,16 +151,9 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                 var result = await _mangaApiService.FetchMangaAsync(limit: limit, offset: offset, sortManga: sortManga);
 
                 // Lấy tổng số manga từ kết quả API (nếu có)
-                int totalCount = 0;
+                int totalCount = result?.Total ?? 0;
 
-                // Kiểm tra nếu kết quả có dữ liệu và lấy thông tin tổng số từ thuộc tính Total
-                if (result?.Data != null && result.Data.Any())
-                {
-                    totalCount = result.Total;
-                    _logger.LogInformation($"Lấy được tổng số manga từ API: {totalCount}");
-                }
-
-                // Nếu không lấy được tổng số, sử dụng số lượng kết quả nhân với tỷ lệ page hiện tại
+                // Kiểm tra nếu không lấy được tổng số, sử dụng số lượng kết quả nhân với tỷ lệ page hiện tại
                 if (totalCount <= 0 && result?.Data != null)
                 {
                     // Ước tính tổng số manga dựa trên số lượng kết quả và offset
@@ -191,8 +165,18 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                 // Tính toán số trang tối đa dựa trên giới hạn 10000 kết quả của API
                 int maxPages = (int)Math.Ceiling(Math.Min(totalCount, MAX_API_RESULTS) / (double)pageSize);
 
-                // Chuyển danh sách Manga thành MangaViewModel
-                var mangaViewModels = ConvertToMangaViewModels(result?.Data);
+                // Sử dụng mapper mới
+                var mangaViewModels = new List<MangaViewModel>();
+                if (result?.Data != null)
+                {
+                    foreach (var mangaData in result.Data)
+                    {
+                        if (mangaData != null) // Kiểm tra null cho mangaData
+                        {
+                            mangaViewModels.Add(await _mangaViewModelMapper.MapToMangaViewModelAsync(mangaData));
+                        }
+                    }
+                }
 
                 return new MangaListViewModel
                 {
@@ -218,96 +202,6 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                     SortOptions = sortManga
                 };
             }
-        }
-
-        /// <summary>
-        /// Chuyển đổi kết quả từ API sang danh sách MangaViewModel
-        /// </summary>
-        private List<MangaViewModel> ConvertToMangaViewModels(List<MangaReader.WebUI.Models.Mangadex.Manga>? mangaList)
-        {
-            var mangaViewModels = new List<MangaViewModel>();
-            if (mangaList == null || !mangaList.Any())
-            {
-                return mangaViewModels;
-            }
-
-            // Xử lý từng manga
-            foreach (var manga in mangaList)
-            {
-                try
-                {
-                    if (manga.Attributes == null)
-                    {
-                        _logger.LogWarning($"Manga ID: {manga.Id} không có thuộc tính Attributes");
-                        continue;
-                    }
-
-                    string id = manga.Id.ToString();
-                    var attributes = manga.Attributes;
-                    
-                    // Lấy title từ MangaTitleService
-                    string title = _mangaTitleService.GetMangaTitle(
-                        attributes.Title,
-                        attributes.AltTitles
-                    );
-                    
-                    // Lấy author/artist từ MangaRelationshipService
-                    var (author, artist) = _mangaRelationshipService.GetAuthorArtist(
-                        manga.Relationships ?? new List<MangaReader.WebUI.Models.Mangadex.Relationship>()
-                    );
-                    
-                    // Lấy description từ MangaDescriptionService
-                    string description = _mangaDescriptionService.GetDescription(
-                        attributes
-                    );
-                    
-                    // Lấy status từ LocalizationService
-                    string status = _localizationService.GetStatus(attributes.Status);
-                    
-                    // Lấy datetime từ thuộc tính UpdatedAt
-                    DateTime? lastUpdated = attributes.UpdatedAt.DateTime;
-
-                    // *** LẤY COVER TỪ RELATIONSHIP ***
-                    string coverUrl = "/images/cover-placeholder.jpg"; // Mặc định
-                    // Truyền _logger vào hàm helper
-                    var coverFileName = CoverApiService.ExtractCoverFileNameFromRelationships(manga.Relationships, _logger);
-                    if (!string.IsNullOrEmpty(coverFileName))
-                    {
-                        // Sử dụng instance _coverApiService để gọi GetProxiedCoverUrl
-                        coverUrl = _coverApiService.GetProxiedCoverUrl(id, coverFileName);
-                    }
-                    else
-                    {
-                        _logger.LogDebug($"Không tìm thấy cover filename cho manga ID {id} từ relationships trong SearchService.");
-                    }
-                    // ********************************
-
-                    var viewModel = new MangaViewModel
-                    {
-                        Id = id,
-                        Title = title,
-                        Author = author,
-                        Artist = artist,
-                        Description = description,
-                        CoverUrl = coverUrl,
-                        Status = status,
-                        LastUpdated = lastUpdated,
-                        Tags = _mangaTagService.GetMangaTags(attributes),
-                        OriginalLanguage = attributes.OriginalLanguage,
-                        PublicationDemographic = attributes.PublicationDemographic,
-                        ContentRating = attributes.ContentRating
-                    };
-
-                    mangaViewModels.Add(viewModel);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"Lỗi khi chuyển đổi manga ID: {manga?.Id} trong SearchService. {ex.Message}");
-                    continue;
-                }
-            }
-
-            return mangaViewModels;
         }
     }
 }

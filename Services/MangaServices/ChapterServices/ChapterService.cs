@@ -1,30 +1,34 @@
 using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Models.Mangadex;
 using MangaReader.WebUI.Services.MangaServices.Models;
-using MangaReader.WebUI.Services.UtilityServices;
-using System.Text.Json;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
+using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
     public class ChapterService
     {
         private readonly IChapterApiService _chapterApiService;
-        private readonly JsonConversionService _jsonConversionService;
         private readonly ILogger<ChapterService> _logger;
         private readonly string _backendBaseUrl; // Lấy base URL của backend
+        private readonly IChapterToChapterViewModelMapper _chapterViewModelMapper;
+        private readonly IChapterToSimpleInfoMapper _simpleChapterInfoMapper;
 
         public ChapterService(
             IChapterApiService chapterApiService,
-            JsonConversionService jsonConversionService,
             IConfiguration configuration,
-            ILogger<ChapterService> logger)
+            ILogger<ChapterService> logger,
+            IChapterToChapterViewModelMapper chapterViewModelMapper,
+            IChapterToSimpleInfoMapper simpleChapterInfoMapper
+            )
         {
             _chapterApiService = chapterApiService;
-            _jsonConversionService = jsonConversionService;
             _logger = logger;
             _backendBaseUrl = configuration["BackendApi:BaseUrl"]?.TrimEnd('/')
                              ?? throw new InvalidOperationException("BackendApi:BaseUrl is not configured.");
+            _chapterViewModelMapper = chapterViewModelMapper;
+            _simpleChapterInfoMapper = simpleChapterInfoMapper;
         }
 
         /// <summary>
@@ -37,18 +41,16 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         {
             try
             {
-                // Gọi API service mới, yêu cầu lấy hết chapters (maxChapters = null)
                 var chapterListResponse = await _chapterApiService.FetchChaptersAsync(mangaId, languages, maxChapters: null);
                 var chapterViewModels = new List<ChapterViewModel>();
 
                 if (chapterListResponse?.Data != null)
                 {
-                    foreach (var chapter in chapterListResponse.Data) // Lặp qua List<Chapter>
+                    foreach (var chapterData in chapterListResponse.Data)
                     {
                         try
                         {
-                            // Xử lý chapter thành ChapterViewModel
-                            var chapterViewModel = ProcessChapter(chapter); // Truyền thẳng model Chapter
+                            var chapterViewModel = _chapterViewModelMapper.MapToChapterViewModel(chapterData);
                             if (chapterViewModel != null)
                             {
                                 chapterViewModels.Add(chapterViewModel);
@@ -56,17 +58,15 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, $"Lỗi khi xử lý chapter ID: {chapter?.Id}");
-                            continue; // Bỏ qua chapter này và tiếp tục
+                            _logger.LogError(ex, $"Lỗi khi xử lý chapter ID: {chapterData?.Id}");
+                            continue;
                         }
                     }
                 }
                 else
                 {
-                     _logger.LogWarning($"Không có dữ liệu chapter trả về cho manga {mangaId} với ngôn ngữ {languages}.");
+                    _logger.LogWarning($"Không có dữ liệu chapter trả về cho manga {mangaId} với ngôn ngữ {languages}.");
                 }
-
-                // Sắp xếp chapters theo thứ tự giảm dần
                 return SortChaptersByNumberDescending(chapterViewModels);
             }
             catch (Exception ex)
@@ -76,96 +76,6 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
             }
         }
 
-        /// <summary>
-        /// Xử lý một chapter từ model Chapter thành ChapterViewModel
-        /// </summary>
-        /// <param name="chapter">Model Chapter</param>
-        /// <returns>ChapterViewModel đã được xử lý, hoặc null nếu có lỗi</returns>
-        private ChapterViewModel ProcessChapter(MangaReader.WebUI.Models.Mangadex.Chapter chapter)
-        {
-            try
-            {
-                if (chapter?.Attributes == null)
-                {
-                    _logger.LogWarning($"Chapter {chapter?.Id} không có attributes, bỏ qua");
-                    return null;
-                }
-
-                var attributes = chapter.Attributes;
-
-                // Lấy thông tin hiển thị (số chương, tiêu đề)
-                var (displayTitle, chapterNumber) = GetChapterDisplayInfo(attributes);
-
-                // Lấy các thông tin khác
-                var language = attributes.TranslatedLanguage ?? "unknown";
-                var publishedAt = attributes.PublishAt.DateTime; // Lấy DateTime từ DateTimeOffset
-
-                // Xử lý relationships
-                var relationships = ProcessChapterRelationships(chapter.Relationships);
-
-                return new ChapterViewModel
-                {
-                    Id = chapter.Id.ToString(),
-                    Title = displayTitle,
-                    Number = chapterNumber,
-                    Language = language,
-                    PublishedAt = publishedAt,
-                    Relationships = relationships
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Lỗi khi xử lý chapter ID: {chapter?.Id}");
-                return null;
-            }
-        }
-        
-        /// <summary>
-        /// Lấy thông tin hiển thị của chapter (tiêu đề và số chương)
-        /// </summary>
-        /// <param name="attributes">ChapterAttributes chứa thuộc tính của chapter</param>
-        /// <returns>Tuple gồm (displayTitle, chapterNumber)</returns>
-        private (string displayTitle, string chapterNumber) GetChapterDisplayInfo(ChapterAttributes attributes)
-        {
-            string chapterNumber = attributes.ChapterNumber; // Có thể null
-            string chapterTitle = attributes.Title; // Có thể null
-
-            if (string.IsNullOrEmpty(chapterNumber))
-            {
-                 return (!string.IsNullOrEmpty(chapterTitle) ? chapterTitle : "Oneshot", chapterNumber);
-            }
-
-            var displayTitle = string.IsNullOrEmpty(chapterTitle) || chapterTitle == chapterNumber
-                ? $"Chương {chapterNumber}"
-                : $"Chương {chapterNumber}: {chapterTitle}";
-
-            return (displayTitle, chapterNumber);
-        }
-        
-        /// <summary>
-        /// Xử lý relationships của chapter
-        /// </summary>
-        /// <param name="relationships">Danh sách relationships của chapter</param>
-        /// <returns>Danh sách ChapterRelationship</returns>
-        private List<ChapterRelationship> ProcessChapterRelationships(List<Relationship>? relationships)
-        {
-            var result = new List<ChapterRelationship>();
-            if (relationships == null) return result;
-
-            foreach (var relationship in relationships)
-            {
-                if (relationship != null && !string.IsNullOrEmpty(relationship.Type))
-                {
-                    result.Add(new ChapterRelationship
-                    {
-                        Id = relationship.Id.ToString(),
-                        Type = relationship.Type
-                    });
-                }
-            }
-            return result;
-        }
-        
         /// <summary>
         /// Sắp xếp chapters theo số chương giảm dần
         /// </summary>
@@ -227,9 +137,7 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
                     _logger.LogWarning($"Không tìm thấy chapter với ID: {chapterId} hoặc API lỗi.");
                     return null;
                 }
-
-                var chapterViewModel = ProcessChapter(chapterResponse.Data); // Xử lý model Chapter
-                return chapterViewModel;
+                return _chapterViewModelMapper.MapToChapterViewModel(chapterResponse.Data);
             }
             catch (Exception ex)
             {
@@ -279,39 +187,25 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         {
             try
             {
-                // Gọi API service mới
                 var chapterListResponse = await _chapterApiService.FetchChaptersAsync(mangaId, languages, maxChapters: limit);
                 var simpleChapters = new List<SimpleChapterInfo>();
 
                 if (chapterListResponse?.Data != null)
                 {
-                    foreach (var chapter in chapterListResponse.Data)
+                    foreach (var chapterData in chapterListResponse.Data)
                     {
                         try
                         {
-                             if (chapter?.Attributes == null) continue;
-
-                            var attributes = chapter.Attributes;
-                            var (displayTitle, _) = GetChapterDisplayInfo(attributes); // Chỉ cần displayTitle
-                            var publishedAt = attributes.PublishAt.DateTime;
-
-                            simpleChapters.Add(new SimpleChapterInfo
-                            {
-                                ChapterId = chapter.Id.ToString(),
-                                DisplayTitle = displayTitle,
-                                PublishedAt = publishedAt
-                            });
+                            var simpleInfo = _simpleChapterInfoMapper.MapToSimpleChapterInfo(chapterData);
+                            simpleChapters.Add(simpleInfo);
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, $"Lỗi khi xử lý chapter ID: {chapter?.Id} trong GetLatestChaptersAsync");
+                            _logger.LogError(ex, $"Lỗi khi xử lý chapter ID: {chapterData?.Id} trong GetLatestChaptersAsync");
                             continue;
                         }
                     }
                 }
-
-                // API service đã giới hạn số lượng, không cần Take(limit) ở đây nữa
-                // Sắp xếp theo ngày xuất bản giảm dần (API service nên làm điều này, nhưng kiểm tra lại)
                 return simpleChapters
                     .OrderByDescending(c => c.PublishedAt)
                     .ToList();

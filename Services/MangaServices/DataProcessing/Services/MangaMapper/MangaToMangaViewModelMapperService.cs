@@ -3,7 +3,6 @@ using MangaReader.WebUI.Models.Mangadex;
 using MangaReader.WebUI.Services.AuthServices;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
-using MangaReader.WebUI.Services.MangaServices.MangaInformation;
 using System.Diagnostics;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaMapper;
@@ -15,8 +14,7 @@ public class MangaToMangaViewModelMapperService(
     ILogger<MangaToMangaViewModelMapperService> logger,
     IMangaDataExtractor mangaDataExtractor,
     IMangaFollowService mangaFollowService,
-    IUserService userService,
-    MangaUtilityService mangaUtilityService
+    IUserService userService
     ) : IMangaToMangaViewModelMapper
 {
     public async Task<MangaViewModel> MapToMangaViewModelAsync(Manga mangaData)
@@ -68,12 +66,9 @@ public class MangaToMangaViewModelMapperService(
                 OriginalLanguage = attributes.OriginalLanguage ?? "",
                 PublicationDemographic = attributes.PublicationDemographic ?? "",
                 ContentRating = attributes.ContentRating ?? "",
-                AlternativeTitles = preferredAltTitle, // Lấy tiêu đề thay thế ưu tiên
-                LastUpdated = attributes.UpdatedAt.DateTime, // Chuyển DateTimeOffset thành DateTime
+                AlternativeTitles = preferredAltTitle,
+                LastUpdated = attributes.UpdatedAt.DateTime,
                 IsFollowing = isFollowing,
-                // Lấy dữ liệu giả từ Utility Service
-                Rating = mangaUtilityService.GetMangaRating(id),
-                Views = 0 // MangaDex API không cung cấp Views
             };
         }
         catch (Exception ex)

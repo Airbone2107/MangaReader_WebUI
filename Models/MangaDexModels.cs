@@ -225,8 +225,6 @@ namespace MangaReader.WebUI.Models
         public DateTime? LastUpdated { get; set; }
         public bool IsFollowing { get; set; }
         public string LatestChapter { get; set; }
-        public double Rating { get; set; }
-        public int Views { get; set; }
     }
 
     /// <summary>

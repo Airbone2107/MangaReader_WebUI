@@ -2,6 +2,7 @@ using MangaReader.WebUI.Models.Auth;
 using MangaReader.WebUI.Services.AuthServices;
 using MangaReader.WebUI.Services.MangaServices.ChapterServices;
 using MangaReader.WebUI.Services.MangaServices.Models;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
 
 namespace MangaReader.WebUI.Services.MangaServices
 {
@@ -12,17 +13,21 @@ namespace MangaReader.WebUI.Services.MangaServices
         private readonly ChapterService _chapterService; // Dùng để lấy chapter mới nhất
         private readonly ILogger<FollowedMangaService> _logger;
         private readonly TimeSpan _rateLimitDelay = TimeSpan.FromMilliseconds(550); // Khoảng delay (hơn 500ms để an toàn > 2 req/s)
+        private readonly IFollowedMangaViewModelMapper _followedMangaMapper;
 
         public FollowedMangaService(
             IUserService userService,
             IMangaInfoService mangaInfoService, // THÊM: Thay thế MangaDetailsService
             ChapterService chapterService,
-            ILogger<FollowedMangaService> logger)
+            ILogger<FollowedMangaService> logger,
+            IFollowedMangaViewModelMapper followedMangaMapper)
         {
             _userService = userService;
             _mangaInfoService = mangaInfoService; // THÊM: Thay thế MangaDetailsService
             _chapterService = chapterService;
             _logger = logger;
+            _rateLimitDelay = TimeSpan.FromMilliseconds(550);
+            _followedMangaMapper = followedMangaMapper;
         }
 
         public async Task<List<FollowedMangaViewModel>> GetFollowedMangaListAsync()
@@ -66,16 +71,9 @@ namespace MangaReader.WebUI.Services.MangaServices
                         await Task.Delay(_rateLimitDelay);
                         var latestChapters = await _chapterService.GetLatestChaptersAsync(mangaId, 3, "vi,en");
 
-                        // Tạo ViewModel cho manga này
-                        var followedManga = new FollowedMangaViewModel
-                        {
-                            MangaId = mangaId,
-                            MangaTitle = mangaInfo.MangaTitle, // Lấy từ mangaInfo
-                            CoverUrl = mangaInfo.CoverUrl,     // Lấy từ mangaInfo
-                            LatestChapters = latestChapters ?? new List<SimpleChapterInfo>() // Đảm bảo không null
-                        };
-
-                        followedMangaList.Add(followedManga);
+                        // Sử dụng mapper mới
+                        var followedMangaViewModel = _followedMangaMapper.MapToFollowedMangaViewModel(mangaInfo, latestChapters ?? new List<SimpleChapterInfo>());
+                        followedMangaList.Add(followedMangaViewModel);
                         _logger.LogDebug($"Đã xử lý xong manga (qua InfoService): {mangaInfo.MangaTitle}");
 
                     }

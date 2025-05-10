@@ -1,7 +1,6 @@
 using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Services.AuthServices;
 using MangaReader.WebUI.Services.MangaServices;
-using MangaReader.WebUI.Services.MangaServices.MangaInformation;
 using MangaReader.WebUI.Services.MangaServices.MangaPageService;
 using MangaReader.WebUI.Services.MangaServices.Models;
 using MangaReader.WebUI.Services.UtilityServices;
@@ -19,7 +18,6 @@ namespace MangaReader.WebUI.Controllers
         private readonly IApiStatusService _apiStatusService;
         private readonly ILogger<MangaController> _logger;
         private readonly JsonConversionService _jsonConversionService;
-        private readonly MangaTitleService _mangaTitleService;
         private readonly MangaDetailsService _mangaDetailsService;
         private readonly MangaSearchService _mangaSearchService;
         private readonly ViewRenderService _viewRenderService;
@@ -34,7 +32,6 @@ namespace MangaReader.WebUI.Controllers
             IApiStatusService apiStatusService,
             ILogger<MangaController> logger,
             JsonConversionService jsonConversionService,
-            MangaTitleService mangaTitleService,
             MangaDetailsService mangaDetailsService,
             MangaSearchService mangaSearchService,
             ViewRenderService viewRenderService,
@@ -48,7 +45,6 @@ namespace MangaReader.WebUI.Controllers
             _apiStatusService = apiStatusService;
             _logger = logger;
             _jsonConversionService = jsonConversionService;
-            _mangaTitleService = mangaTitleService;
             _mangaDetailsService = mangaDetailsService;
             _mangaSearchService = mangaSearchService;
             _viewRenderService = viewRenderService;
