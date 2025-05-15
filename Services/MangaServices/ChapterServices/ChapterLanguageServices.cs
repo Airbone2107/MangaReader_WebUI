@@ -1,5 +1,4 @@
 using MangaReader.WebUI.Services.APIServices.Interfaces;
-using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {

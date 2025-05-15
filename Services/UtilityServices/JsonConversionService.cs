@@ -1,16 +1,10 @@
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.UtilityServices
 {
     public class JsonConversionService
     {
-        private readonly ILogger<JsonConversionService> _logger;
-
-        public JsonConversionService(ILogger<JsonConversionService> logger)
-        {
-            _logger = logger;
-        }
-
         /// <summary>
         /// Chuyển đổi JsonElement thành Dictionary
         /// </summary>
@@ -18,6 +12,8 @@ namespace MangaReader.WebUI.Services.UtilityServices
         /// <returns>Dictionary chứa thông tin từ JsonElement</returns>
         public Dictionary<string, object> ConvertJsonElementToDict(JsonElement element)
         {
+            Debug.Assert(element.ValueKind != JsonValueKind.Undefined, "JsonElement không hợp lệ");
+            
             var dict = new Dictionary<string, object>();
             if (element.ValueKind != JsonValueKind.Object)
             {
@@ -75,6 +71,8 @@ namespace MangaReader.WebUI.Services.UtilityServices
         /// <returns>List chứa thông tin từ JsonElement</returns>
         public List<object> ConvertJsonElementToList(JsonElement element)
         {
+            Debug.Assert(element.ValueKind != JsonValueKind.Undefined, "JsonElement không hợp lệ");
+            
             var list = new List<object>();
             if (element.ValueKind != JsonValueKind.Array)
             {

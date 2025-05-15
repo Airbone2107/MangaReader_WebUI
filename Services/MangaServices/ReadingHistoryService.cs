@@ -1,12 +1,11 @@
+using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.AuthServices;
-using MangaReader.WebUI.Services.MangaServices.ChapterServices;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
 using MangaReader.WebUI.Services.MangaServices.Models;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
-using MangaReader.WebUI.Services.APIServices.Interfaces;
 
 namespace MangaReader.WebUI.Services.MangaServices
 {

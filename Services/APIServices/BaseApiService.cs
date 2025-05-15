@@ -1,7 +1,6 @@
 using MangaReader.WebUI.Services.APIServices.Interfaces;
 using System.Text;
 using System.Text.Json;
-using System;
 namespace MangaReader.WebUI.Services.APIServices
 {
     /// <summary>

@@ -5,6 +5,8 @@ VisualStudioVersion = 17.12.35728.132
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MangaReader.WebUI", "MangaReader.WebUI.csproj", "{7CBB7C80-AB68-4BF1-AA2A-B147C4F2D39A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MangaDataLib", "..\MangaDataLib\MangaDataLib.csproj", "{81DBEEDD-5E2F-4E35-94B2-D2FC5E6D1FEA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{7CBB7C80-AB68-4BF1-AA2A-B147C4F2D39A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7CBB7C80-AB68-4BF1-AA2A-B147C4F2D39A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7CBB7C80-AB68-4BF1-AA2A-B147C4F2D39A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81DBEEDD-5E2F-4E35-94B2-D2FC5E6D1FEA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81DBEEDD-5E2F-4E35-94B2-D2FC5E6D1FEA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81DBEEDD-5E2F-4E35-94B2-D2FC5E6D1FEA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81DBEEDD-5E2F-4E35-94B2-D2FC5E6D1FEA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

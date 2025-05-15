@@ -1,17 +1,11 @@
-using System.Text.Json;
 using MangaReader.WebUI.Models.Mangadex;
+using System.Diagnostics;
+using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.UtilityServices
 {
     public class LocalizationService
     {
-        private readonly ILogger<LocalizationService> _logger;
-
-        public LocalizationService(ILogger<LocalizationService> logger)
-        {
-            _logger = logger;
-        }
-
         /// <summary>
         /// Lấy tiêu đề theo ngôn ngữ ưu tiên từ JSON
         /// </summary>
@@ -49,6 +43,8 @@ namespace MangaReader.WebUI.Services.UtilityServices
                     try
                     {
                         var jsonElement = JsonSerializer.Deserialize<JsonElement>(titleJson);
+                        Debug.Assert(jsonElement.ValueKind != JsonValueKind.Undefined, "JsonElement không hợp lệ");
+                        
                         if (jsonElement.ValueKind == JsonValueKind.Object)
                         {
                             // Ưu tiên tiếng Việt, sau đó đến tiếng Anh
@@ -78,7 +74,7 @@ namespace MangaReader.WebUI.Services.UtilityServices
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi xử lý tiêu đề truyện: {ex.Message}");
+                Debug.WriteLine($"Lỗi khi xử lý tiêu đề truyện: {ex.Message}");
                 return "Không có tiêu đề";
             }
         }
@@ -120,6 +116,8 @@ namespace MangaReader.WebUI.Services.UtilityServices
                     try
                     {
                         var jsonElement = JsonSerializer.Deserialize<JsonElement>(descriptionJson);
+                        Debug.Assert(jsonElement.ValueKind != JsonValueKind.Undefined, "JsonElement không hợp lệ");
+                        
                         if (jsonElement.ValueKind == JsonValueKind.Object)
                         {
                             // Ưu tiên tiếng Việt, sau đó đến tiếng Anh
@@ -149,7 +147,7 @@ namespace MangaReader.WebUI.Services.UtilityServices
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi xử lý mô tả truyện: {ex.Message}");
+                Debug.WriteLine($"Lỗi khi xử lý mô tả truyện: {ex.Message}");
                 return "";
             }
         }
@@ -159,6 +157,7 @@ namespace MangaReader.WebUI.Services.UtilityServices
         /// </summary>
         public string GetStatus(string status)
         {
+            Debug.Assert(status != null, "Status không được null");
             return status switch
             {
                 "ongoing" => "Đang tiến hành",
@@ -191,6 +190,7 @@ namespace MangaReader.WebUI.Services.UtilityServices
         /// </summary>
         public string GetStatus(Dictionary<string, object> attributesDict)
         {
+            Debug.Assert(attributesDict != null, "Attributes dictionary không được null");
             string status = attributesDict.ContainsKey("status") ? attributesDict["status"]?.ToString() ?? "unknown" : "unknown";
             return GetStatus(status);
         }

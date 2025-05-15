@@ -1,8 +1,8 @@
 using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Models.Mangadex;
-using System.Text.Json;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
+using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {

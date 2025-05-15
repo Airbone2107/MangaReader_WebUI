@@ -1,6 +1,4 @@
 using MangaReader.WebUI.Models.Mangadex;
-using System;
-using System.Threading.Tasks;
 
 namespace MangaReader.WebUI.Services.APIServices.Interfaces
 {

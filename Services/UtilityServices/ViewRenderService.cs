@@ -1,19 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 
 namespace MangaReader.WebUI.Services.UtilityServices
 {
     /// <summary>
     /// Service xử lý việc render view dựa trên loại request (HTMX hoặc thông thường)
     /// </summary>
-    public class ViewRenderService
+    public class ViewRenderService(IHttpContextAccessor httpContextAccessor)
     {
-        private readonly IHttpContextAccessor _httpContextAccessor;
-        
-        public ViewRenderService(IHttpContextAccessor httpContextAccessor)
-        {
-            _httpContextAccessor = httpContextAccessor;
-        }
-        
         /// <summary>
         /// Quyết định trả về View hay PartialView dựa vào loại request
         /// </summary>
@@ -23,7 +17,9 @@ namespace MangaReader.WebUI.Services.UtilityServices
         /// <returns>ActionResult phù hợp với loại request</returns>
         public IActionResult RenderViewBasedOnRequest(Controller controller, string viewName, object model)
         {
-            var httpContext = _httpContextAccessor.HttpContext;
+            Debug.Assert(controller != null, "Controller không được null");
+            
+            var httpContext = httpContextAccessor.HttpContext;
             
             // Kiểm tra nếu là HTMX request
             if (httpContext != null && httpContext.Request.Headers.ContainsKey("HX-Request"))
@@ -49,6 +45,7 @@ namespace MangaReader.WebUI.Services.UtilityServices
         /// </summary>
         public IActionResult RenderViewBasedOnRequest(Controller controller, object model)
         {
+            Debug.Assert(controller != null, "Controller không được null");
             return RenderViewBasedOnRequest(controller, null, model);
         }
     }
