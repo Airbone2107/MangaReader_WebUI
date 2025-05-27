@@ -6,4 +6,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="Domain\Entities\" />
+    <Folder Include="Domain\Repositories\" />
+    <Folder Include="DTOs\MangaDexApi\" />
+    <Folder Include="Infrastructure\Mappers\DtoToDomain\" />
+    <Folder Include="Infrastructure\HttpClients\" />
+    <Folder Include="Infrastructure\Repositories\" />
+  </ItemGroup>
+
 </Project>

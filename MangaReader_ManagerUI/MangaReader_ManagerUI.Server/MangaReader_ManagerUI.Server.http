@@ -1,0 +1,6 @@
+@MangaReader_ManagerUI.Server_HostAddress = http://localhost:5111
+
+GET {{MangaReader_ManagerUI.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
