@@ -1,0 +1,53 @@
+@import 'utils/variables';
+@import 'utils/mixins';
+@import 'utils/functions';
+@import 'base/reset';
+@import 'base/typography';
+@import 'components/buttons';
+@import 'components/tables';
+@import 'layout/navbar';
+@import 'layout/sidebar';
+@import 'pages/dashboard';
+@import 'pages/login'; // Will be filled in later steps
+@import 'pages/mangaList'; // Will be filled in later steps
+@import 'themes/default';
+
+// Global styles (minimal, usually handled by MUI's CssBaseline)
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif; // Ensure font is loaded, MUI might do this
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Add global spacing utility if needed, e.g. for page content
+.page-content-wrapper {
+  padding: $spacing-lg; // Example of a global padding
+  flex-grow: 1; // Allow content to take available space
+}
+
+// Custom styles for React Toastify container
+.Toastify__toast-container {
+  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  .Toastify__toast {
+    border-radius: $border-radius-md;
+    box-shadow: $shadow-md;
+  }
+  .Toastify__toast--success {
+    background-color: $success-color;
+    color: $text-color-light;
+  }
+  .Toastify__toast--error {
+    background-color: $error-color;
+    color: $text-color-light;
+  }
+  .Toastify__toast--warning {
+    background-color: $warning-color;
+    color: $text-color-light;
+  }
+  .Toastify__toast--info {
+    background-color: $info-color;
+    color: $text-color-light;
+  }
+} 

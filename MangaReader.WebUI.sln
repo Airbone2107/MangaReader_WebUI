@@ -5,11 +5,11 @@ VisualStudioVersion = 17.12.35728.132
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MangaReader.WebUI", "MangaReader_WebUI\MangaReader.WebUI.csproj", "{7CBB7C80-AB68-4BF1-AA2A-B147C4F2D39A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MangaDataLib", "MangaDataLib\MangaDataLib.csproj", "{DFACD275-9738-43DD-91B5-C3BF75521245}"
-EndProject
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "mangareader_managerui.client", "MangaReader_ManagerUI\mangareader_managerui.client\mangareader_managerui.client.esproj", "{A9B4AC18-A529-8C58-1CEB-052A15780C85}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MangaReader_ManagerUI.Server", "MangaReader_ManagerUI\MangaReader_ManagerUI.Server\MangaReader_ManagerUI.Server.csproj", "{1C1C0AD4-3DDE-4043-B6D9-BEF31F60F088}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MangaReaderLib", "MangaReaderLib\MangaReaderLib.csproj", "{294B0D63-F0A3-49BA-BB58-8CB90C203D77}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,10 +21,6 @@ Global
 		{7CBB7C80-AB68-4BF1-AA2A-B147C4F2D39A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7CBB7C80-AB68-4BF1-AA2A-B147C4F2D39A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7CBB7C80-AB68-4BF1-AA2A-B147C4F2D39A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DFACD275-9738-43DD-91B5-C3BF75521245}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DFACD275-9738-43DD-91B5-C3BF75521245}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DFACD275-9738-43DD-91B5-C3BF75521245}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DFACD275-9738-43DD-91B5-C3BF75521245}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A9B4AC18-A529-8C58-1CEB-052A15780C85}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A9B4AC18-A529-8C58-1CEB-052A15780C85}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A9B4AC18-A529-8C58-1CEB-052A15780C85}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
@@ -35,6 +31,10 @@ Global
 		{1C1C0AD4-3DDE-4043-B6D9-BEF31F60F088}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1C1C0AD4-3DDE-4043-B6D9-BEF31F60F088}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1C1C0AD4-3DDE-4043-B6D9-BEF31F60F088}.Release|Any CPU.Build.0 = Release|Any CPU
+		{294B0D63-F0A3-49BA-BB58-8CB90C203D77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{294B0D63-F0A3-49BA-BB58-8CB90C203D77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{294B0D63-F0A3-49BA-BB58-8CB90C203D77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{294B0D63-F0A3-49BA-BB58-8CB90C203D77}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

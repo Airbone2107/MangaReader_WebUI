@@ -1,0 +1,36 @@
+.dashboard-page {
+  padding: $spacing-lg;
+  background-color: $background-color;
+  min-height: calc(100vh - 64px); /* Assuming app bar height */
+}
+
+.dashboard-header {
+  margin-bottom: $spacing-xl;
+  color: $primary-color;
+}
+
+.dashboard-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: $spacing-lg;
+  margin-bottom: $spacing-xxl;
+}
+
+.stat-card {
+  background-color: $surface-color;
+  padding: $spacing-lg;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-sm;
+  text-align: center;
+
+  h3 {
+    margin-bottom: $spacing-xs;
+    color: $dark-gray;
+  }
+
+  p {
+    font-size: $font-size-xl;
+    font-weight: bold;
+    color: $primary-color;
+  }
+} 

@@ -1,0 +1,41 @@
+.MuiTableContainer-root {
+  box-shadow: $shadow-sm;
+  border-radius: $border-radius-md;
+  background-color: $surface-color;
+  margin-bottom: $spacing-lg;
+}
+
+.MuiTableHead-root {
+  .MuiTableCell-root {
+    font-weight: 600;
+    color: $dark-gray;
+    background-color: $light-gray;
+    padding: $spacing-sm $spacing-md;
+    border-bottom: 1px solid $border-color;
+  }
+}
+
+.MuiTableBody-root {
+  .MuiTableRow-root {
+    &:nth-of-type(odd) {
+      background-color: rgba($primary-color, 0.02);
+    }
+    &:hover {
+      background-color: rgba($primary-color, 0.05);
+      cursor: pointer;
+    }
+  }
+  .MuiTableCell-root {
+    padding: $spacing-sm $spacing-md;
+    border-bottom: 1px solid $border-color;
+    color: $text-color;
+  }
+}
+
+.MuiTablePagination-root {
+  background-color: $surface-color;
+  border-top: 1px solid $border-color;
+  .MuiTablePagination-toolbar {
+    padding: $spacing-sm $spacing-md;
+  }
+} 

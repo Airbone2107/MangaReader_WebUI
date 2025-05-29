@@ -1,0 +1,35 @@
+.MuiButton-root {
+  text-transform: none; // Keep text as is, not uppercase
+  font-weight: 500;
+  font-size: $font-size-md;
+  box-shadow: $shadow-sm; // Add a subtle shadow
+
+  &.MuiButton-containedPrimary {
+    @include button-styles($primary-color, $text-color-light);
+  }
+
+  &.MuiButton-outlinedPrimary {
+    border: 1px solid $primary-color;
+    color: $primary-color;
+    background-color: transparent;
+    &:hover {
+      background-color: rgba($primary-color, 0.04);
+    }
+  }
+
+  &.MuiButton-textPrimary {
+    color: $primary-color;
+    &:hover {
+      background-color: rgba($primary-color, 0.04);
+    }
+  }
+
+  &.MuiButton-containedSecondary {
+    @include button-styles($secondary-color, $text-color-light);
+  }
+
+  &.Mui-disabled {
+    cursor: not-allowed;
+    pointer-events: auto; /* Allow cursor to show 'not-allowed' */
+  }
+} 

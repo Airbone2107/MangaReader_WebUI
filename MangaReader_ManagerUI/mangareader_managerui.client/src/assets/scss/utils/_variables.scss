@@ -1,0 +1,51 @@
+// Colors
+$primary-color: #1976d2; // Blue
+$secondary-color: #dc004e; // Pink
+$success-color: #2e7d32; // Green
+$error-color: #d32f2f; // Red
+$warning-color: #ed6c02; // Orange
+$info-color: #0288d1; // Light blue
+
+$text-color: #333;
+$text-color-light: #fff;
+$background-color: #f4f6f8;
+$surface-color: #fff;
+$border-color: #e0e0e0;
+$dark-gray: #616161;
+$light-gray: #f5f5f5;
+
+// Spacing
+$spacing-xxs: 4px;
+$spacing-xs: 8px;
+$spacing-sm: 12px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+
+// Font Sizes
+$font-size-sm: 0.875rem; // 14px
+$font-size-md: 1rem;     // 16px
+$font-size-lg: 1.125rem; // 18px
+$font-size-xl: 1.5rem;   // 24px
+
+// Border Radius
+$border-radius-sm: 4px;
+$border-radius-md: 8px;
+
+// Z-index
+$zindex-tooltip: 1100;
+$zindex-modal: 1300;
+$zindex-snackbar: 1400;
+
+// Sidebar Width
+$sidebar-width: 240px;
+
+// Transitions
+$transition-speed: 0.3s;
+$transition-easing: ease-in-out;
+
+// Box Shadow
+$shadow-sm: 0px 2px 4px rgba(0, 0, 0, 0.05);
+$shadow-md: 0px 4px 8px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0px 8px 16px rgba(0, 0, 0, 0.15); 
