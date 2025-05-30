@@ -1,9 +1,5 @@
-using MangaReaderLib.DTOs.Attributes;
+using MangaReaderLib.DTOs.TranslatedMangas;
 using MangaReaderLib.DTOs.Common;
-using MangaReaderLib.DTOs.Requests;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace MangaReaderLib.Services.Interfaces
 {
@@ -15,30 +11,30 @@ namespace MangaReaderLib.Services.Interfaces
         /// <summary>
         /// Tạo một bản dịch mới cho manga
         /// </summary>
-        Task<LibApiResponse<LibResourceObject<LibTranslatedMangaAttributesDto>>?> CreateTranslatedMangaAsync(
-            LibCreateTranslatedMangaRequestDto request, 
+        Task<ApiResponse<ResourceObject<TranslatedMangaAttributesDto>>?> CreateTranslatedMangaAsync(
+            CreateTranslatedMangaRequestDto request,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Lấy thông tin chi tiết của một bản dịch manga dựa trên ID
         /// </summary>
-        Task<LibApiResponse<LibResourceObject<LibTranslatedMangaAttributesDto>>?> GetTranslatedMangaByIdAsync(
-            Guid translatedMangaId, 
+        Task<ApiResponse<ResourceObject<TranslatedMangaAttributesDto>>?> GetTranslatedMangaByIdAsync(
+            Guid translatedMangaId,
             CancellationToken cancellationToken = default);
-            
+
         /// <summary>
         /// Cập nhật thông tin của một bản dịch manga
         /// </summary>
         Task UpdateTranslatedMangaAsync(
-            Guid translatedMangaId, 
-            LibUpdateTranslatedMangaRequestDto request, 
+            Guid translatedMangaId,
+            UpdateTranslatedMangaRequestDto request,
             CancellationToken cancellationToken = default);
-            
+
         /// <summary>
         /// Xóa một bản dịch manga
         /// </summary>
         Task DeleteTranslatedMangaAsync(
-            Guid translatedMangaId, 
+            Guid translatedMangaId,
             CancellationToken cancellationToken = default);
     }
 } 

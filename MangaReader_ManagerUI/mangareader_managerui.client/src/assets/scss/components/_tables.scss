@@ -1,3 +1,6 @@
+// MangaReader_ManagerUI\mangareader_managerui.client\src\assets\scss\components\_tables.scss
+@use '../utils/variables' as *; // Import variables
+
 .MuiTableContainer-root {
   box-shadow: $shadow-sm;
   border-radius: $border-radius-md;
@@ -38,4 +41,4 @@
   .MuiTablePagination-toolbar {
     padding: $spacing-sm $spacing-md;
   }
-} 
+}

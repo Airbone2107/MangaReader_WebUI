@@ -10,7 +10,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
         /// <summary>
         /// Trả về 200 OK với payload là một đối tượng đơn lẻ.
         /// </summary>
-        protected ActionResult Ok<TData>(LibApiResponse<TData> apiResponse) where TData : class
+        protected ActionResult Ok<TData>(ApiResponse<TData> apiResponse) where TData : class
         {
             return base.Ok(apiResponse);
         }
@@ -18,7 +18,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
         /// <summary>
         /// Trả về 200 OK với payload là một danh sách có phân trang.
         /// </summary>
-        protected ActionResult Ok<TData>(LibApiCollectionResponse<TData> apiCollectionResponse) where TData : class
+        protected ActionResult Ok<TData>(ApiCollectionResponse<TData> apiCollectionResponse) where TData : class
         {
             return base.Ok(apiCollectionResponse);
         }
@@ -26,7 +26,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
         /// <summary>
         /// Trả về 201 Created với payload là một đối tượng đơn lẻ và location header.
         /// </summary>
-        protected ActionResult Created<TData>(string actionName, object? routeValues, LibApiResponse<TData> value) where TData : class
+        protected ActionResult Created<TData>(string actionName, object? routeValues, ApiResponse<TData> value) where TData : class
         {
             return base.CreatedAtAction(actionName, routeValues, value);
         }

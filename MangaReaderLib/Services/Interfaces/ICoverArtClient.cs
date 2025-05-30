@@ -1,6 +1,5 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+using MangaReaderLib.DTOs.CoverArts;
+using MangaReaderLib.DTOs.Common;
 
 namespace MangaReaderLib.Services.Interfaces
 {
@@ -9,6 +8,13 @@ namespace MangaReaderLib.Services.Interfaces
     /// </summary>
     public interface ICoverArtClient
     {
+        /// <summary>
+        /// Lấy thông tin chi tiết của một ảnh bìa dựa trên ID
+        /// </summary>
+        Task<ApiResponse<ResourceObject<CoverArtAttributesDto>>?> GetCoverArtByIdAsync(
+            Guid coverId,
+            CancellationToken cancellationToken = default);
+
         /// <summary>
         /// Xóa một ảnh bìa dựa trên ID
         /// </summary>

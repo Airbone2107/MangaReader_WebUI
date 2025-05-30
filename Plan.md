@@ -131,7 +131,7 @@ Xây dựng một ứng dụng Frontend (React App) tên là `MangaReader_Manage
     *   Một dashboard cơ bản hoặc trang danh sách manga mặc định.
     *   SCSS cho trang này sẽ nằm trong `src/assets/scss/pages/_dashboard.scss` hoặc tương tự.
 
-### Bước 4: Triển Khai Chức Năng Quản Lý Chính (Theo `FrontendAPI.md`)
+### Bước 4: Triển Khai Chức Năng Quản Lý Chính
 
 Triển khai các chức năng CRUD cho từng resource, sử dụng các components đã tạo và gọi API thông qua `MangaReader_ManagerUI.Server` (và `MangaReaderLib`). SCSS cho từng trang/feature sẽ được đặt trong `src/assets/scss/pages/`.
 

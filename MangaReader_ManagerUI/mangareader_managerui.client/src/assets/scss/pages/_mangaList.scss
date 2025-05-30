@@ -1,1 +1,114 @@
- 
+@use '../utils/variables' as *;
+@use '../utils/mixins' as *;
+
+.manga-list-page {
+  padding: $spacing-lg;
+  background-color: $background-color;
+  min-height: calc(100vh - 64px); // Adjust height for app bar
+  
+  .page-header {
+    color: $primary-color;
+    margin-bottom: $spacing-xl;
+  }
+
+  .filter-section {
+    background-color: $surface-color;
+    padding: $spacing-lg;
+    border-radius: $border-radius-md;
+    box-shadow: $shadow-sm;
+    margin-bottom: $spacing-lg;
+  }
+
+  .MuiAutocomplete-tag {
+    background-color: rgba($primary-color, 0.1);
+    color: $primary-color;
+    .MuiChip-deleteIcon {
+      color: rgba($primary-color, 0.6);
+      &:hover {
+        color: $primary-color;
+      }
+    }
+  }
+
+  // Styles for the image in the table cell
+  .MuiTableCell-root img {
+    border: 1px solid $border-color;
+  }
+}
+
+.manga-create-page, .manga-edit-page {
+  padding: $spacing-lg;
+  background-color: $background-color;
+  min-height: calc(100vh - 64px);
+
+  .page-header {
+    color: $primary-color;
+    margin-bottom: $spacing-xl;
+  }
+  
+  .MuiPaper-root { // For form background
+    padding: $spacing-lg;
+    border-radius: $border-radius-md;
+    box-shadow: $shadow-sm;
+    background-color: $surface-color;
+  }
+}
+
+// Styling for CoverArtManager
+.cover-art-manager {
+  .cover-art-upload-section {
+    background-color: $surface-color;
+    padding: $spacing-lg;
+    border-radius: $border-radius-md;
+    box-shadow: $shadow-sm;
+    margin-bottom: $spacing-lg;
+  }
+
+  .cover-art-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: $spacing-md;
+  }
+
+  .cover-art-card {
+    background-color: $light-gray;
+    border-radius: $border-radius-md;
+    box-shadow: $shadow-sm;
+    overflow: hidden;
+    position: relative;
+    
+    img {
+      width: 100%;
+      height: 250px; // Fixed height for consistency
+      object-fit: cover;
+      display: block;
+    }
+
+    .card-actions {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      justify-content: center;
+      padding: $spacing-xs;
+      opacity: 0;
+      transition: opacity $transition-speed $transition-easing;
+      
+      .MuiIconButton-root {
+        color: $text-color-light;
+      }
+    }
+
+    &:hover .card-actions {
+      opacity: 1;
+    }
+  }
+
+  .no-cover-message {
+    text-align: center;
+    color: $dark-gray;
+    padding: $spacing-lg;
+  }
+} 

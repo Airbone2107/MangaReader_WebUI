@@ -1,5 +1,5 @@
-using MangaReaderLib.DTOs.Attributes; // For LibCoverArtAttributesDto
-using MangaReaderLib.DTOs.Common;    // For LibApiResponse, LibApiErrorResponse
+using MangaReaderLib.DTOs.CoverArts; // For CoverArtAttributesDto
+using MangaReaderLib.DTOs.Common;    // For ApiResponse, ApiErrorResponse
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -10,7 +10,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
     public class CoverArtsController : BaseApiController
     {
         private readonly ICoverArtClient _coverArtClient;
-        private readonly IMangaClient _mangaClient; // Cần IMangaClient để lấy cover art
+        private readonly IMangaClient _mangaClient; // Giữ nguyên, có thể cần cho các liên kết phức tạp sau này
         private readonly ILogger<CoverArtsController> _logger;
 
         public CoverArtsController(ICoverArtClient coverArtClient, IMangaClient mangaClient, ILogger<CoverArtsController> logger)
@@ -20,28 +20,46 @@ namespace MangaReader_ManagerUI.Server.Controllers
             _logger = logger;
         }
 
-        // GET: api/CoverArts/{id} - Endpoint này không có trong FrontendAPI.md nhưng hữu ích
+        // GET: api/CoverArts/{id} - Endpoint này có trong FrontendAPI.md và OpenAPI
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(LibApiResponse<LibResourceObject<LibCoverArtAttributesDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<CoverArtAttributesDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetCoverArtById(Guid id)
         {
             _logger.LogInformation("API: Requesting CoverArt by ID: {CoverArtId}", id);
-            // Logic để lấy CoverArt by ID sẽ cần một phương thức trong IMangaClient hoặc ICoverArtClient (nếu có)
-            // Ví dụ: var result = await _coverArtClient.GetCoverArtByIdAsync(id, HttpContext.RequestAborted);
-            // Hiện tại, chúng ta chưa định nghĩa GetCoverArtByIdAsync trong ICoverArtClient hoặc IMangaClient
-            // Giả sử MangaClient sẽ có GetCoverArtByIdAsync, hoặc chúng ta sẽ phải lấy tất cả cover của một manga rồi filter.
-            // Để đơn giản, tạm thời trả về NotImplemented nếu không có phương thức trực tiếp.
-            return StatusCode(StatusCodes.Status501NotImplemented, 
-                new LibApiErrorResponse(new LibApiError(501, "Not Implemented", "Get CoverArt by ID is not implemented yet.")));
+            try
+            {
+                var result = await _coverArtClient.GetCoverArtByIdAsync(id, HttpContext.RequestAborted);
+                if (result == null || result.Data == null)
+                {
+                    return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", $"CoverArt with ID {id} not found.")));
+                }
+                return Ok(result);
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _logger.LogWarning("API: CoverArt with ID {CoverArtId} not found in backend. Status: {StatusCode}", id, ex.StatusCode);
+                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "API Error fetching CoverArt {CoverArtId}. Status: {StatusCode}", id, ex.StatusCode);
+                return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
+                                new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Internal server error while fetching CoverArt {CoverArtId}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, 
+                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
+            }
         }
-
 
         // DELETE: api/CoverArts/{coverId}
         [HttpDelete("{coverId}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DeleteCoverArt(Guid coverId)
         {
             _logger.LogInformation("API: Request to delete cover art: {CoverId}", coverId);
@@ -53,19 +71,19 @@ namespace MangaReader_ManagerUI.Server.Controllers
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("API: CoverArt with ID {CoverId} not found for deletion.", coverId);
-                return NotFound(new LibApiErrorResponse(new LibApiError(404, "Not Found", $"CoverArt with ID {coverId} not found.")));
+                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", $"CoverArt with ID {coverId} not found.")));
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "API Error deleting CoverArt {CoverId}. Status: {StatusCode}", coverId, ex.StatusCode);
                 return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new LibApiErrorResponse(new LibApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
                  _logger.LogError(ex, "Error deleting CoverArt {CoverId}", coverId);
                 return StatusCode(StatusCodes.Status500InternalServerError, 
-                    new LibApiErrorResponse(new LibApiError(500, "Server Error", "An error occurred while deleting the cover art.")));
+                    new ApiErrorResponse(new ApiError(500, "Server Error", "An error occurred while deleting the cover art.")));
             }
         }
     }

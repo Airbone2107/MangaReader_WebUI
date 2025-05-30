@@ -1,11 +1,13 @@
+// MangaReader_ManagerUI\mangareader_managerui.client\src\components\layout\AdminLayout.jsx
 import React from 'react'
 import { Box } from '@mui/material'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
 import LoadingSpinner from '../common/LoadingSpinner'
 import useUiStore from '../../stores/uiStore'
+import { Outlet } from 'react-router-dom' // Thêm import này
 
-function AdminLayout({ children }) {
+function AdminLayout() { // Bỏ `children` prop ở đây
   const isSidebarOpen = useUiStore((state) => state.isSidebarOpen)
 
   return (
@@ -31,11 +33,11 @@ function AdminLayout({ children }) {
           }
         }}
       >
-        {children}
+        <Outlet /> {/* Render nội dung của route con ở đây */}
       </Box>
       <LoadingSpinner />
     </Box>
   )
 }
 
-export default AdminLayout 
+export default AdminLayout

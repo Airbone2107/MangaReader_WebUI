@@ -1,3 +1,6 @@
+// MangaReader_ManagerUI\mangareader_managerui.client\src\assets\scss\base\_typography.scss
+@use '../utils/variables' as *; // Import variables
+
 h1, h2, h3, h4, h5, h6 {
   margin-bottom: $spacing-md;
   color: $text-color;
@@ -10,4 +13,4 @@ p {
 small {
   font-size: $font-size-sm;
   color: $dark-gray;
-} 
+}

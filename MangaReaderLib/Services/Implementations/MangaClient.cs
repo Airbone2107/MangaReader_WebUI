@@ -1,16 +1,10 @@
-using MangaReaderLib.DTOs.Attributes;
+using MangaReaderLib.DTOs.CoverArts;
+using MangaReaderLib.DTOs.Mangas;
+using MangaReaderLib.DTOs.TranslatedMangas;
 using MangaReaderLib.DTOs.Common;
-using MangaReaderLib.DTOs.Requests;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace MangaReaderLib.Services.Implementations
 {
@@ -69,7 +63,7 @@ namespace MangaReaderLib.Services.Implementations
         }
 
 
-        public async Task<LibApiCollectionResponse<LibResourceObject<LibMangaAttributesDto>>?> GetMangasAsync(
+        public async Task<ApiCollectionResponse<ResourceObject<MangaAttributesDto>>?> GetMangasAsync(
             int? offset = null, int? limit = null, string? titleFilter = null, 
             string? statusFilter = null, string? contentRatingFilter = null, string? demographicFilter = null,
             string? originalLanguageFilter = null, int? yearFilter = null,
@@ -102,22 +96,22 @@ namespace MangaReaderLib.Services.Implementations
             AddQueryParam(queryParams, "ascending", ascending?.ToString().ToLower());
             
             string requestUri = BuildQueryString("Mangas", queryParams);
-            return await _apiClient.GetAsync<LibApiCollectionResponse<LibResourceObject<LibMangaAttributesDto>>>(requestUri, cancellationToken);
+            return await _apiClient.GetAsync<ApiCollectionResponse<ResourceObject<MangaAttributesDto>>>(requestUri, cancellationToken);
         }
 
-        public async Task<LibApiResponse<LibResourceObject<LibMangaAttributesDto>>?> GetMangaByIdAsync(Guid mangaId, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<ResourceObject<MangaAttributesDto>>?> GetMangaByIdAsync(Guid mangaId, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Getting manga by ID: {MangaId}", mangaId);
-            return await _apiClient.GetAsync<LibApiResponse<LibResourceObject<LibMangaAttributesDto>>>($"Mangas/{mangaId}", cancellationToken);
+            return await _apiClient.GetAsync<ApiResponse<ResourceObject<MangaAttributesDto>>>($"Mangas/{mangaId}", cancellationToken);
         }
 
-        public async Task<LibApiResponse<LibResourceObject<LibMangaAttributesDto>>?> CreateMangaAsync(LibCreateMangaRequestDto request, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<ResourceObject<MangaAttributesDto>>?> CreateMangaAsync(CreateMangaRequestDto request, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Creating new manga: {Title}", request.Title);
-            return await _apiClient.PostAsync<LibCreateMangaRequestDto, LibApiResponse<LibResourceObject<LibMangaAttributesDto>>>("Mangas", request, cancellationToken);
+            return await _apiClient.PostAsync<CreateMangaRequestDto, ApiResponse<ResourceObject<MangaAttributesDto>>>("Mangas", request, cancellationToken);
         }
 
-        public async Task UpdateMangaAsync(Guid mangaId, LibUpdateMangaRequestDto request, CancellationToken cancellationToken = default)
+        public async Task UpdateMangaAsync(Guid mangaId, UpdateMangaRequestDto request, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Updating manga with ID: {MangaId}", mangaId);
             await _apiClient.PutAsync($"Mangas/{mangaId}", request, cancellationToken);
@@ -129,17 +123,17 @@ namespace MangaReaderLib.Services.Implementations
             await _apiClient.DeleteAsync($"Mangas/{mangaId}", cancellationToken);
         }
 
-        public async Task<LibApiCollectionResponse<LibResourceObject<LibCoverArtAttributesDto>>?> GetMangaCoversAsync(Guid mangaId, int? offset = null, int? limit = null, CancellationToken cancellationToken = default)
+        public async Task<ApiCollectionResponse<ResourceObject<CoverArtAttributesDto>>?> GetMangaCoversAsync(Guid mangaId, int? offset = null, int? limit = null, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Getting covers for manga with ID: {MangaId}", mangaId);
             var queryParams = new Dictionary<string, List<string>>();
             AddQueryParam(queryParams, "offset", offset?.ToString());
             AddQueryParam(queryParams, "limit", limit?.ToString());
             string requestUri = BuildQueryString($"mangas/{mangaId}/covers", queryParams);
-            return await _apiClient.GetAsync<LibApiCollectionResponse<LibResourceObject<LibCoverArtAttributesDto>>>(requestUri, cancellationToken);
+            return await _apiClient.GetAsync<ApiCollectionResponse<ResourceObject<CoverArtAttributesDto>>>(requestUri, cancellationToken);
         }
 
-        public async Task<LibApiResponse<LibResourceObject<LibCoverArtAttributesDto>>?> UploadMangaCoverAsync(Guid mangaId, Stream imageStream, string fileName, string? volume = null, string? description = null, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<ResourceObject<CoverArtAttributesDto>>?> UploadMangaCoverAsync(Guid mangaId, Stream imageStream, string fileName, string? volume = null, string? description = null, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Uploading cover for manga with ID: {MangaId}, Filename: {FileName}", mangaId, fileName);
             using var content = new MultipartFormDataContent();
@@ -153,10 +147,10 @@ namespace MangaReaderLib.Services.Implementations
                 content.Add(new StringContent(description), "description");
             }
             
-            return await _apiClient.PostAsync<LibApiResponse<LibResourceObject<LibCoverArtAttributesDto>>>($"mangas/{mangaId}/covers", content, cancellationToken);
+            return await _apiClient.PostAsync<ApiResponse<ResourceObject<CoverArtAttributesDto>>>($"mangas/{mangaId}/covers", content, cancellationToken);
         }
 
-        public async Task<LibApiCollectionResponse<LibResourceObject<LibTranslatedMangaAttributesDto>>?> GetMangaTranslationsAsync(Guid mangaId, int? offset = null, int? limit = null, string? orderBy = null, bool? ascending = null, CancellationToken cancellationToken = default)
+        public async Task<ApiCollectionResponse<ResourceObject<TranslatedMangaAttributesDto>>?> GetMangaTranslationsAsync(Guid mangaId, int? offset = null, int? limit = null, string? orderBy = null, bool? ascending = null, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Getting translations for manga with ID: {MangaId}", mangaId);
             var queryParams = new Dictionary<string, List<string>>();
@@ -165,7 +159,7 @@ namespace MangaReaderLib.Services.Implementations
             AddQueryParam(queryParams, "orderBy", orderBy);
             AddQueryParam(queryParams, "ascending", ascending?.ToString().ToLower());
             string requestUri = BuildQueryString($"mangas/{mangaId}/translations", queryParams);
-            return await _apiClient.GetAsync<LibApiCollectionResponse<LibResourceObject<LibTranslatedMangaAttributesDto>>>(requestUri, cancellationToken);
+            return await _apiClient.GetAsync<ApiCollectionResponse<ResourceObject<TranslatedMangaAttributesDto>>>(requestUri, cancellationToken);
         }
     }
 } 

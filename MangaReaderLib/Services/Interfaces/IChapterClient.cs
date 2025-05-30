@@ -1,9 +1,5 @@
-using MangaReaderLib.DTOs.Attributes;
+using MangaReaderLib.DTOs.Chapters;
 using MangaReaderLib.DTOs.Common;
-using MangaReaderLib.DTOs.Requests;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace MangaReaderLib.Services.Interfaces
 {
@@ -15,41 +11,41 @@ namespace MangaReaderLib.Services.Interfaces
         /// <summary>
         /// Tạo một chapter mới
         /// </summary>
-        Task<LibApiResponse<LibResourceObject<LibChapterAttributesDto>>?> CreateChapterAsync(
-            LibCreateChapterRequestDto request, 
+        Task<ApiResponse<ResourceObject<ChapterAttributesDto>>?> CreateChapterAsync(
+            CreateChapterRequestDto request,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Lấy danh sách các chapter của một bản dịch manga
         /// </summary>
-        Task<LibApiCollectionResponse<LibResourceObject<LibChapterAttributesDto>>?> GetChaptersByTranslatedMangaAsync(
-            Guid translatedMangaId, 
-            int? offset = null, 
-            int? limit = null, 
-            string? orderBy = null, 
-            bool? ascending = null, 
+        Task<ApiCollectionResponse<ResourceObject<ChapterAttributesDto>>?> GetChaptersByTranslatedMangaAsync(
+            Guid translatedMangaId,
+            int? offset = null,
+            int? limit = null,
+            string? orderBy = null,
+            bool? ascending = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Lấy thông tin chi tiết của một chapter dựa trên ID
         /// </summary>
-        Task<LibApiResponse<LibResourceObject<LibChapterAttributesDto>>?> GetChapterByIdAsync(
-            Guid chapterId, 
+        Task<ApiResponse<ResourceObject<ChapterAttributesDto>>?> GetChapterByIdAsync(
+            Guid chapterId,
             CancellationToken cancellationToken = default);
-            
+
         /// <summary>
         /// Cập nhật thông tin của một chapter
         /// </summary>
         Task UpdateChapterAsync(
-            Guid chapterId, 
-            LibUpdateChapterRequestDto request, 
+            Guid chapterId,
+            UpdateChapterRequestDto request,
             CancellationToken cancellationToken = default);
-            
+
         /// <summary>
         /// Xóa một chapter
         /// </summary>
         Task DeleteChapterAsync(
-            Guid chapterId, 
+            Guid chapterId,
             CancellationToken cancellationToken = default);
     }
 } 

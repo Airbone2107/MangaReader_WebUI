@@ -1,7 +1,5 @@
-using MangaReaderLib.DTOs.Attributes;
 using MangaReaderLib.DTOs.Chapters; // For DTOs specific to ChapterPage
 using MangaReaderLib.DTOs.Common;
-using MangaReaderLib.DTOs.Requests;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -30,25 +28,25 @@ namespace MangaReader_ManagerUI.Server.Controllers
 
         // POST: api/Chapters/{chapterId}/pages/entry
         [HttpPost("/api/Chapters/{chapterId}/pages/entry")] // Custom route
-        [ProducesResponseType(typeof(LibApiResponse<LibCreateChapterPageEntryResponseDto>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> CreateChapterPageEntry(Guid chapterId, [FromBody] LibCreateChapterPageEntryRequestDto createDto)
+        [ProducesResponseType(typeof(ApiResponse<CreateChapterPageEntryResponseDto>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CreateChapterPageEntry(Guid chapterId, [FromBody] CreateChapterPageEntryRequestDto createDto)
         {
             _logger.LogInformation("API: Request to create page entry for ChapterId: {ChapterId}", chapterId);
             if (!ModelState.IsValid) 
             {
                  var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                     .Select(e => new LibApiError(400, "Validation Error", e.ErrorMessage))
+                                     .Select(e => new ApiError(400, "Validation Error", e.ErrorMessage))
                                      .ToList();
-                return BadRequest(new LibApiErrorResponse(errors));
+                return BadRequest(new ApiErrorResponse(errors));
             }
             try
             {
                 var result = await _chapterPageClient.CreateChapterPageEntryAsync(chapterId, createDto, HttpContext.RequestAborted);
                 if (result == null || result.Data == null)
                 {
-                    return BadRequest(new LibApiErrorResponse(new LibApiError(400, "Creation Failed", "Could not create chapter page entry.")));
+                    return BadRequest(new ApiErrorResponse(new ApiError(400, "Creation Failed", "Could not create chapter page entry.")));
                 }
                 // Header Location sẽ trỏ đến endpoint upload ảnh cho trang này
                 // Location: /chapterpages/{pageId}/image
@@ -57,28 +55,28 @@ namespace MangaReader_ManagerUI.Server.Controllers
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("API: Chapter with ID {ChapterId} not found for page entry creation. Status: {StatusCode}", chapterId, ex.StatusCode);
-                return NotFound(new LibApiErrorResponse(new LibApiError(404, "Not Found", $"Chapter with ID {chapterId} not found.")));
+                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", $"Chapter with ID {chapterId} not found.")));
             }
             // ... other error handling ...
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating chapter page entry for chapter {id}", chapterId);
-                return StatusCode(500, new LibApiErrorResponse(new LibApiError(500, "Server Error", ex.Message)));
+                return StatusCode(500, new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }
 
         // POST: api/chapterpages/{pageId}/image
         [HttpPost("{pageId}/image")] // Route này khớp với BaseApiController
         [Consumes("multipart/form-data")]
-        [ProducesResponseType(typeof(LibApiResponse<LibUploadChapterPageImageResponseDto>), StatusCodes.Status200OK)] // API trả về 200 OK
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<UploadChapterPageImageResponseDto>), StatusCodes.Status200OK)] // API trả về 200 OK
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UploadChapterPageImage(Guid pageId, [FromForm] IFormFile file)
         {
              _logger.LogInformation("API: Request to upload image for PageId: {PageId}", pageId);
             if (file == null || file.Length == 0)
             {
-                return BadRequest(new LibApiErrorResponse(new LibApiError(400, "Validation Error", "No file uploaded.")));
+                return BadRequest(new ApiErrorResponse(new ApiError(400, "Validation Error", "No file uploaded.")));
             }
             // Thêm kiểm tra file type, size
             try
@@ -87,27 +85,27 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 var result = await _chapterPageClient.UploadChapterPageImageAsync(pageId, stream, file.FileName, HttpContext.RequestAborted);
                 if (result == null || result.Data == null)
                 {
-                    return BadRequest(new LibApiErrorResponse(new LibApiError(400, "Upload Failed", "Could not upload chapter page image.")));
+                    return BadRequest(new ApiErrorResponse(new ApiError(400, "Upload Failed", "Could not upload chapter page image.")));
                 }
                 return Ok(result); // Trả về 200 OK với publicId
             }
              catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("API: Page with ID {PageId} not found for image upload. Status: {StatusCode}", pageId, ex.StatusCode);
-                return NotFound(new LibApiErrorResponse(new LibApiError(404, "Not Found", $"Page with ID {pageId} not found.")));
+                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", $"Page with ID {pageId} not found.")));
             }
             // ... other error handling ...
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error uploading image for page {id}", pageId);
-                return StatusCode(500, new LibApiErrorResponse(new LibApiError(500, "Server Error", ex.Message)));
+                return StatusCode(500, new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }
 
         // GET: api/chapters/{chapterId}/pages
         [HttpGet("/api/chapters/{chapterId}/pages")] // Custom route
-        [ProducesResponseType(typeof(LibApiCollectionResponse<LibResourceObject<LibChapterPageAttributesDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiCollectionResponse<ResourceObject<ChapterPageAttributesDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetChapterPages(Guid chapterId, [FromQuery] int? offset, [FromQuery] int? limit)
         {
              _logger.LogInformation("API: Requesting pages for ChapterId: {ChapterId}", chapterId);
@@ -116,7 +114,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 var result = await _chapterPageClient.GetChapterPagesAsync(chapterId, offset, limit, HttpContext.RequestAborted);
                  if (result == null)
                 {
-                     return NotFound(new LibApiErrorResponse(new LibApiError(404, "Not Found", $"Chapter with ID {chapterId} not found or has no pages.")));
+                     return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", $"Chapter with ID {chapterId} not found or has no pages.")));
                 }
                 return Ok(result);
             }
@@ -124,19 +122,25 @@ namespace MangaReader_ManagerUI.Server.Controllers
             catch (Exception ex)
             {
                  _logger.LogError(ex, "Error fetching pages for chapter {id}", chapterId);
-                return StatusCode(500, new LibApiErrorResponse(new LibApiError(500, "Server Error", ex.Message)));
+                return StatusCode(500, new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }
 
         // PUT: api/chapterpages/{pageId}/details
         [HttpPut("{pageId}/details")] // Route này khớp với BaseApiController
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateChapterPageDetails(Guid pageId, [FromBody] LibUpdateChapterPageDetailsRequestDto updateDto)
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateChapterPageDetails(Guid pageId, [FromBody] UpdateChapterPageDetailsRequestDto updateDto)
         {
             _logger.LogInformation("API: Request to update page details for PageId: {PageId}", pageId);
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                     .Select(e => new ApiError(400, "Validation Error", e.ErrorMessage))
+                                     .ToList();
+                return BadRequest(new ApiErrorResponse(errors));
+            }
             try
             {
                 await _chapterPageClient.UpdateChapterPageDetailsAsync(pageId, updateDto, HttpContext.RequestAborted);
@@ -144,20 +148,20 @@ namespace MangaReader_ManagerUI.Server.Controllers
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                return NotFound(new LibApiErrorResponse(new LibApiError(404, "Not Found", ex.Message)));
+                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
             // ... other error handling ...
             catch (Exception ex)
             {
                  _logger.LogError(ex, "Error updating page details for page {id}", pageId);
-                return StatusCode(500, new LibApiErrorResponse(new LibApiError(500, "Server Error", ex.Message)));
+                return StatusCode(500, new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }
 
         // DELETE: api/chapterpages/{pageId}
         [HttpDelete("{pageId}")] // Route này khớp với BaseApiController
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteChapterPage(Guid pageId)
         {
             _logger.LogInformation("API: Request to delete page: {PageId}", pageId);
@@ -168,13 +172,13 @@ namespace MangaReader_ManagerUI.Server.Controllers
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                return NotFound(new LibApiErrorResponse(new LibApiError(404, "Not Found", ex.Message)));
+                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
             // ... other error handling ...
             catch (Exception ex)
             {
                  _logger.LogError(ex, "Error deleting page {id}", pageId);
-                return StatusCode(500, new LibApiErrorResponse(new LibApiError(500, "Server Error", ex.Message)));
+                return StatusCode(500, new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }
     }

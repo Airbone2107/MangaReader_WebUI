@@ -1,6 +1,9 @@
+using MangaReaderLib.DTOs.Authors;
+using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Text;
+
 namespace MangaReaderLib.Services.Implementations
 {
     public class AuthorClient : IAuthorClient
@@ -57,7 +60,7 @@ namespace MangaReaderLib.Services.Implementations
             }
         }
 
-        public async Task<LibApiCollectionResponse<LibResourceObject<LibAuthorAttributesDto>>?> GetAuthorsAsync(
+        public async Task<ApiCollectionResponse<ResourceObject<AuthorAttributesDto>>?> GetAuthorsAsync(
             int? offset = null, int? limit = null, string? nameFilter = null, 
             string? orderBy = null, bool? ascending = null, CancellationToken cancellationToken = default)
         {
@@ -71,22 +74,22 @@ namespace MangaReaderLib.Services.Implementations
             AddQueryParam(queryParams, "ascending", ascending?.ToString().ToLower());
             
             string requestUri = BuildQueryString("Authors", queryParams);
-            return await _apiClient.GetAsync<LibApiCollectionResponse<LibResourceObject<LibAuthorAttributesDto>>>(requestUri, cancellationToken);
+            return await _apiClient.GetAsync<ApiCollectionResponse<ResourceObject<AuthorAttributesDto>>>(requestUri, cancellationToken);
         }
 
-        public async Task<LibApiResponse<LibResourceObject<LibAuthorAttributesDto>>?> GetAuthorByIdAsync(Guid authorId, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<ResourceObject<AuthorAttributesDto>>?> GetAuthorByIdAsync(Guid authorId, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Getting author by ID: {AuthorId}", authorId);
-            return await _apiClient.GetAsync<LibApiResponse<LibResourceObject<LibAuthorAttributesDto>>>($"Authors/{authorId}", cancellationToken);
+            return await _apiClient.GetAsync<ApiResponse<ResourceObject<AuthorAttributesDto>>>($"Authors/{authorId}", cancellationToken);
         }
 
-        public async Task<LibApiResponse<LibResourceObject<LibAuthorAttributesDto>>?> CreateAuthorAsync(LibCreateAuthorRequestDto request, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<ResourceObject<AuthorAttributesDto>>?> CreateAuthorAsync(CreateAuthorRequestDto request, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Creating new author: {Name}", request.Name);
-            return await _apiClient.PostAsync<LibCreateAuthorRequestDto, LibApiResponse<LibResourceObject<LibAuthorAttributesDto>>>("Authors", request, cancellationToken);
+            return await _apiClient.PostAsync<CreateAuthorRequestDto, ApiResponse<ResourceObject<AuthorAttributesDto>>>("Authors", request, cancellationToken);
         }
 
-        public async Task UpdateAuthorAsync(Guid authorId, LibUpdateAuthorRequestDto request, CancellationToken cancellationToken = default)
+        public async Task UpdateAuthorAsync(Guid authorId, UpdateAuthorRequestDto request, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Updating author with ID: {AuthorId}", authorId);
             await _apiClient.PutAsync($"Authors/{authorId}", request, cancellationToken);

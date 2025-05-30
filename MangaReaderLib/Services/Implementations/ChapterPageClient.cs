@@ -1,17 +1,8 @@
-using MangaReaderLib.DTOs.Attributes;
 using MangaReaderLib.DTOs.Chapters;
 using MangaReaderLib.DTOs.Common;
-using MangaReaderLib.DTOs.Requests;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace MangaReaderLib.Services.Implementations
 {
@@ -69,27 +60,27 @@ namespace MangaReaderLib.Services.Implementations
             }
         }
 
-        public async Task<LibApiResponse<CreateChapterPageEntryResponseDto>?> CreateChapterPageEntryAsync(
-            Guid chapterId, LibCreateChapterPageEntryRequestDto request, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<CreateChapterPageEntryResponseDto>?> CreateChapterPageEntryAsync(
+            Guid chapterId, CreateChapterPageEntryRequestDto request, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Creating chapter page entry for chapter ID: {ChapterId}, Page Number: {PageNumber}", 
                 chapterId, request.PageNumber);
-            return await _apiClient.PostAsync<LibCreateChapterPageEntryRequestDto, LibApiResponse<CreateChapterPageEntryResponseDto>>(
+            return await _apiClient.PostAsync<CreateChapterPageEntryRequestDto, ApiResponse<CreateChapterPageEntryResponseDto>>(
                 $"Chapters/{chapterId}/pages/entry", request, cancellationToken);
         }
 
-        public async Task<LibApiResponse<UploadChapterPageImageResponseDto>?> UploadChapterPageImageAsync(
+        public async Task<ApiResponse<UploadChapterPageImageResponseDto>?> UploadChapterPageImageAsync(
             Guid pageId, Stream imageStream, string fileName, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Uploading image for page ID: {PageId}, Filename: {FileName}", pageId, fileName);
             using var content = new MultipartFormDataContent();
             content.Add(new StreamContent(imageStream), "file", fileName);
             
-            return await _apiClient.PostAsync<LibApiResponse<UploadChapterPageImageResponseDto>>(
+            return await _apiClient.PostAsync<ApiResponse<UploadChapterPageImageResponseDto>>(
                 $"chapterpages/{pageId}/image", content, cancellationToken);
         }
 
-        public async Task<LibApiCollectionResponse<LibResourceObject<LibChapterPageAttributesDto>>?> GetChapterPagesAsync(
+        public async Task<ApiCollectionResponse<ResourceObject<ChapterPageAttributesDto>>?> GetChapterPagesAsync(
             Guid chapterId, int? offset = null, int? limit = null, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Getting pages for chapter ID: {ChapterId}", chapterId);
@@ -98,11 +89,11 @@ namespace MangaReaderLib.Services.Implementations
             AddQueryParam(queryParams, "limit", limit?.ToString());
             
             string requestUri = BuildQueryString($"chapters/{chapterId}/pages", queryParams);
-            return await _apiClient.GetAsync<LibApiCollectionResponse<LibResourceObject<LibChapterPageAttributesDto>>>(requestUri, cancellationToken);
+            return await _apiClient.GetAsync<ApiCollectionResponse<ResourceObject<ChapterPageAttributesDto>>>(requestUri, cancellationToken);
         }
 
         public async Task UpdateChapterPageDetailsAsync(
-            Guid pageId, LibUpdateChapterPageDetailsRequestDto request, CancellationToken cancellationToken = default)
+            Guid pageId, UpdateChapterPageDetailsRequestDto request, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Updating page details for page ID: {PageId}", pageId);
             await _apiClient.PutAsync($"chapterpages/{pageId}/details", request, cancellationToken);

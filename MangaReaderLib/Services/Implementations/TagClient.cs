@@ -1,14 +1,8 @@
-using MangaReaderLib.DTOs.Attributes;
+using MangaReaderLib.DTOs.Tags;
 using MangaReaderLib.DTOs.Common;
-using MangaReaderLib.DTOs.Requests;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace MangaReaderLib.Services.Implementations
 {
@@ -66,7 +60,7 @@ namespace MangaReaderLib.Services.Implementations
             }
         }
 
-        public async Task<LibApiCollectionResponse<LibResourceObject<LibTagAttributesDto>>?> GetTagsAsync(
+        public async Task<ApiCollectionResponse<ResourceObject<TagAttributesDto>>?> GetTagsAsync(
             int? offset = null, int? limit = null, Guid? tagGroupId = null, string? nameFilter = null, 
             string? orderBy = null, bool? ascending = null, CancellationToken cancellationToken = default)
         {
@@ -82,19 +76,31 @@ namespace MangaReaderLib.Services.Implementations
             AddQueryParam(queryParams, "ascending", ascending?.ToString().ToLower());
             
             string requestUri = BuildQueryString("Tags", queryParams);
-            return await _apiClient.GetAsync<LibApiCollectionResponse<LibResourceObject<LibTagAttributesDto>>>(requestUri, cancellationToken);
+            return await _apiClient.GetAsync<ApiCollectionResponse<ResourceObject<TagAttributesDto>>>(requestUri, cancellationToken);
         }
         
-        public async Task<LibApiResponse<LibResourceObject<LibTagAttributesDto>>?> GetTagByIdAsync(Guid tagId, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<ResourceObject<TagAttributesDto>>?> GetTagByIdAsync(Guid tagId, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Getting tag by ID: {TagId}", tagId);
-            return await _apiClient.GetAsync<LibApiResponse<LibResourceObject<LibTagAttributesDto>>>($"Tags/{tagId}", cancellationToken);
+            return await _apiClient.GetAsync<ApiResponse<ResourceObject<TagAttributesDto>>>($"Tags/{tagId}", cancellationToken);
         }
 
-        public async Task<LibApiResponse<LibResourceObject<LibTagAttributesDto>>?> CreateTagAsync(LibCreateTagRequestDto request, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<ResourceObject<TagAttributesDto>>?> CreateTagAsync(CreateTagRequestDto request, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Creating new tag: {Name} in group: {TagGroupId}", request.Name, request.TagGroupId);
-            return await _apiClient.PostAsync<LibCreateTagRequestDto, LibApiResponse<LibResourceObject<LibTagAttributesDto>>>("Tags", request, cancellationToken);
+            return await _apiClient.PostAsync<CreateTagRequestDto, ApiResponse<ResourceObject<TagAttributesDto>>>("Tags", request, cancellationToken);
+        }
+
+        public async Task UpdateTagAsync(Guid tagId, UpdateTagRequestDto request, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Updating tag with ID: {TagId}", tagId);
+            await _apiClient.PutAsync($"Tags/{tagId}", request, cancellationToken);
+        }
+
+        public async Task DeleteTagAsync(Guid tagId, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Deleting tag with ID: {TagId}", tagId);
+            await _apiClient.DeleteAsync($"Tags/{tagId}", cancellationToken);
         }
     }
 } 

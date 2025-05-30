@@ -1,7 +1,10 @@
+// MangaReader_ManagerUI\mangareader_managerui.client\src\assets\scss\themes\_default.scss
+@use '../utils/variables' as *; // Import variables
+
 // This file can be used for general theme-related styles or overrides if needed.
 // For now, it mostly relies on variables and MUI's default theming.
 body {
   // Use defined variables
   background-color: $background-color;
   color: $text-color;
-} 
+}

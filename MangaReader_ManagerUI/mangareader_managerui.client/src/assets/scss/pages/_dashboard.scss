@@ -1,3 +1,6 @@
+// MangaReader_ManagerUI\mangareader_managerui.client\src\assets\scss\pages\_dashboard.scss
+@use '../utils/variables' as *; // Import variables
+
 .dashboard-page {
   padding: $spacing-lg;
   background-color: $background-color;
@@ -33,4 +36,4 @@
     font-weight: bold;
     color: $primary-color;
   }
-} 
+}

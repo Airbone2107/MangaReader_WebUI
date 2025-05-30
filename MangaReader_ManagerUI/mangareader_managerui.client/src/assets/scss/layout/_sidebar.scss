@@ -1,3 +1,6 @@
+// MangaReader_ManagerUI\mangareader_managerui.client\src\assets\scss\layout\_sidebar.scss
+@use '../utils/variables' as *; // Import variables
+
 .MuiDrawer-root {
   width: $sidebar-width;
   flex-shrink: 0;
@@ -44,4 +47,4 @@
       background-color: rgba($primary-color, 0.05);
     }
   }
-} 
+}

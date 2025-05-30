@@ -1,14 +1,8 @@
-using MangaReaderLib.DTOs.Attributes;
+using MangaReaderLib.DTOs.Chapters;
 using MangaReaderLib.DTOs.Common;
-using MangaReaderLib.DTOs.Requests;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace MangaReaderLib.Services.Implementations
 {
@@ -66,15 +60,15 @@ namespace MangaReaderLib.Services.Implementations
             }
         }
 
-        public async Task<LibApiResponse<LibResourceObject<LibChapterAttributesDto>>?> CreateChapterAsync(
-            LibCreateChapterRequestDto request, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<ResourceObject<ChapterAttributesDto>>?> CreateChapterAsync(
+            CreateChapterRequestDto request, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Creating new chapter for translated manga ID: {TranslatedMangaId}, Chapter: {ChapterNumber}", 
                 request.TranslatedMangaId, request.ChapterNumber);
-            return await _apiClient.PostAsync<LibCreateChapterRequestDto, LibApiResponse<LibResourceObject<LibChapterAttributesDto>>>("Chapters", request, cancellationToken);
+            return await _apiClient.PostAsync<CreateChapterRequestDto, ApiResponse<ResourceObject<ChapterAttributesDto>>>("Chapters", request, cancellationToken);
         }
 
-        public async Task<LibApiCollectionResponse<LibResourceObject<LibChapterAttributesDto>>?> GetChaptersByTranslatedMangaAsync(
+        public async Task<ApiCollectionResponse<ResourceObject<ChapterAttributesDto>>?> GetChaptersByTranslatedMangaAsync(
             Guid translatedMangaId, int? offset = null, int? limit = null, 
             string? orderBy = null, bool? ascending = null, CancellationToken cancellationToken = default)
         {
@@ -86,18 +80,18 @@ namespace MangaReaderLib.Services.Implementations
             AddQueryParam(queryParams, "ascending", ascending?.ToString().ToLower());
             
             string requestUri = BuildQueryString($"translatedmangas/{translatedMangaId}/chapters", queryParams);
-            return await _apiClient.GetAsync<LibApiCollectionResponse<LibResourceObject<LibChapterAttributesDto>>>(requestUri, cancellationToken);
+            return await _apiClient.GetAsync<ApiCollectionResponse<ResourceObject<ChapterAttributesDto>>>(requestUri, cancellationToken);
         }
 
-        public async Task<LibApiResponse<LibResourceObject<LibChapterAttributesDto>>?> GetChapterByIdAsync(
+        public async Task<ApiResponse<ResourceObject<ChapterAttributesDto>>?> GetChapterByIdAsync(
             Guid chapterId, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Getting chapter by ID: {ChapterId}", chapterId);
-            return await _apiClient.GetAsync<LibApiResponse<LibResourceObject<LibChapterAttributesDto>>>($"Chapters/{chapterId}", cancellationToken);
+            return await _apiClient.GetAsync<ApiResponse<ResourceObject<ChapterAttributesDto>>>($"Chapters/{chapterId}", cancellationToken);
         }
 
         public async Task UpdateChapterAsync(
-            Guid chapterId, LibUpdateChapterRequestDto request, CancellationToken cancellationToken = default)
+            Guid chapterId, UpdateChapterRequestDto request, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Updating chapter with ID: {ChapterId}", chapterId);
             await _apiClient.PutAsync($"Chapters/{chapterId}", request, cancellationToken);

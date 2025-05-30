@@ -1,8 +1,7 @@
+using MangaReaderLib.DTOs.CoverArts;
+using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace MangaReaderLib.Services.Implementations
 {
@@ -15,6 +14,12 @@ namespace MangaReaderLib.Services.Implementations
         {
             _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        public async Task<ApiResponse<ResourceObject<CoverArtAttributesDto>>?> GetCoverArtByIdAsync(Guid coverId, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Getting cover art by ID: {CoverId}", coverId);
+            return await _apiClient.GetAsync<ApiResponse<ResourceObject<CoverArtAttributesDto>>>($"CoverArts/{coverId}", cancellationToken);
         }
 
         public async Task DeleteCoverArtAsync(Guid coverId, CancellationToken cancellationToken = default)

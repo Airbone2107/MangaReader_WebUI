@@ -1,11 +1,7 @@
-using MangaReaderLib.DTOs.Attributes;
+using MangaReaderLib.DTOs.TranslatedMangas;
 using MangaReaderLib.DTOs.Common;
-using MangaReaderLib.DTOs.Requests;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace MangaReaderLib.Services.Implementations
 {
@@ -20,22 +16,22 @@ namespace MangaReaderLib.Services.Implementations
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<LibApiResponse<LibResourceObject<LibTranslatedMangaAttributesDto>>?> CreateTranslatedMangaAsync(
-            LibCreateTranslatedMangaRequestDto request, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<ResourceObject<TranslatedMangaAttributesDto>>?> CreateTranslatedMangaAsync(
+            CreateTranslatedMangaRequestDto request, CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Creating new translated manga for language: {Language}", request.Language);
-            return await _apiClient.PostAsync<LibCreateTranslatedMangaRequestDto, LibApiResponse<LibResourceObject<LibTranslatedMangaAttributesDto>>>("TranslatedMangas", request, cancellationToken);
+            _logger.LogInformation("Creating new translated manga for language: {LanguageKey}", request.LanguageKey);
+            return await _apiClient.PostAsync<CreateTranslatedMangaRequestDto, ApiResponse<ResourceObject<TranslatedMangaAttributesDto>>>("TranslatedMangas", request, cancellationToken);
         }
         
-        public async Task<LibApiResponse<LibResourceObject<LibTranslatedMangaAttributesDto>>?> GetTranslatedMangaByIdAsync(
+        public async Task<ApiResponse<ResourceObject<TranslatedMangaAttributesDto>>?> GetTranslatedMangaByIdAsync(
             Guid translatedMangaId, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Getting translated manga by ID: {TranslatedMangaId}", translatedMangaId);
-            return await _apiClient.GetAsync<LibApiResponse<LibResourceObject<LibTranslatedMangaAttributesDto>>>($"TranslatedMangas/{translatedMangaId}", cancellationToken);
+            return await _apiClient.GetAsync<ApiResponse<ResourceObject<TranslatedMangaAttributesDto>>>($"TranslatedMangas/{translatedMangaId}", cancellationToken);
         }
 
         public async Task UpdateTranslatedMangaAsync(
-            Guid translatedMangaId, LibUpdateTranslatedMangaRequestDto request, CancellationToken cancellationToken = default)
+            Guid translatedMangaId, UpdateTranslatedMangaRequestDto request, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Updating translated manga with ID: {TranslatedMangaId}", translatedMangaId);
             await _apiClient.PutAsync($"TranslatedMangas/{translatedMangaId}", request, cancellationToken);

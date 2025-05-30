@@ -1,9 +1,5 @@
-using MangaReaderLib.DTOs.Attributes;
+using MangaReaderLib.DTOs.Tags;
 using MangaReaderLib.DTOs.Common;
-using MangaReaderLib.DTOs.Requests;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace MangaReaderLib.Services.Interfaces
 {
@@ -15,27 +11,42 @@ namespace MangaReaderLib.Services.Interfaces
         /// <summary>
         /// Lấy danh sách các tag với các tùy chọn lọc và phân trang
         /// </summary>
-        Task<LibApiCollectionResponse<LibResourceObject<LibTagAttributesDto>>?> GetTagsAsync(
-            int? offset = null, 
-            int? limit = null, 
-            Guid? tagGroupId = null, 
-            string? nameFilter = null, 
-            string? orderBy = null, 
-            bool? ascending = null, 
+        Task<ApiCollectionResponse<ResourceObject<TagAttributesDto>>?> GetTagsAsync(
+            int? offset = null,
+            int? limit = null,
+            Guid? tagGroupId = null,
+            string? nameFilter = null,
+            string? orderBy = null,
+            bool? ascending = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Lấy thông tin chi tiết của một tag dựa trên ID
         /// </summary>
-        Task<LibApiResponse<LibResourceObject<LibTagAttributesDto>>?> GetTagByIdAsync(
-            Guid tagId, 
+        Task<ApiResponse<ResourceObject<TagAttributesDto>>?> GetTagByIdAsync(
+            Guid tagId,
             CancellationToken cancellationToken = default);
-            
+
         /// <summary>
         /// Tạo một tag mới
         /// </summary>
-        Task<LibApiResponse<LibResourceObject<LibTagAttributesDto>>?> CreateTagAsync(
-            LibCreateTagRequestDto request, 
+        Task<ApiResponse<ResourceObject<TagAttributesDto>>?> CreateTagAsync(
+            CreateTagRequestDto request,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Cập nhật thông tin của một tag
+        /// </summary>
+        Task UpdateTagAsync(
+            Guid tagId,
+            UpdateTagRequestDto request,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Xóa một tag
+        /// </summary>
+        Task DeleteTagAsync(
+            Guid tagId,
             CancellationToken cancellationToken = default);
     }
 } 

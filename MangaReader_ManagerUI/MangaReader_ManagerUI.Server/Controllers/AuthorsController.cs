@@ -1,6 +1,5 @@
-using MangaReaderLib.DTOs.Attributes;
+using MangaReaderLib.DTOs.Authors;
 using MangaReaderLib.DTOs.Common;
-using MangaReaderLib.DTOs.Requests;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -23,8 +22,8 @@ namespace MangaReader_ManagerUI.Server.Controllers
 
         // GET: api/Authors
         [HttpGet]
-        [ProducesResponseType(typeof(LibApiCollectionResponse<LibResourceObject<LibAuthorAttributesDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(ApiCollectionResponse<ResourceObject<AuthorAttributesDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAuthors(
             [FromQuery] int? offset, [FromQuery] int? limit, [FromQuery] string? nameFilter,
             [FromQuery] string? orderBy, [FromQuery] bool? ascending)
@@ -36,7 +35,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 if (result == null) 
                 {
                     return StatusCode(StatusCodes.Status500InternalServerError, 
-                        new LibApiErrorResponse(new LibApiError(500, "API Error", "Failed to fetch authors from the backend API.")));
+                        new ApiErrorResponse(new ApiError(500, "API Error", "Failed to fetch authors from the backend API.")));
                 }
                 return Ok(result);
             }
@@ -44,21 +43,21 @@ namespace MangaReader_ManagerUI.Server.Controllers
             {
                 _logger.LogError(ex, "API Error fetching authors. Status: {StatusCode}", ex.StatusCode);
                 return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new LibApiErrorResponse(new LibApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Internal server error while fetching authors.");
                 return StatusCode(StatusCodes.Status500InternalServerError, 
-                    new LibApiErrorResponse(new LibApiError(500, "Server Error", ex.Message)));
+                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }
 
         // GET: api/Authors/{id}
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(LibApiResponse<LibResourceObject<LibAuthorAttributesDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<AuthorAttributesDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAuthorById(Guid id)
         {
             _logger.LogInformation("API: Requesting author by ID: {AuthorId}", id);
@@ -67,43 +66,43 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 var result = await _authorClient.GetAuthorByIdAsync(id, HttpContext.RequestAborted);
                 if (result == null || result.Data == null) 
                 {
-                    return NotFound(new LibApiErrorResponse(new LibApiError(404, "Not Found", $"Author with ID {id} not found.")));
+                    return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", $"Author with ID {id} not found.")));
                 }
                 return Ok(result);
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("API: Author with ID {AuthorId} not found in backend. Status: {StatusCode}", id, ex.StatusCode);
-                return NotFound(new LibApiErrorResponse(new LibApiError(404, "Not Found", ex.Message)));
+                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "API Error fetching author {AuthorId}. Status: {StatusCode}", id, ex.StatusCode);
                 return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new LibApiErrorResponse(new LibApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Internal server error while fetching author {AuthorId}.", id);
                 return StatusCode(StatusCodes.Status500InternalServerError, 
-                    new LibApiErrorResponse(new LibApiError(500, "Server Error", ex.Message)));
+                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }
 
         // POST: api/Authors
         [HttpPost]
-        [ProducesResponseType(typeof(LibApiResponse<LibResourceObject<LibAuthorAttributesDto>>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreateAuthor([FromBody] LibCreateAuthorRequestDto createDto)
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<AuthorAttributesDto>>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> CreateAuthor([FromBody] CreateAuthorRequestDto createDto)
         {
             _logger.LogInformation("API: Request to create author: {Name}", createDto.Name);
             if (!ModelState.IsValid) 
             {
                  var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                     .Select(e => new LibApiError(400, "Validation Error", e.ErrorMessage))
+                                     .Select(e => new ApiError(400, "Validation Error", e.ErrorMessage))
                                      .ToList();
-                return BadRequest(new LibApiErrorResponse(errors));
+                return BadRequest(new ApiErrorResponse(errors));
             }
             
             try
@@ -111,7 +110,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 var result = await _authorClient.CreateAuthorAsync(createDto, HttpContext.RequestAborted);
                 if (result == null || result.Data == null) 
                 {
-                    return BadRequest(new LibApiErrorResponse(new LibApiError(400, "Creation Failed", "Could not create author.")));
+                    return BadRequest(new ApiErrorResponse(new ApiError(400, "Creation Failed", "Could not create author.")));
                 }
                 return CreatedAtAction(nameof(GetAuthorById), new { id = Guid.Parse(result.Data.Id) }, result);
             }
@@ -119,31 +118,31 @@ namespace MangaReader_ManagerUI.Server.Controllers
             {
                 _logger.LogError(ex, "API Error creating author. Status: {StatusCode}", ex.StatusCode);
                 return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new LibApiErrorResponse(new LibApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Internal server error while creating author.");
                 return StatusCode(StatusCodes.Status500InternalServerError, 
-                    new LibApiErrorResponse(new LibApiError(500, "Server Error", ex.Message)));
+                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }
         
         // PUT: api/Authors/{id}
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateAuthor(Guid id, [FromBody] LibUpdateAuthorRequestDto updateDto)
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdateAuthor(Guid id, [FromBody] UpdateAuthorRequestDto updateDto)
         {
             _logger.LogInformation("API: Request to update author: {AuthorId}", id);
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                     .Select(e => new LibApiError(400, "Validation Error", e.ErrorMessage))
+                                     .Select(e => new ApiError(400, "Validation Error", e.ErrorMessage))
                                      .ToList();
-                return BadRequest(new LibApiErrorResponse(errors));
+                return BadRequest(new ApiErrorResponse(errors));
             }
             try
             {
@@ -153,27 +152,27 @@ namespace MangaReader_ManagerUI.Server.Controllers
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("API: Author with ID {AuthorId} not found for update. Status: {StatusCode}", id, ex.StatusCode);
-                return NotFound(new LibApiErrorResponse(new LibApiError(404, "Not Found", ex.Message)));
+                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "API Error updating author {AuthorId}. Status: {StatusCode}", id, ex.StatusCode);
                 return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new LibApiErrorResponse(new LibApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Internal server error while updating author {AuthorId}.", id);
                 return StatusCode(StatusCodes.Status500InternalServerError, 
-                    new LibApiErrorResponse(new LibApiError(500, "Server Error", ex.Message)));
+                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }
 
         // DELETE: api/Authors/{id}
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(LibApiErrorResponse), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DeleteAuthor(Guid id)
         {
             _logger.LogInformation("API: Request to delete author: {AuthorId}", id);
@@ -185,19 +184,19 @@ namespace MangaReader_ManagerUI.Server.Controllers
              catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("API: Author with ID {AuthorId} not found for deletion. Status: {StatusCode}", id, ex.StatusCode);
-                return NotFound(new LibApiErrorResponse(new LibApiError(404, "Not Found", ex.Message)));
+                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "API Error deleting author {AuthorId}. Status: {StatusCode}", id, ex.StatusCode);
                 return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new LibApiErrorResponse(new LibApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Internal server error while deleting author {AuthorId}.", id);
                 return StatusCode(StatusCodes.Status500InternalServerError, 
-                    new LibApiErrorResponse(new LibApiError(500, "Server Error", ex.Message)));
+                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }
     }

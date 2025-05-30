@@ -1,11 +1,7 @@
-using MangaReaderLib.DTOs.Attributes;
+using MangaReaderLib.DTOs.CoverArts;
+using MangaReaderLib.DTOs.Mangas;
+using MangaReaderLib.DTOs.TranslatedMangas;
 using MangaReaderLib.DTOs.Common;
-using MangaReaderLib.DTOs.Requests;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace MangaReaderLib.Services.Interfaces
 {
@@ -17,7 +13,7 @@ namespace MangaReaderLib.Services.Interfaces
         /// <summary>
         /// Lấy danh sách manga với các tùy chọn lọc và phân trang
         /// </summary>
-        Task<LibApiCollectionResponse<LibResourceObject<LibMangaAttributesDto>>?> GetMangasAsync(
+        Task<ApiCollectionResponse<ResourceObject<MangaAttributesDto>>?> GetMangasAsync(
             int? offset = null, 
             int? limit = null, 
             string? titleFilter = null, 
@@ -35,15 +31,15 @@ namespace MangaReaderLib.Services.Interfaces
         /// <summary>
         /// Lấy thông tin chi tiết của một manga dựa trên ID
         /// </summary>
-        Task<LibApiResponse<LibResourceObject<LibMangaAttributesDto>>?> GetMangaByIdAsync(
+        Task<ApiResponse<ResourceObject<MangaAttributesDto>>?> GetMangaByIdAsync(
             Guid mangaId, 
             CancellationToken cancellationToken = default);
         
         /// <summary>
         /// Tạo một manga mới
         /// </summary>
-        Task<LibApiResponse<LibResourceObject<LibMangaAttributesDto>>?> CreateMangaAsync(
-            LibCreateMangaRequestDto request, 
+        Task<ApiResponse<ResourceObject<MangaAttributesDto>>?> CreateMangaAsync(
+            CreateMangaRequestDto request, 
             CancellationToken cancellationToken = default);
         
         /// <summary>
@@ -51,7 +47,7 @@ namespace MangaReaderLib.Services.Interfaces
         /// </summary>
         Task UpdateMangaAsync(
             Guid mangaId, 
-            LibUpdateMangaRequestDto request, 
+            UpdateMangaRequestDto request, 
             CancellationToken cancellationToken = default);
         
         /// <summary>
@@ -64,7 +60,7 @@ namespace MangaReaderLib.Services.Interfaces
         /// <summary>
         /// Lấy danh sách bìa của một manga
         /// </summary>
-        Task<LibApiCollectionResponse<LibResourceObject<LibCoverArtAttributesDto>>?> GetMangaCoversAsync(
+        Task<ApiCollectionResponse<ResourceObject<CoverArtAttributesDto>>?> GetMangaCoversAsync(
             Guid mangaId, 
             int? offset = null, 
             int? limit = null, 
@@ -73,7 +69,7 @@ namespace MangaReaderLib.Services.Interfaces
         /// <summary>
         /// Tải lên bìa mới cho một manga
         /// </summary>
-        Task<LibApiResponse<LibResourceObject<LibCoverArtAttributesDto>>?> UploadMangaCoverAsync(
+        Task<ApiResponse<ResourceObject<CoverArtAttributesDto>>?> UploadMangaCoverAsync(
             Guid mangaId, 
             Stream imageStream, 
             string fileName, 
@@ -84,7 +80,7 @@ namespace MangaReaderLib.Services.Interfaces
         /// <summary>
         /// Lấy danh sách các bản dịch của một manga
         /// </summary>
-        Task<LibApiCollectionResponse<LibResourceObject<LibTranslatedMangaAttributesDto>>?> GetMangaTranslationsAsync(
+        Task<ApiCollectionResponse<ResourceObject<TranslatedMangaAttributesDto>>?> GetMangaTranslationsAsync(
             Guid mangaId, 
             int? offset = null, 
             int? limit = null,

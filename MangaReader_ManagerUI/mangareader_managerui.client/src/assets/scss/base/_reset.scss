@@ -1,3 +1,6 @@
+// MangaReader_ManagerUI\mangareader_managerui.client\src\assets\scss\base\_reset.scss
+@use '../utils/variables' as *; // Import variables
+
 *,
 *::before,
 *::after {
@@ -34,4 +37,4 @@ button {
   border: none;
   background: transparent;
   padding: 0;
-} 
+}

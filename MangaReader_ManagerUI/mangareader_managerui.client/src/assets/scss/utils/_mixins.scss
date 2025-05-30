@@ -1,3 +1,6 @@
+@use 'sass:color'; // Import the color module for color functions
+@use './variables' as *; // Import variables from the same directory
+
 @mixin flex-center {
   display: flex;
   justify-content: center;
@@ -20,7 +23,8 @@
   transition: background-color $transition-speed $transition-easing;
 
   &:hover {
-    background-color: darken($bg-color, 10%);
+    // Replaced darken() with color.adjust()
+    background-color: color.adjust($bg-color, $lightness: -10%);
   }
 
   &:disabled {
@@ -45,4 +49,4 @@
 
 @mixin for-desktop-up {
   @media (min-width: 1200px) { @content; }
-} 
+}

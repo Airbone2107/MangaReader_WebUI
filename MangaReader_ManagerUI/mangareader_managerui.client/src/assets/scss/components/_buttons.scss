@@ -1,3 +1,7 @@
+// MangaReader_ManagerUI\mangareader_managerui.client\src\assets\scss\components\_buttons.scss
+@use '../utils/variables' as *; // Import variables
+@use '../utils/mixins' as *;    // Import mixins
+
 .MuiButton-root {
   text-transform: none; // Keep text as is, not uppercase
   font-weight: 500;
@@ -32,4 +36,4 @@
     cursor: not-allowed;
     pointer-events: auto; /* Allow cursor to show 'not-allowed' */
   }
-} 
+}

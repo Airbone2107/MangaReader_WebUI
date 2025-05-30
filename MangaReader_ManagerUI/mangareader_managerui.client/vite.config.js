@@ -1,3 +1,4 @@
+﻿// MangaReader_ManagerUI\mangareader_managerui.client\vite.config.js
 import { fileURLToPath, URL } from 'node:url';
 
 import { defineConfig } from 'vite';
@@ -47,10 +48,18 @@ export default defineConfig({
     },
     server: {
         proxy: {
-            '^/weatherforecast': {
+            // Thay đổi proxy để chuyển tiếp tất cả các request bắt đầu bằng '/api'
+            '^/api': { // Vẫn giữ regex này để khớp với /api
                 target,
-                secure: false
-            }
+                secure: false, // Để bỏ qua việc kiểm tra chứng chỉ SSL nếu bạn đang sử dụng HTTPS cục bộ
+                ws: true, // Hỗ trợ WebSockets, cần thiết cho HMR (Hot Module Replacement)
+                rewrite: (path) => path, 
+            },
+            // Giữ nguyên proxy cũ nếu bạn vẫn cần nó cho weatherforecast
+            // '^/weatherforecast': { // Có thể xóa nếu không sử dụng endpoint này nữa
+            //     target,
+            //     secure: false
+            // }
         },
         port: parseInt(env.DEV_SERVER_PORT || '49820'),
         https: {
