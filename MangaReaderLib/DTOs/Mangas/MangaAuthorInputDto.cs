@@ -1,4 +1,3 @@
-using System;
 using MangaReaderLib.Enums;
 
 namespace MangaReaderLib.DTOs.Mangas

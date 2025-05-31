@@ -1,4 +1,4 @@
-import apiClient from './apiClient'
+import apiClient from './apiClient';
 
 /**
  * @typedef {import('../types/api').ApiCollectionResponse<import('../types/manga').Author>} AuthorCollectionResponse

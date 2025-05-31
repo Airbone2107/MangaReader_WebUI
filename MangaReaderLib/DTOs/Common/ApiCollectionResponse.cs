@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace MangaReaderLib.DTOs.Common
@@ -25,6 +24,12 @@ namespace MangaReaderLib.DTOs.Common
         [JsonPropertyOrder(6)]
         public int Total { get; set; }
 
+        // Thêm constructor không tham số này
+        public ApiCollectionResponse() : base()
+        {
+            // Constructor không tham số, cần thiết cho deserialization
+        }
+
         public ApiCollectionResponse(List<TData> data, int total, int offset, int limit)
             : base("ok")
         {
@@ -39,4 +44,4 @@ namespace MangaReaderLib.DTOs.Common
         {
         }
     }
-} 
+}

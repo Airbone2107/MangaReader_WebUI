@@ -1,4 +1,4 @@
-using MangaReaderLib.DTOs.Common; // Sử dụng DTOs từ Lib
+using MangaReaderLib.DTOs.Common;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MangaReader_ManagerUI.Server.Controllers

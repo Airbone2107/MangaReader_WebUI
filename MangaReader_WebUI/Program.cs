@@ -1,12 +1,12 @@
 using MangaReader.WebUI.Infrastructure;
-using MangaReader.WebUI.Services.AuthServices;
-using Microsoft.AspNetCore.Mvc.Razor;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.APIServices.Services;
+using MangaReader.WebUI.Services.AuthServices;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Services;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Services;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaMapper;
+using Microsoft.AspNetCore.Mvc.Razor;
 
 var builder = WebApplication.CreateBuilder(args);
 

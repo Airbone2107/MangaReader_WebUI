@@ -1,5 +1,3 @@
-using System;
-
 namespace MangaReaderLib.DTOs.CoverArts
 {
     public class CoverArtAttributesDto

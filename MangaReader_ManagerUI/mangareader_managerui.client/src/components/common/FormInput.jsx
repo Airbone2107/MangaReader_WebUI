@@ -1,5 +1,5 @@
+import { FormControl, FormHelperText, InputLabel, MenuItem, Select, TextField } from '@mui/material'
 import React from 'react'
-import { TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material'
 import { useController } from 'react-hook-form'
 
 function FormInput({ name, control, label, type = 'text', options, ...props }) {

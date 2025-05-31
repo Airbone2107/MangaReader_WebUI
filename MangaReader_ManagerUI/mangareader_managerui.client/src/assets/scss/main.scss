@@ -1,4 +1,3 @@
-// MangaReader_ManagerUI\mangareader_managerui.client\src\assets\scss\main.scss
 @use 'utils/variables' as *;
 @use 'utils/mixins' as *;
 @use 'utils/functions' as *;
@@ -12,6 +11,12 @@
 @use 'pages/dashboard';
 @use 'pages/login'; // Will be filled in later steps
 @use 'pages/mangaList'; // Will be filled in later steps
+@use 'pages/translatedMangaList'; // New import
+@use 'pages/chapterList'; // New import
+@use 'pages/chapterPageManager'; // New import
+@use 'pages/authorList'; // NEW
+@use 'pages/tagList';     // NEW
+@use 'pages/tagGroupList'; // NEW
 @use 'themes/default';
 
 // Global styles (minimal, usually handled by MUI's CssBaseline)

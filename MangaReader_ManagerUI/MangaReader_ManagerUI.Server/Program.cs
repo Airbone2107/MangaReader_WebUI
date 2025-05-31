@@ -1,5 +1,5 @@
-using MangaReaderLib.Services.Interfaces;
 using MangaReaderLib.Services.Implementations;
+using MangaReaderLib.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 

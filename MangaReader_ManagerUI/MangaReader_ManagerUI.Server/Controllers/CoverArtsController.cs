@@ -1,9 +1,7 @@
-using MangaReaderLib.DTOs.CoverArts; // For CoverArtAttributesDto
-using MangaReaderLib.DTOs.Common;    // For ApiResponse, ApiErrorResponse
+using MangaReaderLib.DTOs.Common;
+using MangaReaderLib.DTOs.CoverArts;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Threading.Tasks;
 
 namespace MangaReader_ManagerUI.Server.Controllers
 {

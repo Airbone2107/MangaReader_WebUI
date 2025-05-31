@@ -1,12 +1,12 @@
-import React from 'react'
 import {
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Button,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
 } from '@mui/material'
+import React from 'react'
 
 function ConfirmDialog({ open, onClose, onConfirm, title, message }) {
   return (

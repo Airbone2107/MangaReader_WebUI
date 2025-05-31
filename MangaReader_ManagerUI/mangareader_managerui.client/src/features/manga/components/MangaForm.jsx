@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from 'react'
-import { Box, Button, Grid, Typography, Chip, Autocomplete, TextField, Switch, FormControlLabel } from '@mui/material'
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
-import FormInput from '../../../components/common/FormInput'
-import useFormWithZod from '../../../hooks/useFormWithZod'
-import { createMangaSchema, updateMangaSchema } from '../../../schemas/mangaSchema'
-import {
-  MANGA_STATUS_OPTIONS,
-  PUBLICATION_DEMOGRAPHIC_OPTIONS,
-  CONTENT_RATING_OPTIONS,
-  ORIGINAL_LANGUAGE_OPTIONS,
-  MANGA_STAFF_ROLE_OPTIONS,
-} from '../../../constants/appConstants'
+import { Autocomplete, Box, Button, Chip, FormControlLabel, Grid, Switch, TextField, Typography } from '@mui/material'
+import React, { useEffect, useState } from 'react'
 import authorApi from '../../../api/authorApi'
 import tagApi from '../../../api/tagApi'
+import FormInput from '../../../components/common/FormInput'
+import {
+    CONTENT_RATING_OPTIONS,
+    MANGA_STAFF_ROLE_OPTIONS,
+    MANGA_STATUS_OPTIONS,
+    ORIGINAL_LANGUAGE_OPTIONS,
+    PUBLICATION_DEMOGRAPHIC_OPTIONS,
+} from '../../../constants/appConstants'
+import useFormWithZod from '../../../hooks/useFormWithZod'
+import { createMangaSchema, updateMangaSchema } from '../../../schemas/mangaSchema'
 import { handleApiError } from '../../../utils/errorUtils'
 
 /**

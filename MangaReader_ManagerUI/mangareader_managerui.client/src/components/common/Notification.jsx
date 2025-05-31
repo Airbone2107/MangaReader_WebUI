@@ -1,6 +1,3 @@
-// This file is not a React Component but rather a utility for showing toasts.
-// No specific React component to render, as ToastContainer is handled in main.jsx.
-
 import { toast } from 'react-toastify';
 
 export const showSuccessToast = (message) => {

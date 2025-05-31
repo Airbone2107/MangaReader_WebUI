@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace MangaReaderLib.DTOs.Common
@@ -21,5 +20,11 @@ namespace MangaReaderLib.DTOs.Common
         [JsonPropertyOrder(4)]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<RelationshipObject>? Relationships { get; set; }
+
+        // Thêm constructor không tham số này
+        public ResourceObject()
+        {
+            // Constructor không tham số, cần thiết cho deserialization
+        }
     }
-} 
+}

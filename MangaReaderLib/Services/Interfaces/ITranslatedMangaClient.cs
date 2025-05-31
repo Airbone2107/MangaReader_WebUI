@@ -1,5 +1,5 @@
-using MangaReaderLib.DTOs.TranslatedMangas;
 using MangaReaderLib.DTOs.Common;
+using MangaReaderLib.DTOs.TranslatedMangas;
 
 namespace MangaReaderLib.Services.Interfaces
 {

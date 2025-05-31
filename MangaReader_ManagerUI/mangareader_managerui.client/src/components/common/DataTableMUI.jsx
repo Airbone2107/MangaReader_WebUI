@@ -1,17 +1,17 @@
-import React from 'react'
 import {
-  TableContainer,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  TablePagination,
-  Paper,
-  TableSortLabel,
-  Box,
+    Box,
+    Paper,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TablePagination,
+    TableRow,
+    TableSortLabel,
 } from '@mui/material'
 import { visuallyHidden } from '@mui/utils'
+import React from 'react'
 
 function DataTableMUI({
   columns,

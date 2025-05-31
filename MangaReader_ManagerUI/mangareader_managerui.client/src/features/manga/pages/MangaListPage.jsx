@@ -1,30 +1,30 @@
-import React, { useEffect, useState } from 'react'
-import {
-  Box,
-  Typography,
-  Button,
-  TextField,
-  MenuItem,
-  Grid,
-  Chip,
-  Autocomplete,
-} from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
-import SearchIcon from '@mui/icons-material/Search'
 import ClearIcon from '@mui/icons-material/Clear'
-import { useNavigate } from 'react-router-dom'
-import MangaTable from '../components/MangaTable'
-import useMangaStore from '../../../stores/mangaStore'
+import SearchIcon from '@mui/icons-material/Search'
 import {
-  MANGA_STATUS_OPTIONS,
-  PUBLICATION_DEMOGRAPHIC_OPTIONS,
-  CONTENT_RATING_OPTIONS,
-  ORIGINAL_LANGUAGE_OPTIONS,
-} from '../../../constants/appConstants'
+    Autocomplete,
+    Box,
+    Button,
+    Chip,
+    Grid,
+    MenuItem,
+    TextField,
+    Typography,
+} from '@mui/material'
+import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import authorApi from '../../../api/authorApi'
 import tagApi from '../../../api/tagApi'
-import { handleApiError } from '../../../utils/errorUtils'
+import {
+    CONTENT_RATING_OPTIONS,
+    MANGA_STATUS_OPTIONS,
+    ORIGINAL_LANGUAGE_OPTIONS,
+    PUBLICATION_DEMOGRAPHIC_OPTIONS,
+} from '../../../constants/appConstants'
+import useMangaStore from '../../../stores/mangaStore'
 import useUiStore from '../../../stores/uiStore'
+import { handleApiError } from '../../../utils/errorUtils'
+import MangaTable from '../components/MangaTable'
 
 /**
  * @typedef {import('../../../types/manga').Author} Author
@@ -50,15 +50,15 @@ function MangaListPage() {
     deleteManga,
   } = useMangaStore()
 
-  const isLoading = useUiStore(state => state.loading);
+  const isLoading = useUiStore(state => state.isLoading);
 
   // State for filter inputs (controlled components)
-  const [localTitleFilter, setLocalTitleFilter] = useState(filters.titleFilter)
-  const [localStatusFilter, setLocalStatusFilter] = useState(filters.statusFilter)
-  const [localContentRatingFilter, setLocalContentRatingFilter] = useState(filters.contentRatingFilter)
-  const [localDemographicFilter, setLocalDemographicFilter] = useState(filters.demographicFilter)
-  const [localOriginalLanguageFilter, setLocalOriginalLanguageFilter] = useState(filters.originalLanguageFilter)
-  const [localYearFilter, setLocalYearFilter] = useState(filters.yearFilter)
+  const [localTitleFilter, setLocalTitleFilter] = useState(filters.titleFilter || '')
+  const [localStatusFilter, setLocalStatusFilter] = useState(filters.statusFilter || '')
+  const [localContentRatingFilter, setLocalContentRatingFilter] = useState(filters.contentRatingFilter || '')
+  const [localDemographicFilter, setLocalDemographicFilter] = useState(filters.demographicFilter || '')
+  const [localOriginalLanguageFilter, setLocalOriginalLanguageFilter] = useState(filters.originalLanguageFilter || '')
+  const [localYearFilter, setLocalYearFilter] = useState(filters.yearFilter || null)
   /** @type {[SelectedRelationship[], React.Dispatch<React.SetStateAction<SelectedRelationship[]>>]} */
   const [localSelectedAuthorFilters, setLocalSelectedAuthorFilters] = useState([])
   /** @type {[SelectedRelationship[], React.Dispatch<React.SetStateAction<SelectedRelationship[]>>]} */
@@ -95,19 +95,23 @@ function MangaListPage() {
 
   // Sync local filter states with global store filters when global filters change (e.g., after reset)
   useEffect(() => {
-    setLocalTitleFilter(filters.titleFilter);
-    setLocalStatusFilter(filters.statusFilter);
-    setLocalContentRatingFilter(filters.contentRatingFilter);
-    setLocalDemographicFilter(filters.demographicFilter);
-    setLocalOriginalLanguageFilter(filters.originalLanguageFilter);
-    setLocalYearFilter(filters.yearFilter);
+    setLocalTitleFilter(filters.titleFilter || '');
+    setLocalStatusFilter(filters.statusFilter || '');
+    setLocalContentRatingFilter(filters.contentRatingFilter || '');
+    setLocalDemographicFilter(filters.demographicFilter || '');
+    setLocalOriginalLanguageFilter(filters.originalLanguageFilter || '');
+    setLocalYearFilter(filters.yearFilter || null);
     // When filters change globally, update local selected relationships for Autocomplete
     // This requires mapping filter IDs back to full objects using availableAuthors/Tags
     if (availableAuthors.length > 0 && filters.authorIdsFilter) {
-      setLocalSelectedAuthorFilters(availableAuthors.filter(a => filters.authorIdsFilter.includes(a.id)));
+      setLocalSelectedAuthorFilters(availableAuthors.filter(a => filters.authorIdsFilter?.includes(a.id)));
+    } else {
+      setLocalSelectedAuthorFilters([]);
     }
     if (availableTags.length > 0 && filters.tagIdsFilter) {
-      setLocalSelectedTagFilters(availableTags.filter(t => filters.tagIdsFilter.includes(t.id)));
+      setLocalSelectedTagFilters(availableTags.filter(t => filters.tagIdsFilter?.includes(t.id)));
+    } else {
+      setLocalSelectedTagFilters([]);
     }
   }, [filters, availableAuthors, availableTags]);
 
@@ -147,7 +151,7 @@ function MangaListPage() {
       {/* Filter Section */}
       <Box className="filter-section">
         <Grid container spacing={2} alignItems="flex-end">
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid xs={12} sm={6} md={3}>
             <TextField
               label="Lọc theo Tiêu đề"
               variant="outlined"
@@ -156,7 +160,7 @@ function MangaListPage() {
               onChange={(e) => setLocalTitleFilter(e.target.value)}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid xs={12} sm={6} md={2}>
             <TextField
               select
               label="Trạng thái"
@@ -173,7 +177,7 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid xs={12} sm={6} md={2}>
             <TextField
               select
               label="Đánh giá"
@@ -190,7 +194,7 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid xs={12} sm={6} md={2}>
             <TextField
               select
               label="Đối tượng"
@@ -207,7 +211,7 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid xs={12} sm={6} md={2}>
             <TextField
               select
               label="Ngôn ngữ gốc"
@@ -224,7 +228,7 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={12} sm={6} md={1}>
+          <Grid xs={12} sm={6} md={1}>
             <TextField
               label="Năm"
               variant="outlined"
@@ -235,7 +239,7 @@ function MangaListPage() {
               inputProps={{ min: 1000, max: new Date().getFullYear(), step: 1 }}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid xs={12} sm={6} md={3}>
             <Autocomplete
               multiple
               options={availableAuthors}
@@ -253,7 +257,7 @@ function MangaListPage() {
               }
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid xs={12} sm={6} md={3}>
             <Autocomplete
               multiple
               options={availableTags}
@@ -271,7 +275,7 @@ function MangaListPage() {
               }
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid xs={12} sm={6} md={2}>
             <Button
               variant="contained"
               color="primary"
@@ -282,7 +286,7 @@ function MangaListPage() {
               Áp dụng
             </Button>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid xs={12} sm={6} md={2}>
             <Button
               variant="outlined"
               color="inherit"

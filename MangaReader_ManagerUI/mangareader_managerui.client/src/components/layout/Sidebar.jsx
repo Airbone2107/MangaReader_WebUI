@@ -1,12 +1,10 @@
-import React from 'react'
-import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar } from '@mui/material'
+import CategoryIcon from '@mui/icons-material/Category'
 import DashboardIcon from '@mui/icons-material/Dashboard'
+import LocalOfferIcon from '@mui/icons-material/LocalOffer'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import PersonIcon from '@mui/icons-material/Person'
-import LocalOfferIcon from '@mui/icons-material/LocalOffer'
-import CategoryIcon from '@mui/icons-material/Category'
-import TranslateIcon from '@mui/icons-material/Translate'
-import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark'
+import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar } from '@mui/material'
+import React from 'react'
 import { NavLink } from 'react-router-dom'
 import useUiStore from '../../stores/uiStore'
 
@@ -16,9 +14,9 @@ function Sidebar() {
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Manga', icon: <MenuBookIcon />, path: '/mangas' },
-    { text: 'Authors', icon: <PersonIcon />, path: '/authors' },
-    { text: 'Tags', icon: <LocalOfferIcon />, path: '/tags' },
-    { text: 'Tag Groups', icon: <CategoryIcon />, path: '/taggroups' },
+    { text: 'Authors', icon: <PersonIcon />, path: '/authors' },          // NEW
+    { text: 'Tags', icon: <LocalOfferIcon />, path: '/tags' },            // NEW
+    { text: 'Tag Groups', icon: <CategoryIcon />, path: '/taggroups' },  // NEW
     // { text: 'Translated Mangas', icon: <TranslateIcon />, path: '/translatedmangas' },
     // { text: 'Chapters', icon: <CollectionsBookmarkIcon />, path: '/chapters' },
   ]

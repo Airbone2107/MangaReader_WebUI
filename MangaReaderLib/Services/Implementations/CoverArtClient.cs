@@ -1,5 +1,5 @@
-using MangaReaderLib.DTOs.CoverArts;
 using MangaReaderLib.DTOs.Common;
+using MangaReaderLib.DTOs.CoverArts;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 

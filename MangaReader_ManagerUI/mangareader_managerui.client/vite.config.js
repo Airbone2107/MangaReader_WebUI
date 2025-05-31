@@ -1,12 +1,11 @@
-﻿// MangaReader_ManagerUI\mangareader_managerui.client\vite.config.js
-import { fileURLToPath, URL } from 'node:url';
+﻿import { fileURLToPath, URL } from 'node:url';
 
-import { defineConfig } from 'vite';
 import plugin from '@vitejs/plugin-react';
+import child_process from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import child_process from 'child_process';
 import { env } from 'process';
+import { defineConfig } from 'vite';
 
 const baseFolder =
     env.APPDATA !== undefined && env.APPDATA !== ''

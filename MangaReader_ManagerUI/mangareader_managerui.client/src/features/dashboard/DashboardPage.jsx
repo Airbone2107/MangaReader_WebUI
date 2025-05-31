@@ -1,5 +1,5 @@
+import { Box, Grid, Paper, Typography } from '@mui/material'
 import React from 'react'
-import { Box, Typography, Grid, Paper } from '@mui/material'
 
 function DashboardPage() {
   return (

@@ -1,12 +1,13 @@
+import { Box, CircularProgress, Tab, Tabs, Typography } from '@mui/material'
 import React, { useEffect, useState } from 'react'
-import { Box, Typography, CircularProgress, Tabs, Tab } from '@mui/material'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import MangaForm from '../components/MangaForm'
-import CoverArtManager from '../components/CoverArtManager'
-import useMangaStore from '../../../stores/mangaStore'
-import { showSuccessToast } from '../../../components/common/Notification'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import mangaApi from '../../../api/mangaApi'
+import { showSuccessToast } from '../../../components/common/Notification'
+import useMangaStore from '../../../stores/mangaStore'
 import { handleApiError } from '../../../utils/errorUtils'
+import TranslatedMangaListPage from '../../translatedManga/pages/TranslatedMangaListPage'
+import CoverArtManager from '../components/CoverArtManager'
+import MangaForm from '../components/MangaForm'
 
 /**
  * @typedef {import('../../../types/manga').Manga} Manga
@@ -21,7 +22,7 @@ function MangaEditPage() {
   /** @type {[Manga | null, React.Dispatch<React.SetStateAction<Manga | null>>]} */
   const [manga, setManga] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [tabValue, setTabValue] = useState(0) // State for tabs: 0 for Details, 1 for Cover Art
+  const [tabValue, setTabValue] = useState(0) // State for tabs: 0 for Details, 1 for Cover Art, 2 for Translations
   
   const fetchMangas = useMangaStore((state) => state.fetchMangas)
 
@@ -29,6 +30,8 @@ function MangaEditPage() {
   useEffect(() => {
     if (location.pathname.includes('/covers')) {
       setTabValue(1);
+    } else if (location.pathname.includes('/translations')) { // Check for translations tab
+      setTabValue(2);
     } else {
       setTabValue(0);
     }
@@ -73,6 +76,8 @@ function MangaEditPage() {
       navigate(`/mangas/edit/${id}`);
     } else if (newValue === 1) {
       navigate(`/mangas/${id}/covers`);
+    } else if (newValue === 2) { // Navigate to translations tab
+      navigate(`/mangas/${id}/translations`);
     }
   }
 
@@ -105,7 +110,7 @@ function MangaEditPage() {
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="Manga tabs">
           <Tab label="Chi tiết Manga" />
           <Tab label="Ảnh bìa" />
-          {/* <Tab label="Bản dịch" /> */}
+          <Tab label="Bản dịch" />
           {/* <Tab label="Chương" /> */}
         </Tabs>
       </Box>
@@ -120,7 +125,11 @@ function MangaEditPage() {
           <CoverArtManager mangaId={id} />
         </Box>
       )}
-      {/* Add other tabs content here later */}
+      {tabValue === 2 && (
+        <Box sx={{ mt: 2 }}>
+          <TranslatedMangaListPage mangaId={id} />
+        </Box>
+      )}
     </Box>
   )
 }

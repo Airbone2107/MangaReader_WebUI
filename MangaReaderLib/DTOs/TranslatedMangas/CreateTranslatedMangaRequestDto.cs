@@ -1,5 +1,3 @@
-using System;
-
 namespace MangaReaderLib.DTOs.TranslatedMangas
 {
     public class CreateTranslatedMangaRequestDto

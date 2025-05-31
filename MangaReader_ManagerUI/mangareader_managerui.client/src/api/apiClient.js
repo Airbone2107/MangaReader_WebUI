@@ -1,7 +1,7 @@
-import axios from 'axios'
-import useUiStore from '../stores/uiStore'
-import { handleApiError } from '../utils/errorUtils'
+import axios from 'axios';
 import { API_BASE_URL } from '../constants/appConstants';
+import useUiStore from '../stores/uiStore';
+import { handleApiError } from '../utils/errorUtils';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

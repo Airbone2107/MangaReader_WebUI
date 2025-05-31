@@ -1,5 +1,3 @@
-using System;
-
 namespace MangaReaderLib.DTOs.TagGroups
 {
     public class TagGroupAttributesDto

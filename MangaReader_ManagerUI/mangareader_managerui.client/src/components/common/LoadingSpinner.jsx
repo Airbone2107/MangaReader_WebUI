@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Backdrop } from '@mui/material'
+import { Backdrop, CircularProgress } from '@mui/material'
 import useUiStore from '../../stores/uiStore'
 
 function LoadingSpinner() {

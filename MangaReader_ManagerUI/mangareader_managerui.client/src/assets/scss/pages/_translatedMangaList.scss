@@ -1,0 +1,31 @@
+@use '../utils/variables' as *;
+@use '../utils/mixins' as *;
+
+.translated-manga-list-page {
+  padding: $spacing-lg;
+  background-color: $background-color;
+  min-height: calc(100vh - 64px); 
+  
+  .page-header {
+    color: $primary-color;
+    margin-bottom: $spacing-xl;
+  }
+}
+
+.translated-manga-create-page, .translated-manga-edit-page {
+  padding: $spacing-lg;
+  background-color: $background-color;
+  min-height: calc(100vh - 64px);
+
+  .page-header {
+    color: $primary-color;
+    margin-bottom: $spacing-xl;
+  }
+  
+  .MuiPaper-root { 
+    padding: $spacing-lg;
+    border-radius: $border-radius-md;
+    box-shadow: $shadow-sm;
+    background-color: $surface-color;
+  }
+} 

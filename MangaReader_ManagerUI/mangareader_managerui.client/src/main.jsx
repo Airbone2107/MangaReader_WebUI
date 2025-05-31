@@ -1,12 +1,12 @@
+import { CssBaseline } from '@mui/material'
+import { ThemeProvider, createTheme } from '@mui/material/styles'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter as Router } from 'react-router-dom'
-import { ThemeProvider, createTheme } from '@mui/material/styles'
-import { CssBaseline } from '@mui/material'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import './assets/scss/main.scss'
 import App from './App.jsx'
+import './assets/scss/main.scss'
 
 // Define a basic MUI theme
 const theme = createTheme({

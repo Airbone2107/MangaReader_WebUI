@@ -1,31 +1,31 @@
-import React, { useEffect, useState } from 'react'
-import {
-  Box,
-  Typography,
-  Grid,
-  Button,
-  Card,
-  CardMedia,
-  CardContent,
-  CardActions,
-  IconButton,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  CircularProgress,
-} from '@mui/material'
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { uploadCoverArtSchema } from '../../../schemas/mangaSchema'
-import mangaApi from '../../../api/mangaApi'
+import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
+import {
+    Box,
+    Button,
+    Card,
+    CardActions,
+    CardContent,
+    CardMedia,
+    CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Grid,
+    IconButton,
+    TextField,
+    Typography,
+} from '@mui/material'
+import React, { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import coverArtApi from '../../../api/coverArtApi'
+import mangaApi from '../../../api/mangaApi'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import { showSuccessToast } from '../../../components/common/Notification'
-import { handleApiError } from '../../../utils/errorUtils'
 import { CLOUDINARY_BASE_URL } from '../../../constants/appConstants'
+import { uploadCoverArtSchema } from '../../../schemas/mangaSchema'
+import { handleApiError } from '../../../utils/errorUtils'
 
 /**
  * @typedef {import('../../../types/manga').CoverArt} CoverArt

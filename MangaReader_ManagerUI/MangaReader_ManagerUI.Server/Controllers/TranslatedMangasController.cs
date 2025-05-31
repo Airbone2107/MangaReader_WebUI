@@ -2,9 +2,6 @@ using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.DTOs.TranslatedMangas;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace MangaReader_ManagerUI.Server.Controllers
 {

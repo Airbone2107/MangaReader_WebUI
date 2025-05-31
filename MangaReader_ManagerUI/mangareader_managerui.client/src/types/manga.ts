@@ -229,4 +229,5 @@ export interface UploadCoverArtRequest {
 export interface SelectedRelationship {
   id: string;
   name: string; // The display name of the related entity
+  role?: 'Author' | 'Artist'; // Added for author selection in MangaForm
 } 

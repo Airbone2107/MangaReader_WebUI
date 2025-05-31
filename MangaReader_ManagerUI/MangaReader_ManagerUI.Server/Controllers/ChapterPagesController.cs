@@ -1,12 +1,7 @@
-using MangaReaderLib.DTOs.Chapters; // For DTOs specific to ChapterPage
+using MangaReaderLib.DTOs.Chapters;
 using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic; // For List
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace MangaReader_ManagerUI.Server.Controllers
 {
