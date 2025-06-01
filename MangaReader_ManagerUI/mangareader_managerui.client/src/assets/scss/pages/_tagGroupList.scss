@@ -1,0 +1,28 @@
+@use '../utils/variables' as *;
+@use '../utils/mixins' as *;
+
+.tag-group-list-page, .tag-group-create-page, .tag-group-edit-page {
+  padding: $spacing-lg;
+  background-color: $background-color;
+  min-height: calc(100vh - 64px); 
+  
+  .page-header {
+    color: $primary-color;
+    margin-bottom: $spacing-xl;
+  }
+
+  .filter-section {
+    background-color: $surface-color;
+    padding: $spacing-lg;
+    border-radius: $border-radius-md;
+    box-shadow: $shadow-sm;
+    margin-bottom: $spacing-lg;
+  }
+
+  .MuiPaper-root { 
+    padding: $spacing-lg;
+    border-radius: $border-radius-md;
+    box-shadow: $shadow-sm;
+    background-color: $surface-color;
+  }
+} 

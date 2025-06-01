@@ -1,0 +1,60 @@
+@use '../utils/variables' as *;
+@use '../utils/mixins' as *;
+
+.chapter-page-manager {
+  .chapter-page-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: $spacing-md;
+  }
+
+  .chapter-page-card {
+    background-color: $light-gray;
+    border-radius: $border-radius-md;
+    box-shadow: $shadow-sm;
+    overflow: hidden;
+    position: relative;
+    
+    img {
+      width: 100%;
+      height: 250px; 
+      object-fit: contain; // Use 'contain' for chapter pages to fit whole image
+      display: block;
+      background-color: #eee;
+    }
+
+    .MuiCardContent-root {
+        padding: $spacing-sm;
+        text-align: center;
+        background-color: $surface-color;
+        border-top: 1px solid $border-color;
+    }
+
+    .card-actions {
+      position: absolute;
+      top: 0; // Position actions at the top right
+      right: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      justify-content: flex-end; // Align actions to the right
+      padding: $spacing-xxs;
+      opacity: 0;
+      transition: opacity $transition-speed $transition-easing;
+      width: 100%; // Take full width for hover effect
+
+      .MuiIconButton-root {
+        color: $text-color-light;
+      }
+    }
+
+    &:hover .card-actions {
+      opacity: 1;
+    }
+  }
+
+  .no-pages-message {
+    text-align: center;
+    color: $dark-gray;
+    padding: $spacing-lg;
+  }
+} 

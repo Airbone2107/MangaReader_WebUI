@@ -1,0 +1,50 @@
+// MangaReader_ManagerUI\mangareader_managerui.client\src\assets\scss\layout\_sidebar.scss
+@use '../utils/variables' as *; // Import variables
+
+.MuiDrawer-root {
+  width: $sidebar-width;
+  flex-shrink: 0;
+  .MuiDrawer-paper {
+    width: $sidebar-width;
+    background-color: $surface-color;
+    box-shadow: $shadow-lg;
+    box-sizing: border-box;
+    padding-top: $spacing-xl; // Space for app bar
+  }
+}
+
+.sidebar-header {
+  padding: $spacing-md;
+  text-align: center;
+  font-size: $font-size-lg;
+  font-weight: bold;
+  border-bottom: 1px solid $border-color;
+  margin-bottom: $spacing-md;
+}
+
+.sidebar-list {
+  padding: 0 $spacing-sm;
+}
+
+.sidebar-list-item {
+  margin-bottom: $spacing-xxs;
+  .MuiListItemIcon-root {
+    min-width: 40px;
+    color: $primary-color;
+  }
+  .MuiListItemText-primary {
+    font-size: $font-size-md;
+    font-weight: 500;
+  }
+  .Mui-selected {
+    background-color: rgba($primary-color, 0.1) !important;
+    color: $primary-color;
+    border-radius: $border-radius-sm;
+  }
+  .MuiListItemButton-root {
+    border-radius: $border-radius-sm;
+    &:hover {
+      background-color: rgba($primary-color, 0.05);
+    }
+  }
+}

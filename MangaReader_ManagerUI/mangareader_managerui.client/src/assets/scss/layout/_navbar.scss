@@ -1,0 +1,22 @@
+// MangaReader_ManagerUI\mangareader_managerui.client\src\assets\scss\layout\_navbar.scss
+@use '../utils/variables' as *; // Import variables
+@use '../utils/mixins' as *;    // Import mixins
+
+.MuiAppBar-root {
+  background-color: $primary-color !important;
+  color: $text-color-light !important;
+  box-shadow: $shadow-md !important;
+  z-index: 1200; // Higher than sidebar to overlap when sidebar is closed/mobile
+}
+
+.navbar-toolbar {
+  @include flex-between();
+  padding: $spacing-sm $spacing-md;
+}
+
+.navbar-logo {
+  font-size: $font-size-xl;
+  font-weight: 700;
+  color: inherit;
+  text-decoration: none;
+}

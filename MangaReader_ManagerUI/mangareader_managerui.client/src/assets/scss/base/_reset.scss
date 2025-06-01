@@ -1,0 +1,40 @@
+// MangaReader_ManagerUI\mangareader_managerui.client\src\assets\scss\base\_reset.scss
+@use '../utils/variables' as *; // Import variables
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: 'Roboto', sans-serif; // Assuming Roboto is available via MUI or Google Fonts
+  line-height: 1.6;
+  background-color: $background-color;
+  color: $text-color;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  text-decoration: none;
+  color: $primary-color;
+}
+
+ul {
+  list-style: none;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  padding: 0;
+}
