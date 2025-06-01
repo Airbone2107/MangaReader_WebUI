@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persistStore } from '../utils/zustandPersist'
 import tagGroupApi from '../api/tagGroupApi'
 import { showSuccessToast } from '../components/common/Notification'
 import { DEFAULT_PAGE_LIMIT } from '../constants/appConstants'
@@ -10,7 +11,7 @@ import { DEFAULT_PAGE_LIMIT } from '../constants/appConstants'
  * @typedef {import('../types/manga').UpdateTagGroupRequest} UpdateTagGroupRequest
  */
 
-const useTagGroupStore = create((set, get) => ({
+const useTagGroupStore = create(persistStore((set, get) => ({
   /** @type {TagGroup[]} */
   tagGroups: [],
   totalTagGroups: 0,
@@ -60,7 +61,8 @@ const useTagGroupStore = create((set, get) => ({
    * @param {number} newPage
    */
   setPage: (event, newPage) => {
-    set({ page: newPage }, () => get().fetchTagGroups())
+    set({ page: newPage });
+    get().fetchTagGroups(false); // Không reset pagination, chỉ fetch với page mới
   },
 
   /**
@@ -68,9 +70,8 @@ const useTagGroupStore = create((set, get) => ({
    * @param {React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>} event
    */
   setRowsPerPage: (event) => {
-    set({ rowsPerPage: parseInt(event.target.value, 10), page: 0 }, () =>
-      get().fetchTagGroups(),
-    )
+    set({ rowsPerPage: parseInt(event.target.value, 10), page: 0 });
+    get().fetchTagGroups(true); // Reset page về 0 và fetch
   },
 
   /**
@@ -79,9 +80,20 @@ const useTagGroupStore = create((set, get) => ({
    * @param {'asc' | 'desc'} order - The sort order.
    */
   setSort: (orderBy, order) => {
-    set({ sort: { orderBy, ascending: order === 'asc' }, page: 0 }, () =>
-      get().fetchTagGroups(),
-    )
+    set({ sort: { orderBy, ascending: order === 'asc' }, page: 0 });
+    get().fetchTagGroups(true); // Reset page về 0 và fetch
+  },
+
+  /**
+   * Update a specific filter value in the store.
+   * This does NOT trigger a fetch immediately.
+   * @param {string} filterName - The name of the filter property (e.g., 'nameFilter').
+   * @param {any} value - The new value for the filter.
+   */
+  setFilter: (filterName, value) => {
+    set(state => ({
+      filters: { ...state.filters, [filterName]: value }
+    }));
   },
 
   /**
@@ -92,7 +104,7 @@ const useTagGroupStore = create((set, get) => ({
     set((state) => ({
       filters: { ...state.filters, ...newFilters },
       page: 0, // Reset page on filter change
-    }), () => get().fetchTagGroups());
+    }));
   },
 
   /**
@@ -104,7 +116,8 @@ const useTagGroupStore = create((set, get) => ({
         nameFilter: '',
       },
       page: 0,
-    }, () => get().fetchTagGroups());
+    });
+    get().fetchTagGroups(true);
   },
 
   /**
@@ -121,6 +134,6 @@ const useTagGroupStore = create((set, get) => ({
       // Error is handled by apiClient interceptor
     }
   },
-}))
+}), 'tagGroup'))
 
 export default useTagGroupStore 

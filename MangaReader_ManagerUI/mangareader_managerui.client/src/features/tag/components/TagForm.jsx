@@ -87,7 +87,7 @@ function TagForm({ initialData, onSubmit, isEditMode }) {
   return (
     <Paper sx={{ p: 3, mt: 3 }}>
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <Grid container spacing={2}>
+        <Grid container spacing={2} columns={12}>
           <Grid item xs={12}>
             <FormInput control={control} name="name" label="Tên tag" />
           </Grid>

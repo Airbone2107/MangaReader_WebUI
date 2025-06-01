@@ -100,6 +100,7 @@ function TagTable({
 
   // Format data for DataTableMUI
   const formatTagDataForTable = (tagsData) => {
+    if (!tagsData) return [];
     return tagsData.map(tag => ({
       ...tag.attributes,
       id: tag.id,

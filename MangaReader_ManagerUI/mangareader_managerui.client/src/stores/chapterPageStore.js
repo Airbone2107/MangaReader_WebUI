@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persistStore } from '../utils/zustandPersist';
 import chapterApi from '../api/chapterApi';
 import chapterPageApi from '../api/chapterPageApi';
 import { showSuccessToast } from '../components/common/Notification';
@@ -10,12 +11,19 @@ import { DEFAULT_PAGE_LIMIT } from '../constants/appConstants';
  * @typedef {import('../types/manga').CreateChapterPageEntryRequest} CreateChapterPageEntryRequest
  */
 
-const useChapterPageStore = create((set, get) => ({
+const useChapterPageStore = create(persistStore((set, get) => ({
   /** @type {ChapterPage[]} */
   chapterPages: [],
   totalChapterPages: 0,
   page: 0,
   rowsPerPage: DEFAULT_PAGE_LIMIT,
+  filters: {
+    // Không có filter riêng cho ChapterPages trên API, nên để trống
+  },
+  sort: {
+    orderBy: 'pageNumber', // Mặc định sắp xếp theo số trang
+    ascending: true,
+  },
   
   /**
    * Fetch chapter pages for a specific chapter.
@@ -29,6 +37,10 @@ const useChapterPageStore = create((set, get) => ({
     const queryParams = {
       offset: offset,
       limit: rowsPerPage,
+      // API Chapters/{chapterId}/pages không hỗ trợ orderBy hay ascending,
+      // nhưng chúng ta vẫn quản lý trong store để nhất quán và cho tương lai.
+      // API response không trả về offset/limit cho ChapterPages nên việc tính page index sẽ đơn giản.
+      // Mặc định API sắp xếp theo pageNumber, nên khớp với sort.orderBy.
     }
 
     try {
@@ -37,7 +49,7 @@ const useChapterPageStore = create((set, get) => ({
       set({
         chapterPages: response.data,
         totalChapterPages: response.total,
-        page: resetPagination ? 0 : response.offset / response.limit,
+        page: resetPagination ? 0 : response.offset / response.limit, // Cập nhật page
       })
     } catch (error) {
       console.error('Failed to fetch chapter pages:', error)
@@ -52,7 +64,8 @@ const useChapterPageStore = create((set, get) => ({
    * @param {string} chapterId - Current chapter ID to refetch.
    */
   setPage: (event, newPage, chapterId) => {
-    set({ page: newPage }, () => get().fetchChapterPagesByChapterId(chapterId));
+    set({ page: newPage });
+    get().fetchChapterPagesByChapterId(chapterId);
   },
 
   /**
@@ -61,9 +74,40 @@ const useChapterPageStore = create((set, get) => ({
    * @param {string} chapterId - Current chapter ID to refetch.
    */
   setRowsPerPage: (event, chapterId) => {
-    set({ rowsPerPage: parseInt(event.target.value, 10), page: 0 }, () =>
-      get().fetchChapterPagesByChapterId(chapterId),
-    );
+    set({ rowsPerPage: parseInt(event.target.value, 10), page: 0 });
+    get().fetchChapterPagesByChapterId(chapterId, true); // Reset page về 0 và fetch
+  },
+
+  /**
+   * Set sort order.
+   * @param {string} orderBy - The field to sort by.
+   * @param {'asc' | 'desc'} order - The sort order.
+   * @param {string} chapterId - Current chapter ID to refetch.
+   */
+  setSort: (orderBy, order, chapterId) => {
+    set({ sort: { orderBy, ascending: order === 'asc' }, page: 0 });
+    // API Chapters/{chapterId}/pages hiện không hỗ trợ sorting, nên sort này chỉ có ý nghĩa trên client-side nếu tự sắp xếp
+    // hoặc là để chuẩn bị cho API hỗ trợ sau này.
+    get().fetchChapterPagesByChapterId(chapterId, true); // Reset page về 0 và fetch
+  },
+
+  // Phương thức setFilter, applyFilters, resetFilters có thể thêm vào nếu ChapterPages có filter riêng trên UI
+  setFilter: (filterName, value) => {
+    set(state => ({
+      filters: { ...state.filters, [filterName]: value }
+    }));
+  },
+  applyFilters: (newFilters) => {
+    set((state) => ({
+      filters: { ...state.filters, ...newFilters },
+      page: 0,
+    }));
+  },
+  resetFilters: () => {
+    set({
+      filters: {},
+      page: 0,
+    });
   },
 
   /**
@@ -76,9 +120,7 @@ const useChapterPageStore = create((set, get) => ({
     try {
       const response = await chapterApi.createChapterPageEntry(chapterId, data);
       showSuccessToast('Tạo entry trang chương thành công!');
-      // Optionally open upload dialog directly
-      // setPageEntryToUploadImage({ id: pageId, pageNumber: data.pageNumber });
-      // setOpenUploadImageDialog(true);
+      get().fetchChapterPagesByChapterId(chapterId); // Refresh pages after creating new entry
       return response.data.pageId; // Return pageId for subsequent upload
     } catch (error) {
       console.error('Failed to create page entry:', error);
@@ -91,15 +133,13 @@ const useChapterPageStore = create((set, get) => ({
    * Upload image for a chapter page.
    * @param {string} pageId - The ID of the chapter page entry.
    * @param {File} file - The image file to upload.
+   * @param {string} chapterId - The ID of the chapter to re-fetch pages.
    */
-  uploadPageImage: async (pageId, file) => {
+  uploadPageImage: async (pageId, file, chapterId) => { // Thêm chapterId vào đây
     try {
       await chapterPageApi.uploadChapterPageImage(pageId, file);
       showSuccessToast('Tải ảnh trang chương thành công!');
-      // After upload, re-fetch pages to update pagesCount and publicId
-      // We don't have chapterId easily here, so trigger a full refresh or rely on parent component
-      // A more robust solution might pass chapterId back from API or have a more complex state.
-      // For simplicity, we'll re-fetch in the component that calls this.
+      get().fetchChapterPagesByChapterId(chapterId); // Refresh list after upload
     } catch (error) {
       console.error('Failed to upload page image:', error);
       // handleApiError already called
@@ -121,6 +161,6 @@ const useChapterPageStore = create((set, get) => ({
       // Error is handled by apiClient interceptor
     }
   },
-}));
+}), 'chapterPage')); // Tên duy nhất cho persistence
 
 export default useChapterPageStore; 

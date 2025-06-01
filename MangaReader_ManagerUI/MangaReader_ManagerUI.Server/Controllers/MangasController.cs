@@ -4,6 +4,8 @@ using MangaReaderLib.DTOs.Mangas;
 using MangaReaderLib.DTOs.TranslatedMangas;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using MangaReaderLib.Services.Exceptions;
+using System.Net;
 
 namespace MangaReader_ManagerUI.Server.Controllers
 {
@@ -51,11 +53,21 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 }
                 return Ok(result);
             }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "API Error from MangaReaderAPI. Status: {StatusCode}", ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
+                return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, "API Error", ex.Message)));
+            }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "API Error fetching mangas. Status: {StatusCode}", ex.StatusCode);
-                return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                _logger.LogError(ex, "HTTP Request Error. Status: {StatusCode}", ex.StatusCode);
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "HTTP Error", ex.Message)));
             }
             catch (Exception ex)
             {
@@ -82,16 +94,20 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 }
                 return Ok(result);
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
             {
-                 _logger.LogWarning("API: Manga with ID {MangaId} not found in backend. Status: {StatusCode}", mangaId, ex.StatusCode);
+                _logger.LogWarning("API: Manga with ID {MangaId} not found in backend. Status: {StatusCode}", mangaId, ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
                 return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "API Error fetching manga {MangaId}. Status: {StatusCode}", mangaId, ex.StatusCode);
-                return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
@@ -112,7 +128,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                     .Select(e => new ApiError(400, "Validation Error", e.ErrorMessage))
+                                     .Select(e => new ApiError(400, "Validation Error", e.ErrorMessage, context: new { field = e.ErrorMessage }))
                                      .ToList();
                 return BadRequest(new ApiErrorResponse(errors));
             }
@@ -125,11 +141,21 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 }
                 return CreatedAtAction(nameof(GetMangaById), new { mangaId = Guid.Parse(result.Data.Id) }, result);
             }
-             catch (HttpRequestException ex)
+            catch (ApiException ex)
             {
                 _logger.LogError(ex, "API Error creating manga. Status: {StatusCode}", ex.StatusCode);
-                return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "API Error creating manga. Status: {StatusCode}", ex.StatusCode);
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
@@ -151,7 +177,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                     .Select(e => new ApiError(400, "Validation Error", e.ErrorMessage))
+                                     .Select(e => new ApiError(400, "Validation Error", e.ErrorMessage, context: new { field = e.ErrorMessage }))
                                      .ToList();
                 return BadRequest(new ApiErrorResponse(errors));
             }
@@ -160,16 +186,20 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 await _mangaClient.UpdateMangaAsync(mangaId, updateDto, HttpContext.RequestAborted);
                 return NoContent();
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
             {
-                 _logger.LogWarning("API: Manga with ID {MangaId} not found for update. Status: {StatusCode}", mangaId, ex.StatusCode);
+                _logger.LogWarning("API: Manga with ID {MangaId} not found for update. Status: {StatusCode}", mangaId, ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
                 return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "API Error updating manga {MangaId}. Status: {StatusCode}", mangaId, ex.StatusCode);
-                return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
@@ -192,16 +222,20 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 await _mangaClient.DeleteMangaAsync(mangaId, HttpContext.RequestAborted);
                 return NoContent();
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
             {
-                 _logger.LogWarning("API: Manga with ID {MangaId} not found for deletion. Status: {StatusCode}", mangaId, ex.StatusCode);
+                _logger.LogWarning("API: Manga with ID {MangaId} not found for deletion. Status: {StatusCode}", mangaId, ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
                 return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "API Error deleting manga {MangaId}. Status: {StatusCode}", mangaId, ex.StatusCode);
-                return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
@@ -237,16 +271,20 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 // FrontendAPI.md trả về 201 Created cho POST /mangas/{mangaId}/covers
                 return CreatedAtAction(nameof(CoverArtsController.GetCoverArtById), "CoverArts", new { id = Guid.Parse(result.Data.Id) }, result);
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
             {
                 _logger.LogWarning("API: Manga with ID {MangaId} not found for cover upload. Status: {StatusCode}", mangaId, ex.StatusCode);
-                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", $"Manga with ID {mangaId} not found.")));
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
+                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "API Error uploading cover for manga {MangaId}. Status: {StatusCode}", mangaId, ex.StatusCode);
-                return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
@@ -274,16 +312,20 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 }
                 return Ok(result);
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
             {
                 _logger.LogWarning("API: Manga with ID {MangaId} not found when fetching covers. Status: {StatusCode}", mangaId, ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
                 return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "API Error fetching covers for manga {MangaId}. Status: {StatusCode}", mangaId, ex.StatusCode);
-                return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
@@ -310,16 +352,20 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 }
                 return Ok(result);
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
             {
                 _logger.LogWarning("API: Manga with ID {MangaId} not found when fetching translations. Status: {StatusCode}", mangaId, ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
                 return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "API Error fetching translations for manga {MangaId}. Status: {StatusCode}", mangaId, ex.StatusCode);
-                return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
             }
             catch (Exception ex)
             {

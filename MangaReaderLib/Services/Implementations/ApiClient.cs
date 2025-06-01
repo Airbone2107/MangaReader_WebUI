@@ -3,6 +3,8 @@ using MangaReaderLib.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using MangaReaderLib.Services.Exceptions;
 
 namespace MangaReaderLib.Services.Implementations
 {
@@ -20,7 +22,8 @@ namespace MangaReaderLib.Services.Implementations
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                Converters = { new JsonStringEnumConverter() }
             };
         }
 
@@ -193,27 +196,34 @@ namespace MangaReaderLib.Services.Implementations
         private async Task HandleErrorResponseAsync(HttpResponseMessage response, CancellationToken cancellationToken)
         {
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            
+            ApiErrorResponse? errorResponse = null;
             try
             {
                 // Thử parse lỗi dưới dạng ApiErrorResponse
-                var errorResponse = JsonSerializer.Deserialize<ApiErrorResponse>(content, _jsonOptions);
-                if (errorResponse?.Errors?.Count > 0)
-                {
-                    var error = errorResponse.Errors[0];
-                    throw new HttpRequestException($"API Error: {error.Title} - {error.Detail}", null, response.StatusCode);
-                }
+                errorResponse = JsonSerializer.Deserialize<ApiErrorResponse>(content, _jsonOptions);
             }
-            catch (JsonException)
+            catch (JsonException ex)
             {
-                // Nếu không parse được, trả về nội dung gốc
-                _logger.LogWarning("Could not parse error response as ApiErrorResponse. Status: {StatusCode}, Content: {Content}", 
+                _logger.LogWarning(ex, "Could not parse error response as ApiErrorResponse. Status: {StatusCode}, Content: {Content}", 
                     response.StatusCode, content);
+                // Fall through to generic HttpRequestException or ApiException if parsing fails
             }
-            
-            // Nếu không parse được hoặc không có lỗi cụ thể, ném exception với status code
-            throw new HttpRequestException($"API request failed with status code: {(int)response.StatusCode} - {response.ReasonPhrase}", 
-                null, response.StatusCode);
+
+            if (errorResponse?.Errors?.Count > 0)
+            {
+                // Thay vì ném HttpRequestException với chuỗi, ném ApiException chứa toàn bộ đối tượng lỗi
+                throw new ApiException(
+                    errorResponse.Errors[0].Detail ?? errorResponse.Errors[0].Title, // Message cho exception
+                    errorResponse,                                                   // Đối tượng ApiErrorResponse đầy đủ
+                    response.StatusCode                                              // Status Code
+                );
+            }
+            else
+            {
+                // Fallback cho các trường hợp không có JSON lỗi có cấu trúc hoặc không có lỗi cụ thể
+                throw new HttpRequestException($"API request failed with status code: {(int)response.StatusCode} - {response.ReasonPhrase}", 
+                    null, response.StatusCode);
+            }
         }
     }
 } 

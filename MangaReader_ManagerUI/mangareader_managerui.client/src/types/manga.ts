@@ -72,6 +72,7 @@ export interface Manga {
   type: 'manga'
   attributes: MangaAttributes
   relationships?: RelationshipObject[]
+  coverArtPublicId?: string
 }
 
 export interface Author {

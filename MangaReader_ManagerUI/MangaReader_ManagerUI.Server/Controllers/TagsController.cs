@@ -2,6 +2,8 @@ using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.DTOs.Tags;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using MangaReaderLib.Services.Exceptions;
+using System.Net;
 
 namespace MangaReader_ManagerUI.Server.Controllers
 {
@@ -25,9 +27,34 @@ namespace MangaReader_ManagerUI.Server.Controllers
             [FromQuery] string? nameFilter, [FromQuery] string? orderBy, [FromQuery] bool? ascending)
         {
             _logger.LogInformation("API: Requesting list of tags.");
-            var result = await _tagClient.GetTagsAsync(offset, limit, tagGroupId, nameFilter, orderBy, ascending, HttpContext.RequestAborted);
-            if (result == null) return StatusCode(500, new ApiErrorResponse(new ApiError(500, "API Error", "Error fetching tags.")));
-            return Ok(result);
+            try
+            {
+                var result = await _tagClient.GetTagsAsync(offset, limit, tagGroupId, nameFilter, orderBy, ascending, HttpContext.RequestAborted);
+                if (result == null) return StatusCode(500, new ApiErrorResponse(new ApiError(500, "API Error", "Error fetching tags.")));
+                return Ok(result);
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "API Error from MangaReaderAPI. Status: {StatusCode}", ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError,
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "API Error fetching tags. Status: {StatusCode}", ex.StatusCode);
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Internal server error while fetching tags.");
+                return StatusCode(StatusCodes.Status500InternalServerError, 
+                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
+            }
         }
 
         // POST: api/Tags
@@ -56,12 +83,27 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 // Giả sử có action GetTagById trong controller này
                 return CreatedAtAction(nameof(GetTagById), new { id = Guid.Parse(result.Data.Id) }, result);
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "API Error from MangaReaderAPI. Status: {StatusCode}", ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError,
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("API: TagGroup with ID {TagGroupId} not found for tag creation. Status: {StatusCode}", createDto.TagGroupId, ex.StatusCode);
                 return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
-            // ... other error handling ...
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "API Error creating tag. Status: {StatusCode}", ex.StatusCode);
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating tag");
@@ -76,12 +118,36 @@ namespace MangaReader_ManagerUI.Server.Controllers
         public async Task<IActionResult> GetTagById(Guid id)
         {
             _logger.LogInformation("API: Requesting tag by ID: {TagId}", id);
-            var result = await _tagClient.GetTagByIdAsync(id, HttpContext.RequestAborted);
-            if (result == null || result.Data == null)
+            try
             {
-                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", $"Tag with ID {id} not found.")));
+                var result = await _tagClient.GetTagByIdAsync(id, HttpContext.RequestAborted);
+                if (result == null || result.Data == null)
+                {
+                    return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", $"Tag with ID {id} not found.")));
+                }
+                return Ok(result);
             }
-            return Ok(result);
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "API Error from MangaReaderAPI. Status: {StatusCode}", ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError,
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "API Error fetching tag. Status: {StatusCode}", ex.StatusCode);
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching tag {id}", id);
+                return StatusCode(500, new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
+            }
         }
 
         // PUT: api/Tags/{id}
@@ -105,7 +171,17 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 await _tagClient.UpdateTagAsync(id, updateDto, HttpContext.RequestAborted);
                 return NoContent();
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "API Error from MangaReaderAPI. Status: {StatusCode}", ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError,
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("API: Tag with ID {TagId} not found for update. Status: {StatusCode}", id, ex.StatusCode);
                 return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
@@ -113,8 +189,8 @@ namespace MangaReader_ManagerUI.Server.Controllers
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "API Error updating tag {TagId}. Status: {StatusCode}", id, ex.StatusCode);
-                return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
@@ -137,7 +213,17 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 await _tagClient.DeleteTagAsync(id, HttpContext.RequestAborted);
                 return NoContent();
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "API Error from MangaReaderAPI. Status: {StatusCode}", ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError,
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("API: Tag with ID {TagId} not found for deletion. Status: {StatusCode}", id, ex.StatusCode);
                 return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
@@ -145,8 +231,8 @@ namespace MangaReader_ManagerUI.Server.Controllers
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "API Error deleting tag {TagId}. Status: {StatusCode}", id, ex.StatusCode);
-                return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
             }
             catch (Exception ex)
             {

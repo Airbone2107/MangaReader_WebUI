@@ -21,7 +21,6 @@ import {
 import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
-import { showSuccessToast } from '../../../components/common/Notification'
 import { CLOUDINARY_BASE_URL } from '../../../constants/appConstants'
 import { createChapterPageEntrySchema, uploadChapterPageImageSchema } from '../../../schemas/chapterSchema'
 import useChapterPageStore from '../../../stores/chapterPageStore'
@@ -83,9 +82,6 @@ function ChapterPageManager({ chapterId }) {
     try {
       const pageId = await createPageEntry(chapterId, data)
       if (pageId) {
-        showSuccessToast('Entry trang chương đã được tạo.')
-        fetchChapterPagesByChapterId(chapterId) // Refresh pages after creating new entry
-        // Optionally open upload dialog directly
         setPageEntryToUploadImage({ id: pageId, pageNumber: data.pageNumber })
         setOpenUploadImageDialog(true)
       }
@@ -93,7 +89,7 @@ function ChapterPageManager({ chapterId }) {
       resetCreate()
     } catch (error) {
       console.error('Failed to create page entry:', error)
-      // Error handled by store
+      // Error handled by store/apiClient
     }
   }
 
@@ -105,9 +101,7 @@ function ChapterPageManager({ chapterId }) {
   const handleUploadImage = async (data) => {
     if (pageEntryToUploadImage && data.file && data.file[0]) {
       try {
-        await uploadPageImage(pageEntryToUploadImage.id, data.file[0])
-        // Re-fetch pages to ensure UI updates with new publicId (image)
-        fetchChapterPagesByChapterId(chapterId)
+        await uploadPageImage(pageEntryToUploadImage.id, data.file[0], chapterId)
         setOpenUploadImageDialog(false)
         resetUpload()
       } catch (error) {
@@ -163,11 +157,11 @@ function ChapterPageManager({ chapterId }) {
           Chưa có trang nào cho chương này.
         </Typography>
       ) : (
-        <Grid container spacing={2} className="chapter-page-grid">
+        <Grid container spacing={2} className="chapter-page-grid" columns={{ xs: 4, sm: 6, md: 12, lg: 12 }}>
           {chapterPages
             .sort((a, b) => a.attributes.pageNumber - b.attributes.pageNumber) // Sort by pageNumber
             .map((pageItem) => (
-              <Grid item key={pageItem.id} xs={12} sm={6} md={4} lg={3}>
+              <Grid item key={pageItem.id} sx={{ gridColumn: { xs: 'span 4', sm: 'span 3', md: 'span 3', lg: 'span 3' } }}>
                 <Card className="chapter-page-card">
                   <CardMedia
                     component="img"

@@ -2,6 +2,8 @@ using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.DTOs.TranslatedMangas;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using MangaReaderLib.Services.Exceptions;
+using System.Net;
 
 namespace MangaReader_ManagerUI.Server.Controllers
 {
@@ -43,7 +45,17 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 // nên ta dùng nameof(GetTranslatedMangaById) và truyền id qua routeValues
                 return CreatedAtAction(nameof(GetTranslatedMangaById), new { translatedMangaId = Guid.Parse(result.Data.Id) }, result);
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "API Error from MangaReaderAPI. Status: {StatusCode}", ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError,
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("API: Original Manga with ID {MangaId} not found for creating translation. Status: {StatusCode}", createDto.MangaId, ex.StatusCode);
                 return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
@@ -51,8 +63,8 @@ namespace MangaReader_ManagerUI.Server.Controllers
             catch (HttpRequestException ex)
             {
                  _logger.LogError(ex, "API Error creating translated manga. Status: {StatusCode}", ex.StatusCode);
-                return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
@@ -78,12 +90,27 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 }
                 return Ok(result);
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "API Error from MangaReaderAPI. Status: {StatusCode}", ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError,
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("API: TranslatedManga with ID {TranslatedMangaId} not found in backend. Status: {StatusCode}", translatedMangaId, ex.StatusCode);
                 return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
-            // ... error handling ...
+            catch (HttpRequestException ex)
+            {
+                 _logger.LogError(ex, "API Error fetching translated manga. Status: {StatusCode}", ex.StatusCode);
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
             catch (Exception ex)
             {
                  _logger.LogError(ex, "Error fetching translated manga {id}", translatedMangaId);
@@ -111,11 +138,26 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 await _translatedMangaClient.UpdateTranslatedMangaAsync(translatedMangaId, updateDto, HttpContext.RequestAborted);
                 return NoContent();
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "API Error from MangaReaderAPI. Status: {StatusCode}", ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError,
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
-            // ... error handling ...
+            catch (HttpRequestException ex)
+            {
+                 _logger.LogError(ex, "API Error updating translated manga. Status: {StatusCode}", ex.StatusCode);
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
              catch (Exception ex)
             {
                  _logger.LogError(ex, "Error updating translated manga {id}", translatedMangaId);
@@ -135,11 +177,26 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 await _translatedMangaClient.DeleteTranslatedMangaAsync(translatedMangaId, HttpContext.RequestAborted);
                 return NoContent();
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "API Error from MangaReaderAPI. Status: {StatusCode}", ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError,
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
             }
-            // ... error handling ...
+            catch (HttpRequestException ex)
+            {
+                 _logger.LogError(ex, "API Error deleting translated manga. Status: {StatusCode}", ex.StatusCode);
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
              catch (Exception ex)
             {
                  _logger.LogError(ex, "Error deleting translated manga {id}", translatedMangaId);

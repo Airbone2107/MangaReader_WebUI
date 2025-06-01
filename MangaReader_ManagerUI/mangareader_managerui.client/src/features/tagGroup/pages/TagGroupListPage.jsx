@@ -23,8 +23,8 @@ function TagGroupListPage() {
     totalTagGroups,
     page,
     rowsPerPage,
-    filters,
-    sort,
+    filters = {},
+    sort = {},
     fetchTagGroups,
     setPage,
     setRowsPerPage,
@@ -32,12 +32,10 @@ function TagGroupListPage() {
     applyFilters,
     resetFilters,
     deleteTagGroup,
+    setFilter,
   } = useTagGroupStore()
 
   const isLoading = useUiStore((state) => state.isLoading)
-
-  // State for filter inputs (controlled components)
-  const [localNameFilter, setLocalNameFilter] = useState(filters.nameFilter || '')
 
   const [openFormDialog, setOpenFormDialog] = useState(false)
   /** @type {TagGroup | null} */
@@ -47,19 +45,14 @@ function TagGroupListPage() {
     fetchTagGroups(true) // Reset pagination on initial load
   }, [fetchTagGroups])
 
-  // Sync local filter states with global store filters when global filters change (e.g., after reset)
-  useEffect(() => {
-    setLocalNameFilter(filters.nameFilter || '')
-  }, [filters])
-
   const handleApplyFilters = () => {
-    applyFilters({
-      nameFilter: localNameFilter,
-    })
+    // Gọi applyFilters với các filter hiện tại trong store.
+    // Hành động applyFilters trong store đã được cấu hình để reset page và fetch.
+    applyFilters({ nameFilter: filters.nameFilter });
+    fetchTagGroups(true);
   }
 
   const handleResetFilters = () => {
-    setLocalNameFilter('')
     resetFilters()
   }
 
@@ -111,17 +104,17 @@ function TagGroupListPage() {
 
       {/* Filter Section */}
       <Box className="filter-section">
-        <Grid container spacing={2} alignItems="flex-end">
-          <Grid xs={12} sm={6} md={4}>
+        <Grid container spacing={2} alignItems="flex-end" columns={{ xs: 4, sm: 6, md: 12 }}>
+          <Grid item xs={4} sm={3} md={4}>
             <TextField
               label="Lọc theo Tên nhóm tag"
               variant="outlined"
               fullWidth
-              value={localNameFilter}
-              onChange={(e) => setLocalNameFilter(e.target.value)}
+              value={filters.nameFilter || ''}
+              onChange={(e) => setFilter('nameFilter', e.target.value)}
             />
           </Grid>
-          <Grid xs={12} sm={6} md={2}>
+          <Grid item xs={4} sm={3} md={2}>
             <Button
               variant="contained"
               color="primary"
@@ -132,7 +125,7 @@ function TagGroupListPage() {
               Áp dụng
             </Button>
           </Grid>
-          <Grid xs={12} sm={6} md={2}>
+          <Grid item xs={4} sm={3} md={2}>
             <Button
               variant="outlined"
               color="inherit"

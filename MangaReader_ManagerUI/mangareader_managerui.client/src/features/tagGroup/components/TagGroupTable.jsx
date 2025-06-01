@@ -99,6 +99,7 @@ function TagGroupTable({
 
   // Format data for DataTableMUI
   const formatTagGroupDataForTable = (tagGroupsData) => {
+    if (!tagGroupsData) return [];
     return tagGroupsData.map(tagGroup => ({
       ...tagGroup.attributes,
       id: tagGroup.id,

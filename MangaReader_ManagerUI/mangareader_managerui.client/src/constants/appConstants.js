@@ -53,3 +53,7 @@ export const ROWS_PER_PAGE_OPTIONS = [5, 10, 20];
 export const DEFAULT_PAGE_LIMIT = 10;
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'; // Use /api as proxy, or env variable if direct backend
 export const CLOUDINARY_BASE_URL = 'https://res.cloudinary.com/dew5tpdko/image/upload/';
+
+// Storage Prefixes for Zustand Persistence
+export const SESSION_STORAGE_PREFIX = 'mrm_sess';
+export const LOCAL_STORAGE_PREFIX = 'mrm_local';

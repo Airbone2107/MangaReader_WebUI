@@ -2,6 +2,8 @@ using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.DTOs.CoverArts;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using MangaReaderLib.Services.Exceptions;
+using System.Net;
 
 namespace MangaReader_ManagerUI.Server.Controllers
 {
@@ -34,7 +36,17 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 }
                 return Ok(result);
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "API Error from MangaReaderAPI. Status: {StatusCode}", ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError,
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("API: CoverArt with ID {CoverArtId} not found in backend. Status: {StatusCode}", id, ex.StatusCode);
                 return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
@@ -42,8 +54,8 @@ namespace MangaReader_ManagerUI.Server.Controllers
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "API Error fetching CoverArt {CoverArtId}. Status: {StatusCode}", id, ex.StatusCode);
-                return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
             }
             catch (Exception ex)
             {
@@ -66,7 +78,17 @@ namespace MangaReader_ManagerUI.Server.Controllers
                 await _coverArtClient.DeleteCoverArtAsync(coverId, HttpContext.RequestAborted);
                 return NoContent();
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "API Error from MangaReaderAPI. Status: {StatusCode}", ex.StatusCode);
+                if (ex.ApiErrorResponse != null)
+                {
+                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
+                }
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError,
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("API: CoverArt with ID {CoverId} not found for deletion.", coverId);
                 return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", $"CoverArt with ID {coverId} not found.")));
@@ -74,8 +96,8 @@ namespace MangaReader_ManagerUI.Server.Controllers
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "API Error deleting CoverArt {CoverId}. Status: {StatusCode}", coverId, ex.StatusCode);
-                return StatusCode((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), 
-                                  new ApiErrorResponse(new ApiError((int)(ex.StatusCode ?? System.Net.HttpStatusCode.InternalServerError), "API Error", ex.Message)));
+                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
             }
             catch (Exception ex)
             {

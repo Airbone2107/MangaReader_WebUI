@@ -102,6 +102,7 @@ function TranslatedMangaTable({
 
   // Format data for DataTableMUI
   const formatTranslatedMangaDataForTable = (translatedMangasData) => {
+    if (!translatedMangasData) return [];
     return translatedMangasData.map(translatedManga => ({
       ...translatedManga.attributes,
       id: translatedManga.id,

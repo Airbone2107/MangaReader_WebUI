@@ -189,11 +189,11 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
 
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ mt: 1 }}>
-      <Grid container spacing={2}>
-        <Grid item xs={12}>
+      <Grid container spacing={2} columns={{ xs: 4, sm: 6, md: 12 }}>
+        <Grid item xs={4} sm={6} md={12}>
           <FormInput control={control} name="title" label="Tiêu đề Manga" />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={4} sm={3} md={6}>
           <FormInput
             control={control}
             name="originalLanguage"
@@ -202,7 +202,7 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
             options={ORIGINAL_LANGUAGE_OPTIONS}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={4} sm={3} md={6}>
           <FormInput
             control={control}
             name="publicationDemographic"
@@ -211,7 +211,7 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
             options={PUBLICATION_DEMOGRAPHIC_OPTIONS}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={4} sm={3} md={6}>
           <FormInput
             control={control}
             name="status"
@@ -220,7 +220,7 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
             options={MANGA_STATUS_OPTIONS}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={4} sm={3} md={6}>
           <FormInput
             control={control}
             name="year"
@@ -229,7 +229,7 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
             inputProps={{ min: 1000, max: new Date().getFullYear(), step: 1 }}
           />
         </Grid>
-        <Grid item xs={12}>
+        <Grid item xs={4} sm={6} md={12}>
           <FormInput
             control={control}
             name="contentRating"
@@ -240,12 +240,12 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
         </Grid>
 
         {/* Authors Section */}
-        <Grid item xs={12}>
+        <Grid item xs={4} sm={6} md={12}>
           <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
             Tác giả / Họa sĩ
           </Typography>
-          <Grid container spacing={1} alignItems="center">
-            <Grid item xs={6}>
+          <Grid container spacing={1} alignItems="center" columns={{ xs: 4, sm: 6, md: 12 }}>
+            <Grid item xs={4} sm={3} md={6}>
               <Autocomplete
                 options={availableAuthors}
                 getOptionLabel={(option) => option.name}
@@ -266,7 +266,7 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
                 )}
               />
             </Grid>
-            <Grid item xs={3}>
+            <Grid item xs={4} sm={1.5} md={3}>
               <FormInput
                 control={control}
                 name="tempAuthorRole" // Temporary field for role selection
@@ -277,7 +277,7 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
                 size="small"
               />
             </Grid>
-            <Grid item xs={3}>
+            <Grid item xs={4} sm={1.5} md={3}>
               <Button
                 variant="contained"
                 color="primary"
@@ -318,7 +318,7 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
         </Grid>
 
         {/* Tags Section */}
-        <Grid item xs={12}>
+        <Grid item xs={4} sm={6} md={12}>
           <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
             Tags
           </Typography>
@@ -350,7 +350,7 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
         
         {/* Is Locked Switch */}
         {isEditMode && (
-          <Grid item xs={12}>
+          <Grid item xs={4} sm={6} md={12}>
             <FormControlLabel
               control={
                 <Switch
@@ -366,7 +366,7 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
           </Grid>
         )}
 
-        <Grid item xs={12}>
+        <Grid item xs={4} sm={6} md={12}>
           <Button type="submit" variant="contained" color="primary" sx={{ mt: 3, mb: 2 }}>
             {isEditMode ? 'Cập nhật Manga' : 'Tạo Manga'}
           </Button>

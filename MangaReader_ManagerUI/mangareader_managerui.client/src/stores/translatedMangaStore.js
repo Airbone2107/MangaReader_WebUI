@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persistStore } from '../utils/zustandPersist'
 import translatedMangaApi from '../api/translatedMangaApi'
 import { showSuccessToast } from '../components/common/Notification'
 import { DEFAULT_PAGE_LIMIT } from '../constants/appConstants'
@@ -10,7 +11,7 @@ import { DEFAULT_PAGE_LIMIT } from '../constants/appConstants'
  * @typedef {import('../types/manga').UpdateTranslatedMangaRequest} UpdateTranslatedMangaRequest
  */
 
-const useTranslatedMangaStore = create((set, get) => ({
+const useTranslatedMangaStore = create(persistStore((set, get) => ({
   /** @type {TranslatedManga[]} */
   translatedMangas: [],
   totalTranslatedMangas: 0,
@@ -62,7 +63,8 @@ const useTranslatedMangaStore = create((set, get) => ({
    * @param {string} mangaId - Current manga ID to refetch.
    */
   setPage: (event, newPage, mangaId) => {
-    set({ page: newPage }, () => get().fetchTranslatedMangasByMangaId(mangaId));
+    set({ page: newPage });
+    get().fetchTranslatedMangasByMangaId(mangaId, false); // Không reset pagination, chỉ fetch với page mới
   },
 
   /**
@@ -71,9 +73,8 @@ const useTranslatedMangaStore = create((set, get) => ({
    * @param {string} mangaId - Current manga ID to refetch.
    */
   setRowsPerPage: (event, mangaId) => {
-    set({ rowsPerPage: parseInt(event.target.value, 10), page: 0 }, () =>
-      get().fetchTranslatedMangasByMangaId(mangaId),
-    );
+    set({ rowsPerPage: parseInt(event.target.value, 10), page: 0 });
+    get().fetchTranslatedMangasByMangaId(mangaId, true); // Reset page về 0 và fetch
   },
 
   /**
@@ -83,9 +84,27 @@ const useTranslatedMangaStore = create((set, get) => ({
    * @param {string} mangaId - Current manga ID to refetch.
    */
   setSort: (orderBy, order, mangaId) => {
-    set({ sort: { orderBy, ascending: order === 'asc' }, page: 0 }, () =>
-      get().fetchTranslatedMangasByMangaId(mangaId),
-    );
+    set({ sort: { orderBy, ascending: order === 'asc' }, page: 0 });
+    get().fetchTranslatedMangasByMangaId(mangaId, true); // Reset page về 0 và fetch
+  },
+
+  // Phương thức setFilter, applyFilters, resetFilters có thể thêm vào nếu TranslatedManga có filter riêng trên UI
+  setFilter: (filterName, value) => {
+    set(state => ({
+      filters: { ...state.filters, [filterName]: value }
+    }));
+  },
+  applyFilters: (newFilters) => {
+    set((state) => ({
+      filters: { ...state.filters, ...newFilters },
+      page: 0,
+    }));
+  },
+  resetFilters: () => {
+    set({
+      filters: {},
+      page: 0,
+    });
   },
 
   /**
@@ -103,6 +122,6 @@ const useTranslatedMangaStore = create((set, get) => ({
       // Error is handled by apiClient interceptor
     }
   },
-}))
+}), 'translatedManga')) // Tên duy nhất cho persistence
 
 export default useTranslatedMangaStore 

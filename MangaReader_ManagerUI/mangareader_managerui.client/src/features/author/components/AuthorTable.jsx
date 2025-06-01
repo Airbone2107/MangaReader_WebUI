@@ -100,6 +100,7 @@ function AuthorTable({
 
   // Format data for DataTableMUI
   const formatAuthorDataForTable = (authorsData) => {
+    if (!authorsData) return [];
     return authorsData.map(author => ({
       ...author.attributes,
       id: author.id,

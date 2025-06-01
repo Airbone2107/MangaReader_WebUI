@@ -3054,24 +3054,21 @@
       },
       "ContentRating": {
         "enum": [
-          0,
-          1,
-          2,
-          3
+          "Safe",
+          "Suggestive",
+          "Erotica",
+          "Pornographic"
         ],
-        "type": "integer",
-        "format": "int32"
+        "type": "string"
       },
       "ContentRatingNullable": {
         "enum": [
-          0,
-          1,
-          2,
-          3,
-          null
-        ],
-        "type": "integer",
-        "format": "int32",
+          "Safe",
+          "Suggestive",
+          "Erotica",
+          "Pornographic",
+          null],
+        "type": "string",
         "nullable": true
       },
       "CoverArtAttributesDto": {
@@ -3453,32 +3450,28 @@
       },
       "MangaStaffRole": {
         "enum": [
-          0,
-          1
+          "Author",
+          "Artist"
         ],
-        "type": "integer",
-        "format": "int32"
+        "type": "string"
       },
       "MangaStatus": {
         "enum": [
-          0,
-          1,
-          2,
-          3
+          "Ongoing",
+          "Completed",
+          "Hiatus",
+          "Cancelled"
         ],
-        "type": "integer",
-        "format": "int32"
+        "type": "string"
       },
       "MangaStatusNullable": {
         "enum": [
-          0,
-          1,
-          2,
-          3,
-          null
-        ],
-        "type": "integer",
-        "format": "int32",
+          "Ongoing",
+          "Completed",
+          "Hiatus",
+          "Cancelled",
+          null],
+        "type": "string",
         "nullable": true
       },
       "ObjectApiResponse": {
@@ -3500,15 +3493,13 @@
       },
       "PublicationDemographicNullable": {
         "enum": [
-          0,
-          1,
-          2,
-          3,
-          4,
-          null
-        ],
-        "type": "integer",
-        "format": "int32",
+          "Shounen",
+          "Shoujo",
+          "Josei",
+          "Seinen",
+          "None",
+          null],
+        "type": "string",
         "nullable": true
       },
       "RelationshipObject": {

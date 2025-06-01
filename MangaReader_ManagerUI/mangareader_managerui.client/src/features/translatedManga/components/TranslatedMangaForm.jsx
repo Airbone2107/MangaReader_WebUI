@@ -61,8 +61,8 @@ function TranslatedMangaForm({ mangaId, initialData, onSubmit, isEditMode }) {
   return (
     <Paper sx={{ p: 3, mt: 3 }}>
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
+        <Grid container spacing={2} columns={{ xs: 4, sm: 6, md: 12 }}>
+          <Grid item xs={4} sm={3} md={6}>
             <FormInput
               control={control}
               name="languageKey"
@@ -73,10 +73,10 @@ function TranslatedMangaForm({ mangaId, initialData, onSubmit, isEditMode }) {
               disabled={isEditMode} 
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={4} sm={3} md={6}>
             <FormInput control={control} name="title" label="Tiêu đề bản dịch" />
           </Grid>
-          <Grid item xs={12}>
+          <Grid item xs={4} sm={6} md={12}>
             <FormInput
               control={control}
               name="description"
@@ -85,7 +85,7 @@ function TranslatedMangaForm({ mangaId, initialData, onSubmit, isEditMode }) {
               rows={4}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid item xs={4} sm={6} md={12}>
             <Button type="submit" variant="contained" color="primary" sx={{ mt: 2 }}>
               {isEditMode ? 'Cập nhật Bản dịch' : 'Tạo Bản dịch'}
             </Button>

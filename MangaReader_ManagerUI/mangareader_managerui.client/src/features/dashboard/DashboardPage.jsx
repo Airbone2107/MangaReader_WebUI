@@ -8,8 +8,8 @@ function DashboardPage() {
         Chào mừng đến với Bảng điều khiển quản lý Manga
       </Typography>
 
-      <Grid container spacing={4} className="dashboard-stats-grid">
-        <Grid item xs={12} sm={6} md={3}>
+      <Grid container spacing={4} className="dashboard-stats-grid" columns={{ xs: 4, sm: 6, md: 12 }}>
+        <Grid item xs={4} sm={3} md={3}>
           <Paper className="stat-card">
             <Typography variant="h5">Tổng số Manga</Typography>
             <Typography variant="h4" color="primary">
@@ -17,7 +17,7 @@ function DashboardPage() {
             </Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={4} sm={3} md={3}>
           <Paper className="stat-card">
             <Typography variant="h5">Tổng số Tác giả</Typography>
             <Typography variant="h4" color="primary">
@@ -25,7 +25,7 @@ function DashboardPage() {
             </Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={4} sm={3} md={3}>
           <Paper className="stat-card">
             <Typography variant="h5">Tổng số Tags</Typography>
             <Typography variant="h4" color="primary">
@@ -33,7 +33,7 @@ function DashboardPage() {
             </Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={4} sm={3} md={3}>
           <Paper className="stat-card">
             <Typography variant="h5">Chapter đã tải lên</Typography>
             <Typography variant="h4" color="primary">
