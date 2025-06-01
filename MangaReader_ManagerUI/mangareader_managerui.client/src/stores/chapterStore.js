@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persistStore } from '../utils/zustandPersist';
 import chapterApi from '../api/chapterApi';
 import { showSuccessToast } from '../components/common/Notification';
 import { DEFAULT_PAGE_LIMIT } from '../constants/appConstants';
@@ -10,12 +11,15 @@ import { DEFAULT_PAGE_LIMIT } from '../constants/appConstants';
  * @typedef {import('../types/manga').UpdateChapterRequest} UpdateChapterRequest
  */
 
-const useChapterStore = create((set, get) => ({
+const useChapterStore = create(persistStore((set, get) => ({
   /** @type {Chapter[]} */
   chapters: [],
   totalChapters: 0,
   page: 0,
   rowsPerPage: DEFAULT_PAGE_LIMIT,
+  filters: {
+    // Để trống nếu không có filter cụ thể trên UI cho list này ngoài translatedMangaId path param
+  },
   sort: {
     orderBy: 'chapterNumber', // Mặc định sắp xếp theo số chương
     ascending: true,
@@ -35,6 +39,7 @@ const useChapterStore = create((set, get) => ({
       limit: rowsPerPage,
       orderBy: sort.orderBy,
       ascending: sort.ascending,
+      // Thêm các filter khác nếu có (từ `filters` object)
     }
 
     try {
@@ -58,7 +63,8 @@ const useChapterStore = create((set, get) => ({
    * @param {string} translatedMangaId - Current translated manga ID to refetch.
    */
   setPage: (event, newPage, translatedMangaId) => {
-    set({ page: newPage }, () => get().fetchChaptersByTranslatedMangaId(translatedMangaId));
+    set({ page: newPage });
+    get().fetchChaptersByTranslatedMangaId(translatedMangaId, false); // Không reset pagination, chỉ fetch với page mới
   },
 
   /**
@@ -67,9 +73,8 @@ const useChapterStore = create((set, get) => ({
    * @param {string} translatedMangaId - Current translated manga ID to refetch.
    */
   setRowsPerPage: (event, translatedMangaId) => {
-    set({ rowsPerPage: parseInt(event.target.value, 10), page: 0 }, () =>
-      get().fetchChaptersByTranslatedMangaId(translatedMangaId),
-    );
+    set({ rowsPerPage: parseInt(event.target.value, 10), page: 0 });
+    get().fetchChaptersByTranslatedMangaId(translatedMangaId, true); // Reset page về 0 và fetch
   },
 
   /**
@@ -79,9 +84,27 @@ const useChapterStore = create((set, get) => ({
    * @param {string} translatedMangaId - Current translated manga ID to refetch.
    */
   setSort: (orderBy, order, translatedMangaId) => {
-    set({ sort: { orderBy, ascending: order === 'asc' }, page: 0 }, () =>
-      get().fetchChaptersByTranslatedMangaId(translatedMangaId),
-    );
+    set({ sort: { orderBy, ascending: order === 'asc' }, page: 0 });
+    get().fetchChaptersByTranslatedMangaId(translatedMangaId, true); // Reset page về 0 và fetch
+  },
+
+  // Phương thức setFilter, applyFilters, resetFilters có thể thêm vào nếu Chapters có filter riêng trên UI
+  setFilter: (filterName, value) => {
+    set(state => ({
+      filters: { ...state.filters, [filterName]: value }
+    }));
+  },
+  applyFilters: (newFilters) => {
+    set((state) => ({
+      filters: { ...state.filters, ...newFilters },
+      page: 0,
+    }));
+  },
+  resetFilters: () => {
+    set({
+      filters: {},
+      page: 0,
+    });
   },
 
   /**
@@ -99,6 +122,6 @@ const useChapterStore = create((set, get) => ({
       // Error is handled by apiClient interceptor
     }
   },
-}));
+}), 'chapter')); // Tên duy nhất cho persistence
 
 export default useChapterStore; 

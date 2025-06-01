@@ -140,13 +140,13 @@ function CoverArtManager({ mangaId }) {
           <CircularProgress />
         </Box>
       ) : covers.length === 0 ? (
-        <Typography variant="h6" className="no-cover-message">
+        <Typography variant="h6" className="no-cover-message" sx={{ textAlign: 'center', py: 5 }}>
           Chưa có ảnh bìa nào cho manga này.
         </Typography>
       ) : (
-        <Grid container spacing={2} className="cover-art-grid">
+        <Grid container spacing={2} className="cover-art-grid" columns={{ xs: 4, sm: 6, md: 12, lg: 12 }}>
           {covers.map((cover) => (
-            <Grid item key={cover.id} xs={12} sm={6} md={4} lg={3}>
+            <Grid item key={cover.id} sx={{ gridColumn: { xs: 'span 4', sm: 'span 3', md: 'span 4', lg: 'span 3' } }}>
               <Card className="cover-art-card">
                 <CardMedia
                   component="img"

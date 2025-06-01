@@ -8,6 +8,6 @@ namespace MangaReaderLib.DTOs.Chapters
         public string? Title { get; set; }
         public DateTime PublishAt { get; set; }
         public DateTime ReadableAt { get; set; }
-        // UploadedByUserId sẽ do backend xử lý
+        public int UploadedByUserId { get; set; }
     }
 } 

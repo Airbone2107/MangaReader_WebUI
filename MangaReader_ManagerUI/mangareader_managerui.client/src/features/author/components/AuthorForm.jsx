@@ -53,11 +53,11 @@ function AuthorForm({ initialData, onSubmit, isEditMode }) {
   return (
     <Paper sx={{ p: 3, mt: 3 }}>
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <Grid container spacing={2}>
-          <Grid xs={12}>
+        <Grid container spacing={2} columns={12}>
+          <Grid item xs={12}>
             <FormInput control={control} name="name" label="Tên tác giả" />
           </Grid>
-          <Grid xs={12}>
+          <Grid item xs={12}>
             <FormInput
               control={control}
               name="biography"
@@ -66,7 +66,7 @@ function AuthorForm({ initialData, onSubmit, isEditMode }) {
               rows={4}
             />
           </Grid>
-          <Grid xs={12}>
+          <Grid item xs={12}>
             <Button type="submit" variant="contained" color="primary" sx={{ mt: 2 }}>
               {isEditMode ? 'Cập nhật Tác giả' : 'Tạo Tác giả'}
             </Button>

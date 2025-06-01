@@ -110,6 +110,7 @@ function ChapterTable({
 
   // Format data for DataTableMUI
   const formatChapterDataForTable = (chaptersData) => {
+    if (!chaptersData) return [];
     return chaptersData.map(chapter => ({
       ...chapter.attributes,
       id: chapter.id,

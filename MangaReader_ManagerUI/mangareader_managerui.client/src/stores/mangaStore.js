@@ -1,14 +1,16 @@
 import { create } from 'zustand'
+import { persistStore } from '../utils/zustandPersist'
 import mangaApi from '../api/mangaApi'
+import coverArtApi from '../api/coverArtApi'
 import { showSuccessToast } from '../components/common/Notification'
-import { DEFAULT_PAGE_LIMIT } from '../constants/appConstants'
+import { DEFAULT_PAGE_LIMIT, RELATIONSHIP_TYPES } from '../constants/appConstants'
 
 /**
  * @typedef {import('../types/manga').Manga} Manga
  * @typedef {import('../types/api').ApiCollectionResponse<Manga>} MangaCollectionResponse
  */
 
-const useMangaStore = create((set, get) => ({
+const useMangaStore = create(persistStore((set, get) => ({
   /** @type {Manga[]} */
   mangas: [],
   totalMangas: 0,
@@ -61,8 +63,40 @@ const useMangaStore = create((set, get) => ({
     try {
       /** @type {MangaCollectionResponse} */
       const response = await mangaApi.getMangas(queryParams)
+      
+      // Bắt đầu logic mới để fetch publicId cho ảnh bìa
+      const mangasWithCovers = await Promise.all(
+        response.data.map(async (manga) => {
+          const coverArtRelationship = manga.relationships?.find(
+            (rel) => rel.type === RELATIONSHIP_TYPES.COVER_ART
+          )
+
+          if (coverArtRelationship) {
+            try {
+              // Lấy CoverArtId từ mối quan hệ
+              const coverArtId = coverArtRelationship.id
+              // Thực hiện request GET /CoverArts/{id} để lấy đối tượng CoverArt đầy đủ
+              const coverArtResponse = await coverArtApi.getCoverArtById(coverArtId)
+              // Trích xuất publicId và thêm vào đối tượng manga
+              if (coverArtResponse && coverArtResponse.data?.attributes?.publicId) {
+                return { ...manga, coverArtPublicId: coverArtResponse.data.attributes.publicId }
+              }
+            } catch (coverError) {
+              console.warn(
+                `Failed to fetch cover art publicId for manga ${manga.id}. CoverArtId: ${coverArtRelationship.id}`,
+                coverError
+              )
+              // Nếu có lỗi khi lấy publicId, vẫn trả về manga gốc nhưng không có coverArtPublicId
+              return manga 
+            }
+          }
+          return manga // Trả về manga gốc nếu không có mối quan hệ cover_art hoặc có lỗi
+        })
+      )
+      // Kết thúc logic mới
+
       set({
-        mangas: response.data,
+        mangas: mangasWithCovers, // Cập nhật state với danh sách manga đã có publicId
         totalMangas: response.total,
         page: resetPagination ? 0 : response.offset / response.limit,
       })
@@ -78,7 +112,8 @@ const useMangaStore = create((set, get) => ({
    * @param {number} newPage
    */
   setPage: (event, newPage) => {
-    set({ page: newPage }, () => get().fetchMangas())
+    set({ page: newPage });
+    get().fetchMangas(false); // Không reset pagination, chỉ fetch với page mới
   },
 
   /**
@@ -86,9 +121,8 @@ const useMangaStore = create((set, get) => ({
    * @param {React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>} event
    */
   setRowsPerPage: (event) => {
-    set({ rowsPerPage: parseInt(event.target.value, 10), page: 0 }, () =>
-      get().fetchMangas(),
-    )
+    set({ rowsPerPage: parseInt(event.target.value, 10), page: 0 });
+    get().fetchMangas(true); // Reset page về 0 và fetch
   },
 
   /**
@@ -97,9 +131,20 @@ const useMangaStore = create((set, get) => ({
    * @param {'asc' | 'desc'} order - The sort order.
    */
   setSort: (orderBy, order) => {
-    set({ sort: { orderBy, ascending: order === 'asc' }, page: 0 }, () =>
-      get().fetchMangas(),
-    )
+    set({ sort: { orderBy, ascending: order === 'asc' }, page: 0 });
+    get().fetchMangas(true); // Reset page về 0 và fetch
+  },
+
+  /**
+   * Update a specific filter value in the store.
+   * This does NOT trigger a fetch immediately.
+   * @param {string} filterName - The name of the filter property (e.g., 'titleFilter').
+   * @param {any} value - The new value for the filter.
+   */
+  setFilter: (filterName, value) => {
+    set(state => ({
+      filters: { ...state.filters, [filterName]: value }
+    }));
   },
 
   /**
@@ -110,7 +155,7 @@ const useMangaStore = create((set, get) => ({
     set((state) => ({
       filters: { ...state.filters, ...newFilters },
       page: 0, // Reset page on filter change
-    }), () => get().fetchMangas());
+    }));
   },
 
   /**
@@ -129,7 +174,7 @@ const useMangaStore = create((set, get) => ({
         authorIdsFilter: [],
       },
       page: 0,
-    }, () => get().fetchMangas());
+    }, () => get().fetchMangas(true)); // Pass true to reset pagination implicitly before fetch
   },
 
   /**
@@ -146,6 +191,6 @@ const useMangaStore = create((set, get) => ({
       // Error is handled by apiClient interceptor
     }
   },
-}))
+}), 'manga')) // Tên duy nhất cho persistence
 
 export default useMangaStore 

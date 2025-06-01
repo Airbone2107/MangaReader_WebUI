@@ -13,6 +13,7 @@ Tài liệu này cung cấp hướng dẫn toàn diện cho các nhà phát tri�
     *   [4.2. HTTP Status Codes](#42-http-status-codes)
     *   [4.3. Pagination (Phân Trang)](#43-pagination-phân-trang)
     *   [4.4. Filtering (Lọc) & Sorting (Sắp Xếp)](#44-filtering-lọc--sorting-sắp-xếp)
+    *   [4.5. Định Dạng Enum](#45-định-dạng-enum)
 5.  [Cấu Trúc JSON Response](#5-cấu-trúc-json-response)
     *   [5.1. Response Thành Công - Đối Tượng Đơn Lẻ (`ApiResponse<TData>`)](#51-response-thành-công---đối-tượng-đơn-lẻ-apirisponsetdata)
     *   [5.2. Response Thành Công - Danh Sách Đối Tượng (`ApiCollectionResponse<TData>`)](#52-response-thành-công---danh-sách-đối-tượng-apicollectionresponsetdata)
@@ -27,6 +28,13 @@ Tài liệu này cung cấp hướng dẫn toàn diện cho các nhà phát tri�
     *   [6.6. Chapters (Chương)](#66-chapters-chương)
     *   [6.7. ChapterPages (Trang Chương)](#67-chapterpages-trang-chương)
     *   [6.8. CoverArts (Ảnh Bìa)](#68-coverarts-ảnh-bìa)
+7.  [Cập Nhật Quan Trọng: Thay Đổi Định Dạng Enum](#7-cập-nhật-quan-trọng-thay-đổi-định-dạng-enum)
+    *   [7.1. Tóm Tắt Thay Đổi](#71-tóm-tắt-thay-đổi)
+    *   [7.2. So Sánh Định Dạng Cũ và Mới](#72-so-sánh-định-dạng-cũ-và-mới)
+    *   [7.3. Các Trường Enum Bị Ảnh Hưởng](#73-các-trường-enum-bị-ảnh-hưởng)
+    *   [7.4. Tác Động Đến Frontend](#74-tác-động-đến-frontend)
+    *   [7.5. Lý Do Thay Đổi](#75-lý-do-thay-đổi)
+    *   [7.6. Hành Động Đề Xuất Cho Frontend](#76-hành-động-đề-xuất-cho-frontend)
 
 ---
 
@@ -97,6 +105,41 @@ Các endpoints trả về danh sách đều hỗ trợ các tham số query đ�
 ```
 GET /mangas?statusFilter=Ongoing&orderBy=title&ascending=true
 ```
+
+### 4.5. Định Dạng Enum
+
+Tất cả các trường dữ liệu kiểu Enum trong API (cả trong request và response) đều được biểu diễn dưới dạng **chuỗi tên Enum** (string name) thay vì giá trị số nguyên (integer value). Điều này áp dụng cho cả JSON request body khi gửi dữ liệu lên và JSON response body khi nhận dữ liệu về.
+
+#### Các trường Enum phổ biến trong API
+
+1. **Manga**
+   * `publicationDemographic`: Kiểu `PublicationDemographic` (ví dụ: "Shounen", "Shoujo", "Seinen", "Josei", "None")
+   * `status`: Kiểu `MangaStatus` (ví dụ: "Ongoing", "Completed", "Hiatus", "Cancelled")
+   * `contentRating`: Kiểu `ContentRating` (ví dụ: "Safe", "Suggestive", "Erotica", "Pornographic")
+
+2. **MangaAuthorInputDto** (khi tạo/cập nhật Manga)
+   * `role`: Kiểu `MangaStaffRole` (ví dụ: "Author", "Artist")
+
+#### Ví dụ Request và Response
+
+```json
+// Request và Response mới (định dạng hiện tại)
+{
+  "status": "Ongoing",
+  "contentRating": "Suggestive",
+  "authors": [
+    {
+      "authorId": "...",
+      "role": "Author"
+    }
+  ]
+}
+```
+
+#### Lưu ý quan trọng
+* Khi gửi dữ liệu lên API, hãy đảm bảo sử dụng đúng tên chuỗi của Enum.
+* Nếu gửi một chuỗi không hợp lệ (không phải là tên của bất kỳ giá trị nào trong Enum tương ứng), API sẽ trả về lỗi `400 Bad Request` với thông báo lỗi chi tiết.
+* Khi nhận dữ liệu từ API, các trường Enum sẽ luôn là chuỗi, không phải số nguyên.
 
 ## 5. Cấu Trúc JSON Response
 
@@ -1054,5 +1097,81 @@ Bạn có thể tìm thấy định nghĩa OpenAPI (Swagger) của API này tạ
 *   **Swagger UI:** Truy cập `https://localhost:7262/swagger` (trong môi trường phát triển)
 *   **ReDoc:** Truy cập `https://localhost:7262/docs` (trong môi trường phát triển)
 
+---
+
+## 7. Cập Nhật Quan Trọng: Thay Đổi Định Dạng Enum
+
+### 7.1. Tóm Tắt Thay Đổi
+
+Từ phiên bản hiện tại của API, tất cả các trường dữ liệu kiểu Enum trong **JSON request body** (khi gửi dữ liệu lên) và **JSON response body** (khi nhận dữ liệu về) đều sử dụng **tên chuỗi** (string name) thay vì giá trị số nguyên (integer value) như trước đây.
+
+### 7.2. So Sánh Định Dạng Cũ và Mới
+
+#### Định dạng cũ (không còn được hỗ trợ)
+
+```json
+// Request hoặc Response cũ
+{
+  "status": 0, // 0 có thể là "Ongoing"
+  "contentRating": 1, // 1 có thể là "Suggestive"
+  "authors": [
+    {
+      "authorId": "...",
+      "role": 0 // 0 là "Author"
+    }
+  ]
+}
 ```
+
+#### Định dạng mới (hiện tại)
+
+```json
+// Request và Response mới
+{
+  "status": "Ongoing",
+  "contentRating": "Suggestive",
+  "authors": [
+    {
+      "authorId": "...",
+      "role": "Author"
+    }
+  ]
+}
+```
+
+### 7.3. Các Trường Enum Bị Ảnh Hưởng
+
+Các trường sau đây trong các DTO/Model sẽ bị ảnh hưởng bởi thay đổi này:
+
+#### Manga
+* `publicationDemographic`: Kiểu `PublicationDemographic` (ví dụ: "Shounen", "Shoujo", "Seinen", "Josei", "None")
+* `status`: Kiểu `MangaStatus` (ví dụ: "Ongoing", "Completed", "Hiatus", "Cancelled")
+* `contentRating`: Kiểu `ContentRating` (ví dụ: "Safe", "Suggestive", "Erotica", "Pornographic")
+
+#### MangaAuthorInputDto (khi tạo/cập nhật Manga)
+* `role`: Kiểu `MangaStaffRole` (ví dụ: "Author", "Artist")
+
+### 7.4. Tác Động Đến Frontend
+
+1. **Gửi dữ liệu (Requests):**
+   * Khi tạo hoặc cập nhật Manga, hoặc bất kỳ thao tác nào gửi DTO có chứa các trường Enum, Frontend cần gửi giá trị là **chuỗi tên Enum** thay vì số.
+   * Nếu gửi một chuỗi không hợp lệ (không phải là tên của bất kỳ giá trị nào trong Enum tương ứng), API sẽ trả về lỗi `400 Bad Request` với thông báo lỗi chi tiết.
+
+2. **Nhận dữ liệu (Responses):**
+   * Khi nhận dữ liệu từ API, Frontend cần đọc các trường Enum dưới dạng **chuỗi tên Enum**.
+   * Hãy đảm bảo logic parse JSON ở phía Frontend của bạn có thể xử lý các giá trị chuỗi này.
+
+### 7.5. Lý Do Thay Đổi
+
+Thay đổi này được thực hiện để:
+* **Tăng tính đọc hiểu của API:** Giá trị chuỗi rõ ràng hơn và dễ hiểu hơn cho cả người dùng và lập trình viên.
+* **Đồng nhất với các API tiêu chuẩn:** Nhiều API hiện đại sử dụng định dạng chuỗi cho Enum.
+* **Cải thiện validation:** Mặc dù hệ thống backend vẫn có validation mạnh mẽ, việc hiển thị và nhận chuỗi giúp dễ dàng phát hiện lỗi đầu vào hơn ở cả client và server.
+
+### 7.6. Hành Động Đề Xuất Cho Frontend
+
+* Kiểm tra và cập nhật tất cả các nơi trong code Frontend đang gửi hoặc nhận các trường Enum liên quan.
+* Đảm bảo các model hoặc interface ở Frontend được cập nhật để phản ánh rằng các trường này giờ đây là `string` thay vì `number`.
+* Thực hiện kiểm thử kỹ lưỡng các luồng dữ liệu liên quan đến Manga và các thực thể có sử dụng Enum.
+
 ```

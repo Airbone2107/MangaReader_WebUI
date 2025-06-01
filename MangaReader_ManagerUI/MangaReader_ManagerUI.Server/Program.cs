@@ -1,5 +1,6 @@
 using MangaReaderLib.Services.Implementations;
 using MangaReaderLib.Services.Interfaces;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,7 +24,11 @@ builder.Services.AddScoped<ITranslatedMangaClient, TranslatedMangaClient>();
 builder.Services.AddScoped<IChapterClient, ChapterClient>();
 builder.Services.AddScoped<IChapterPageClient, ChapterPageClient>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 

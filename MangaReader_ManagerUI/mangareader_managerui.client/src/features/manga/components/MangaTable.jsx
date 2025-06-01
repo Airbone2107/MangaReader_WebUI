@@ -6,7 +6,7 @@ import { Box, Chip, IconButton, Tooltip } from '@mui/material'
 import React from 'react'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import DataTableMUI from '../../../components/common/DataTableMUI'
-import { CLOUDINARY_BASE_URL } from '../../../constants/appConstants'
+import { CLOUDINARY_BASE_URL, MANGA_STATUS_OPTIONS, CONTENT_RATING_OPTIONS, PUBLICATION_DEMOGRAPHIC_OPTIONS } from '../../../constants/appConstants'
 import { formatDate } from '../../../utils/dateUtils'
 
 /**
@@ -66,6 +66,12 @@ function MangaTable({
     setMangaToDeleteId(null)
   }
 
+  // Hàm tiện ích để lấy nhãn từ giá trị Enum
+  const getEnumLabel = (value, options) => {
+    const option = options.find(opt => opt.value === value);
+    return option ? option.label : value; // Trả về nhãn nếu tìm thấy, nếu không thì trả về giá trị gốc
+  };
+
   const columns = [
     {
       id: 'title',
@@ -74,11 +80,17 @@ function MangaTable({
       sortable: true,
       format: (value, row) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {row.relationships?.find(r => r.type === 'cover_art') && (
+          {row.coverArtPublicId ? (
             <img
-              src={`${CLOUDINARY_BASE_URL}w_40,h_60,c_fill/${row.relationships.find(r => r.type === 'cover_art').id}.jpg`}
+              src={`${CLOUDINARY_BASE_URL}w_40,h_60,c_fill/${row.coverArtPublicId}`}
               alt="Cover"
               style={{ width: 40, height: 60, objectFit: 'cover', borderRadius: 4 }}
+            />
+          ) : (
+            <img
+              src="https://via.placeholder.com/40x60?text=No+Cover"
+              alt="No Cover"
+              style={{ width: 40, height: 60, objectFit: 'cover', borderRadius: 4, border: '1px solid #ddd' }}
             />
           )}
           <span>{value}</span>
@@ -86,9 +98,31 @@ function MangaTable({
       )
     },
     { id: 'originalLanguage', label: 'Ngôn ngữ gốc', minWidth: 100, sortable: true },
-    { id: 'status', label: 'Trạng thái', minWidth: 100, sortable: true },
+    {
+      id: 'status',
+      label: 'Trạng thái',
+      minWidth: 100,
+      sortable: true,
+      // Sử dụng hàm getEnumLabel để hiển thị nhãn thân thiện
+      format: (value) => getEnumLabel(value, MANGA_STATUS_OPTIONS),
+    },
     { id: 'year', label: 'Năm', minWidth: 70, sortable: true },
-    { id: 'contentRating', label: 'Đánh giá', minWidth: 80, sortable: true },
+    {
+      id: 'contentRating',
+      label: 'Đánh giá',
+      minWidth: 80,
+      sortable: true,
+      // Sử dụng hàm getEnumLabel để hiển thị nhãn thân thiện
+      format: (value) => getEnumLabel(value, CONTENT_RATING_OPTIONS),
+    },
+    // Thêm cột đối tượng độc giả
+    { 
+        id: 'publicationDemographic', 
+        label: 'Đối tượng', 
+        minWidth: 100, 
+        sortable: true,
+        format: (value) => value ? getEnumLabel(value, PUBLICATION_DEMOGRAPHIC_OPTIONS) : 'N/A', // Xử lý trường hợp null/None
+    },
     {
       id: 'relationships',
       label: 'Tags',
@@ -149,15 +183,13 @@ function MangaTable({
 
   // Format manga data for display in the table
   const formatMangaDataForTable = (mangasData) => {
+    if (!mangasData) return [];
     return mangasData.map(manga => {
-      // Find the main cover art relationship if available
-      const coverArtRel = manga.relationships?.find(rel => rel.type === 'cover_art');
-      
       return {
         ...manga.attributes,
         id: manga.id, // Ensure ID is present for keying and actions
         relationships: manga.relationships, // Pass relationships for tags or other info
-        coverArtPublicId: coverArtRel ? coverArtRel.id : null, // Add cover art publicId if found
+        coverArtPublicId: manga.coverArtPublicId, // <-- ĐẢM BẢO TRƯỜNG NÀY ĐƯỢC CHUYỂN QUA TỪ STORE
       };
     });
   };
