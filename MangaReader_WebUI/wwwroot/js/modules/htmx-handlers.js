@@ -19,7 +19,7 @@ import { initTagsInSearchForm } from './manga-tags.js';
 import { initChapterDropdownNav, initImageLoading, initImageScaling, initPlaceholderButtons, initReadPage, initSidebarToggle } from './read-page.js';
 import SearchModule from './search.js';
 import { initSidebar, updateActiveSidebarLink } from './sidebar.js';
-import { initCustomThemeSwitcher } from './theme.js';
+import { initUIToggles } from './ui-toggles.js';
 import { adjustFooterPosition, adjustMangaTitles, createDefaultImage, fixAccordionIssues, initBackToTop, initResponsive, initTooltips } from './ui.js';
 
 /**
@@ -46,9 +46,9 @@ function reinitializeAfterHtmxSwap(targetElement) {
         // Khởi tạo lại trang đọc chapter nếu có
         if (targetElement.querySelector('.chapter-reader-container') || targetElement.querySelector('#readingSidebar')) {
             console.log('[HTMX Swap] Chapter Read page detected, initializing read-page modules');
-            initReadPage(); // Hàm này đã bao gồm initImageScaling và initPlaceholderButtons
+            initReadPage();
         }
-        // Khởi tạo lại pagination nếu có trong nội dung mới
+        // Khởi tạo lại pagination nếu có
         if (targetElement.querySelector('.pagination')) {
             SearchModule.initPageGoTo?.();
         }
@@ -58,53 +58,38 @@ function reinitializeAfterHtmxSwap(targetElement) {
     // Xử lý khi chỉ kết quả tìm kiếm và phân trang được swap
     else if (targetElement.id === 'search-results-and-pagination') {
         console.log('[HTMX Swap] Search results swapped, reinitializing pagination/tooltips...');
-        SearchModule.initPageGoTo?.(); // Khởi tạo lại nút "..." nếu có
-        initTooltips(); // Khởi tạo lại tooltip nếu có trong kết quả mới
+        SearchModule.initPageGoTo?.();
+        initTooltips();
     }
     // Xử lý khi chỉ container kết quả được swap (chuyển đổi view mode)
     else if (targetElement.id === 'search-results-container') {
         console.log('[HTMX Swap] Search results container swapped (view mode change).');
-        // Thường không cần làm gì nhiều ở đây vì view mode đã được server render đúng
-        initTooltips(); // Có thể cần tooltip cho list view
+        initTooltips();
     }
     // Xử lý khi chỉ container ảnh chapter được swap
     else if (targetElement.id === 'chapterImagesContainer') {
         console.log('[HTMX Swap] Chapter images container swapped, initializing image loading...');
         initImageLoading('#chapterImagesContainer');
-        // Không cần gọi initImageScaling ở đây vì nút scale không bị swap
     }
     // Xử lý khi chỉ sidebar đọc truyện được swap (nếu có)
     else if (targetElement.id === 'readingSidebar') {
-         console.log('[HTMX Swap] Reading sidebar swapped, reinitializing relevant parts...');
-         // Gọi lại các hàm init cần thiết cho các nút trong sidebar
-         initSidebarToggle(); // Cần gọi lại nếu nút toggle bị swap
-         initChapterDropdownNav(); // Cần gọi lại cho dropdown
-         initPlaceholderButtons(); // Gọi lại cho các nút placeholder
-         initImageScaling(); // Gọi lại để gắn listener cho nút scale
+        console.log('[HTMX Swap] Reading sidebar swapped, reinitializing relevant parts...');
+        initSidebarToggle();
+        initChapterDropdownNav();
+        initPlaceholderButtons();
+        initImageScaling();
     }
-    // Xử lý khi chỉ dropdown chứa theme switcher bị swap (ít khả năng)
-    else if (targetElement.querySelector('#customThemeSwitcherItem')) {
-        console.log('[HTMX Swap] Custom theme switcher detected in swapped content, reinitializing.');
-        initCustomThemeSwitcher();
+    // Xử lý khi các nút chuyển đổi UI (theme/source) bị swap (ít khả năng, nhưng cần)
+    // (Kiểm tra nếu bất kỳ phần tử con nào của #userDropdownMenu chứa một trong các switcher)
+    if (targetElement.querySelector('#userDropdownMenu') || targetElement.closest('#userDropdownMenu')) {
+         if (targetElement.querySelector('#customThemeSwitcherItem') || targetElement.querySelector('#customSourceSwitcherItem')) {
+             console.log('[HTMX Swap] UI Toggles detected in swapped content, reinitializing.');
+             initUIToggles(); // Gọi hàm khởi tạo chính cho cả hai nút
+         }
     }
 
     // Luôn khởi tạo lại các component Bootstrap trong phần tử đã swap
     initializeBootstrapComponents(targetElement);
-
-    // Khởi tạo lại các thành phần UI chung nếu chúng bị swap (ít khả năng xảy ra nếu header không phải target)
-    if (targetElement.querySelector('#sidebarToggler')) {
-        // Re-init sidebar toggle logic if needed (though usually it's outside swap target)
-        // Consider if initSidebar() needs parts re-run, but be careful
-    }
-    if (targetElement.querySelector('#themeSwitch')) {
-        // Re-init theme switcher logic if needed
-        initCustomThemeSwitcher(); // Bây giờ đã an toàn khi gọi lại, vì đã xử lý việc xóa bỏ listener cũ
-    }
-    if (targetElement.querySelector('.custom-user-dropdown')) {
-        // Ensure Custom Dropdown is initialized if the dropdown itself was swapped
-        initCustomDropdowns();
-    }
-
     console.log('[HTMX Swap] Reinitialization complete for swapped element.');
 }
 
@@ -132,53 +117,44 @@ function reinitializeAfterHtmxLoad(targetElement) {
     // *** KẾT THÚC BƯỚC XÓA LOADING STATE ***
 
     // --- 1. Khởi tạo lại các chức năng TOÀN CỤC ---
-    // Luôn chạy các hàm này vì chúng ảnh hưởng đến layout/trạng thái chung
     console.log('[HTMX Load] Reinitializing global functions...');
-    initSidebar();          // Trạng thái sidebar, link active
-    initAuthUI();           // Trạng thái đăng nhập header (QUAN TRỌNG)
-    initCustomDropdowns();  // Khởi tạo lại custom dropdowns
-    initCustomThemeSwitcher();    // Trạng thái nút theme
-    initBackToTop();        // Nút back-to-top
-    initResponsive();       // Xử lý responsive chung
-    fixAccordionIssues();   // Sửa lỗi accordion chung
-    adjustFooterPosition(); // Vị trí footer
-    initTooltips();         // Tooltips toàn cục
-    createDefaultImage();   // Ảnh mặc định
+    initSidebar();
+    initAuthUI();
+    initCustomDropdowns();
+    initUIToggles();
+    initBackToTop();
+    initResponsive();
+    fixAccordionIssues();
+    adjustFooterPosition();
+    initTooltips();
+    createDefaultImage();
 
     // --- 2. Khởi tạo lại các chức năng TRANG CỤ THỂ (Có điều kiện) ---
-    // Kiểm tra sự tồn tại của các element đặc trưng cho từng trang TRONG targetElement
     if (targetElement.querySelector('#searchForm')) {
         console.log('[HTMX Load] Reinitializing Search Page...');
-        SearchModule.initSearchPage?.(); // Khởi tạo bộ lọc, dropdowns, reset button
-        initTagsInSearchForm();         // Khởi tạo tags
-        SearchModule.initPageGoTo?.();    // Khởi tạo phân trang "..."
+        SearchModule.initSearchPage?.();
+        initTagsInSearchForm();
+        SearchModule.initPageGoTo?.();
     } else if (targetElement.querySelector('.details-manga-header-background')) {
         console.log('[HTMX Load] Reinitializing Manga Details Page...');
-        initMangaDetailsPage(); // Khởi tạo dropdown chapter, nút follow, etc.
+        initMangaDetailsPage();
     } else if (targetElement.querySelector('.chapter-reader-container') || targetElement.querySelector('#readingSidebar')) {
         console.log('[HTMX Load] Reinitializing Chapter Read Page...');
-        initReadPage(); // Hàm này đã bao gồm initImageScaling và initPlaceholderButtons
+        initReadPage();
     } else {
-        // Trang chủ hoặc trang khác? Khởi tạo lại các thành phần cần thiết
         console.log('[HTMX Load] Reinitializing Home Page or other...');
         const latestGrid = document.getElementById('latest-manga-grid');
-        // Ví dụ: Trigger lại load cho grid truyện mới nếu cần
         if (latestGrid && latestGrid.innerHTML.includes('spinner')) {
             console.log('[HTMX Load] Retriggering hx-trigger="load" for #latest-manga-grid');
-            // Dùng setTimeout nhỏ để đảm bảo DOM sẵn sàng hoàn toàn sau bfcache
             setTimeout(() => htmx.trigger(latestGrid, 'load'), 50);
         }
     }
 
     // --- 3. Khởi tạo lại các thành phần UI/Bootstrap chung ---
-    initializeBootstrapComponents(targetElement); // Gọi hàm helper 
+    initializeBootstrapComponents(targetElement);
 
-    // --- 4. Khởi tạo lại các Event Listener đặc biệt (nếu cần) ---
-    // Ví dụ: các listener gắn trực tiếp vào body hoặc window mà có thể bị mất
-    // (Tuy nhiên, nên hạn chế cách này, ưu tiên delegation hoặc re-init trong module)
-
-    // --- 5. Điều chỉnh UI cuối cùng ---
-    adjustMangaTitles(targetElement); // Điều chỉnh tiêu đề trên toàn bộ nội dung
+    // --- 4. Điều chỉnh UI cuối cùng ---
+    adjustMangaTitles(targetElement);
 
     console.log('[HTMX Load] Reinitialization complete.');
 }

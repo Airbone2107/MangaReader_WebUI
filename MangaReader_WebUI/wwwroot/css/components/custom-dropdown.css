@@ -208,3 +208,69 @@ html[data-bs-theme="dark"] .custom-theme-switcher:focus {
 html[data-bs-theme="dark"] .custom-theme-toggle-switch {
     background-color: #555; /* Màu nền tối hơn khi tắt trong dark mode */
 }
+
+/* --- Custom Source Switcher --- */
+.custom-source-switcher {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    padding: 0.5rem 1rem;
+}
+
+.custom-source-switcher:hover,
+.custom-source-switcher:focus {
+    background-color: var(--hover-bg, rgba(0, 0, 0, 0.05));
+    color: var(--body-color, #212529);
+}
+
+html[data-bs-theme="dark"] .custom-source-switcher:hover,
+html[data-bs-theme="dark"] .custom-source-switcher:focus {
+    background-color: var(--hover-bg, rgba(255, 255, 255, 0.1));
+}
+
+/* Phần text và icon */
+#customSourceSwitcherText {
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Phần switch toggle trực quan */
+.custom-source-toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+    background-color: #ccc; /* Màu nền khi MangaDex (mặc định) */
+    border-radius: 20px;
+    transition: background-color 0.3s ease;
+    flex-shrink: 0;
+    margin-left: 20px;
+}
+
+.custom-source-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+}
+
+/* Trạng thái bật (MangaReaderLib) */
+.custom-source-switcher.mangareader-source .custom-source-toggle-switch {
+    background-color: var(--primary-color, #0d6efd); /* Màu khi là MangaReaderLib */
+}
+
+.custom-source-switcher.mangareader-source .custom-source-toggle-slider {
+    transform: translateX(20px);
+}
+
+/* Điều chỉnh màu nền switch cho theme tối */
+html[data-bs-theme="dark"] .custom-source-toggle-switch {
+    background-color: #555;
+}

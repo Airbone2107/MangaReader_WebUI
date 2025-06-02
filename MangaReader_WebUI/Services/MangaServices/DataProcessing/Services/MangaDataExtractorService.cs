@@ -1,8 +1,10 @@
+using MangaReader.WebUI.Enums; // Cần cho MangaSource
 using MangaReader.WebUI.Models.Mangadex;
-using MangaReader.WebUI.Services.APIServices.Interfaces; // Cần cho ICoverApiService
 using MangaReader.WebUI.Services.APIServices.Services; // Cần cho CoverApiService static helper
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
 using MangaReader.WebUI.Services.UtilityServices; // Cần cho LocalizationService
+using Microsoft.Extensions.Configuration; // Thêm using này
+using Microsoft.AspNetCore.Http;        // Thêm using này
 using System.Diagnostics;
 using System.Text.Json; // Cần cho JsonException và JsonSerializer
 
@@ -11,15 +13,129 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services;
 /// <summary>
 /// Triển khai IMangaDataExtractor, chịu trách nhiệm trích xuất dữ liệu cụ thể từ Model MangaDex.
 /// </summary>
-public class MangaDataExtractorService(
-    ILogger<MangaDataExtractorService> logger,
-    ICoverApiService coverApiService, // Để tạo URL ảnh bìa proxy
-    LocalizationService localizationService // Để dịch status
-    ) : IMangaDataExtractor
+public class MangaDataExtractorService : IMangaDataExtractor
 {
+    private readonly ILogger<MangaDataExtractorService> _logger;
+    private readonly LocalizationService _localizationService;
+    private readonly IConfiguration _configuration; // Thêm IConfiguration
+    private readonly IHttpContextAccessor _httpContextAccessor; // Thêm IHttpContextAccessor
+
+    private readonly string _backendApiBaseUrl;
+    private readonly string _mangaReaderLibApiBaseUrl;
+    private readonly string _cloudinaryBaseUrl;
+
     // Từ điển dịch tag (có thể chuyển ra file config hoặc service riêng nếu lớn)
     private static readonly Dictionary<string, string> _tagTranslations = InitializeTagTranslations();
     private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    public MangaDataExtractorService(
+        ILogger<MangaDataExtractorService> logger,
+        LocalizationService localizationService,
+        IConfiguration configuration, // Inject IConfiguration
+        IHttpContextAccessor httpContextAccessor) // Inject IHttpContextAccessor
+    {
+        _logger = logger;
+        _localizationService = localizationService;
+        _configuration = configuration;
+        _httpContextAccessor = httpContextAccessor;
+
+        _backendApiBaseUrl = _configuration["BackendApi:BaseUrl"]?.TrimEnd('/')
+                            ?? throw new InvalidOperationException("BackendApi:BaseUrl is not configured in MangaDataExtractorService.");
+        _mangaReaderLibApiBaseUrl = _configuration["MangaReaderApiSettings:BaseUrl"]?.TrimEnd('/')
+                                  ?? throw new InvalidOperationException("MangaReaderApiSettings:BaseUrl is not configured in MangaDataExtractorService.");
+        _cloudinaryBaseUrl = _configuration["MangaReaderApiSettings:CloudinaryBaseUrl"]?.TrimEnd('/')
+                            ?? throw new InvalidOperationException("MangaReaderApiSettings:CloudinaryBaseUrl is not configured.");
+    }
+
+    private MangaSource GetCurrentMangaSource()
+    {
+        var context = _httpContextAccessor.HttpContext;
+        if (context != null && context.Request.Cookies.TryGetValue("MangaSource", out var sourceString))
+        {
+            if (Enum.TryParse(sourceString, true, out MangaSource source))
+            {
+                return source;
+            }
+        }
+        return MangaSource.MangaDex; // Mặc định
+    }
+
+    public string ExtractCoverUrl(string mangaId, List<Relationship>? relationships)
+    {
+        Debug.Assert(!string.IsNullOrEmpty(mangaId), "Manga ID không được rỗng khi trích xuất Cover URL.");
+        try
+        {
+            var currentSource = GetCurrentMangaSource();
+            _logger.LogDebug("ExtractCoverUrl: Source = {Source}, MangaId = {MangaId}", currentSource, mangaId);
+
+            if (relationships == null || !relationships.Any())
+            {
+                _logger.LogWarning("ExtractCoverUrl: Danh sách relationships rỗng hoặc null cho manga ID: {MangaId}. Sử dụng placeholder.", mangaId);
+                return "/images/cover-placeholder.jpg";
+            }
+
+            var coverRelationship = relationships.FirstOrDefault(r => r != null && r.Type == "cover_art");
+
+            if (coverRelationship == null)
+            {
+                _logger.LogWarning("ExtractCoverUrl: Không tìm thấy relationship 'cover_art' cho manga ID: {MangaId}. Sử dụng placeholder.", mangaId);
+                return "/images/cover-placeholder.jpg";
+            }
+
+            string? publicIdOrFileName = null;
+
+            // Lấy publicId (hoặc fileName chứa publicId) từ attributes
+            if (coverRelationship.Attributes is CoverAttributes coverAttributesMangaDex)
+            {
+                // Đối với MangaDex, FileName chứa tên file thực sự
+                // Đối với MangaReaderLib, sau khi map ở Strategy, FileName sẽ chứa PublicId
+                publicIdOrFileName = coverAttributesMangaDex.FileName;
+                 _logger.LogDebug("ExtractCoverUrl: Extracted publicIdOrFileName '{PublicIdOrFileName}' from CoverAttributes object.", publicIdOrFileName);
+            }
+            else if (coverRelationship.Attributes is JsonElement attributesElement && attributesElement.ValueKind == JsonValueKind.Object)
+            {
+                if (attributesElement.TryGetProperty("fileName", out var fileNameElement) && fileNameElement.ValueKind == JsonValueKind.String)
+                {
+                    publicIdOrFileName = fileNameElement.GetString();
+                    _logger.LogDebug("ExtractCoverUrl: Extracted publicIdOrFileName '{PublicIdOrFileName}' from JsonElement.fileName.", publicIdOrFileName);
+                }
+                else if (attributesElement.TryGetProperty("publicId", out var publicIdElement) && publicIdElement.ValueKind == JsonValueKind.String) // Fallback nếu có trường publicId trực tiếp
+                {
+                    publicIdOrFileName = publicIdElement.GetString();
+                     _logger.LogDebug("ExtractCoverUrl: Extracted publicId '{PublicId}' from JsonElement.publicId.", publicIdOrFileName);
+                }
+            }
+
+            if (string.IsNullOrEmpty(publicIdOrFileName))
+            {
+                _logger.LogWarning("ExtractCoverUrl: Không thể trích xuất publicId hoặc fileName cho cover_art của manga ID {MangaId}. Relationship ID: {RelationshipId}. Attributes Type: {AttributeType}",
+                    mangaId, coverRelationship.Id, coverRelationship.Attributes?.GetType().Name ?? "null");
+                return "/images/cover-placeholder.jpg";
+            }
+
+            if (currentSource == MangaSource.MangaDex)
+            {
+                // MangaDex: publicIdOrFileName là fileName thực sự
+                var originalImageUrl = $"https://uploads.mangadex.org/covers/{mangaId}/{publicIdOrFileName}.512.jpg"; // Size mặc định 512px
+                var proxiedUrl = $"{_backendApiBaseUrl}/mangadex/proxy-image?url={Uri.EscapeDataString(originalImageUrl)}";
+                _logger.LogDebug("ExtractCoverUrl (MangaDex): Proxied URL = {Url}", proxiedUrl);
+                return proxiedUrl;
+            }
+            else // currentSource == MangaSource.MangaReaderLib
+            {
+                // MangaReaderLib: publicIdOrFileName giờ đây chính là PublicId của Cloudinary
+                // Xây dựng URL Cloudinary trực tiếp
+                var cloudinaryUrl = $"{_cloudinaryBaseUrl}/{publicIdOrFileName}"; // Không thêm transform ở đây
+                _logger.LogDebug("ExtractCoverUrl (MangaReaderLib): Direct Cloudinary URL = {Url}", cloudinaryUrl);
+                return cloudinaryUrl;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Lỗi khi trích xuất Cover URL cho manga ID: {mangaId}");
+            return "/images/cover-placeholder.jpg";
+        }
+    }
 
     public string ExtractMangaTitle(Dictionary<string, string>? titleDict, List<Dictionary<string, string>>? altTitlesList)
     {
@@ -73,7 +189,7 @@ public class MangaDataExtractorService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Lỗi khi trích xuất tiêu đề manga.");
+            _logger.LogError(ex, "Lỗi khi trích xuất tiêu đề manga.");
             return "Lỗi tiêu đề";
         }
     }
@@ -102,7 +218,7 @@ public class MangaDataExtractorService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Lỗi khi trích xuất mô tả manga.");
+            _logger.LogError(ex, "Lỗi khi trích xuất mô tả manga.");
             return "";
         }
     }
@@ -132,7 +248,7 @@ public class MangaDataExtractorService(
                     {
                         // Nếu không có bản dịch, giữ nguyên tag tiếng Anh
                         translatedTags.Add(enTagName);
-                        logger.LogDebug($"Không tìm thấy bản dịch cho tag: {enTagName}");
+                        _logger.LogDebug($"Không tìm thấy bản dịch cho tag: {enTagName}");
                     }
                 }
                 // Nếu không có tiếng Anh, lấy tên đầu tiên và không dịch
@@ -147,7 +263,7 @@ public class MangaDataExtractorService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Lỗi khi trích xuất và dịch tags manga.");
+            _logger.LogError(ex, "Lỗi khi trích xuất và dịch tags manga.");
             return new List<string>();
         }
     }
@@ -157,33 +273,47 @@ public class MangaDataExtractorService(
         string author = "Không rõ";
         string artist = "Không rõ";
 
-        if (relationships == null) return (author, artist);
+        if (relationships == null || !relationships.Any())
+        {
+            _logger.LogDebug("ExtractAuthorArtist: Danh sách relationships rỗng hoặc null.");
+            return (author, artist);
+        }
 
         try
         {
+            var currentSource = GetCurrentMangaSource(); // Lấy nguồn hiện tại
+
             foreach (var rel in relationships)
             {
                 if (rel == null) continue;
                 string relType = rel.Type;
+                string name = "Không rõ";
 
                 if (relType == "author" || relType == "artist")
                 {
-                    string name = "Không rõ";
-                    // Kiểm tra xem attributes có được include và có phải là object JSON không
-                    if (rel.Attributes is JsonElement attributesElement && attributesElement.ValueKind == JsonValueKind.Object)
+                    // Kiểm tra xem attributes có phải là MangaDex.AuthorAttributes không (đã được map từ Strategy)
+                    if (rel.Attributes is MangaReader.WebUI.Models.Mangadex.AuthorAttributes authorAttributes)
+                    {
+                        name = authorAttributes.Name ?? "Không rõ";
+                        _logger.LogDebug("ExtractAuthorArtist (Source: {Source}): Lấy Name '{Name}' từ AuthorAttributes cho relationship type '{RelType}', ID '{RelId}'.", currentSource, name, relType, rel.Id);
+                    }
+                    // Fallback kiểm tra JsonElement (cho MangaDex hoặc trường hợp MRLib chưa map hoàn chỉnh)
+                    else if (rel.Attributes is JsonElement attributesElement && attributesElement.ValueKind == JsonValueKind.Object)
                     {
                         if (attributesElement.TryGetProperty("name", out var nameElement) && nameElement.ValueKind == JsonValueKind.String)
                         {
                             name = nameElement.GetString() ?? "Không rõ";
+                             _logger.LogDebug("ExtractAuthorArtist (Source: {Source}): Lấy Name '{Name}' từ JsonElement cho relationship type '{RelType}', ID '{RelId}'.", currentSource, name, relType, rel.Id);
                         }
                         else
                         {
-                            logger.LogWarning($"Attributes của relationship {rel.Id} (type: {relType}) không chứa 'name' hoặc không phải string.");
+                            _logger.LogWarning("ExtractAuthorArtist (Source: {Source}): Attributes của relationship {RelId} (type: {RelType}) không chứa 'name' hoặc không phải string.", currentSource, rel.Id, relType);
                         }
                     }
                     else
                     {
-                        logger.LogWarning($"Relationship {rel.Id} (type: {relType}) không có attributes hoặc attributes không phải object. Đảm bảo có includes trong API call.");
+                        _logger.LogWarning("ExtractAuthorArtist (Source: {Source}): Relationship {RelId} (type: {RelType}) không có attributes hoặc attributes không phải object/AuthorAttributes. Attributes Type: {AttributeType}. Đảm bảo có includes trong API call hoặc mapper đã làm giàu attributes.", 
+                            currentSource, rel.Id, relType, rel.Attributes?.GetType().Name ?? "null");
                     }
 
                     if (relType == "author")
@@ -195,42 +325,16 @@ public class MangaDataExtractorService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Lỗi khi trích xuất tác giả/họa sĩ từ relationships.");
+            _logger.LogError(ex, "Lỗi khi trích xuất tác giả/họa sĩ từ relationships.");
         }
 
         return (author, artist);
     }
 
-    public string ExtractCoverUrl(string mangaId, List<Relationship>? relationships)
-    {
-         Debug.Assert(!string.IsNullOrEmpty(mangaId), "Manga ID không được rỗng khi trích xuất Cover URL.");
-        try
-        {
-            // Sử dụng helper tĩnh từ CoverApiService để trích xuất filename
-            // Truyền logger vào hàm helper
-            var coverFileName = CoverApiService.ExtractCoverFileNameFromRelationships(relationships, logger);
-            if (!string.IsNullOrEmpty(coverFileName))
-            {
-                // Sử dụng instance coverApiService để tạo URL proxy
-                return coverApiService.GetProxiedCoverUrl(mangaId, coverFileName);
-            }
-            else
-            {
-                logger.LogDebug($"Không tìm thấy cover filename cho manga ID {mangaId} từ relationships.");
-                return "/images/cover-placeholder.jpg"; // Placeholder
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, $"Lỗi khi trích xuất Cover URL cho manga ID: {mangaId}");
-            return "/images/cover-placeholder.jpg"; // Placeholder
-        }
-    }
-
     public string ExtractAndTranslateStatus(string? status)
     {
         // Sử dụng LocalizationService để dịch
-        return localizationService.GetStatus(status);
+        return _localizationService.GetStatus(status);
     }
 
      public string ExtractChapterDisplayTitle(ChapterAttributes attributes)
@@ -290,7 +394,7 @@ public class MangaDataExtractorService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Lỗi khi xử lý tiêu đề thay thế từ List.");
+            _logger.LogError(ex, "Lỗi khi xử lý tiêu đề thay thế từ List.");
         }
 
         return altTitlesDictionary;

@@ -4,9 +4,18 @@ using MangaReader.WebUI.Services.APIServices.Services;
 using MangaReader.WebUI.Services.AuthServices;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Services;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaMapper;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaReaderLibMappers;
 using Microsoft.AspNetCore.Mvc.Razor;
+using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Interfaces;
+using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Services;
+using MangaReader.WebUI.Services.MangaServices.MangaSourceManager;
+using MangaReaderLib.Services.Implementations;
+using MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies.Interfaces;
+using MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies.MangaDex;
+using MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies.MangaReaderLib;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +37,9 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
+// Đảm bảo HttpContextAccessor được đăng ký
+builder.Services.AddHttpContextAccessor();
+
 // Cấu hình HttpClient để gọi Backend API
 builder.Services.AddHttpClient("BackendApiClient", client =>
 {
@@ -43,7 +55,7 @@ builder.Services.AddHttpClient("BackendApiClient", client =>
     AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
 });
 
-// Đăng ký HttpClient với cấu hình nâng cao
+// Đăng ký HttpClient với cấu hình nâng cao (MangaDexClient)
 builder.Services.AddHttpClient("MangaDexClient", client =>
 {
     // Thiết lập các tùy chọn cơ bản
@@ -59,6 +71,21 @@ builder.Services.AddHttpClient("MangaDexClient", client =>
     AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
 });
 
+// Thêm HttpClient cho MangaReaderLib API
+builder.Services.AddHttpClient("MangaReaderLibApiClient", client =>
+{
+    var baseUrl = builder.Configuration["MangaReaderApiSettings:BaseUrl"];
+    client.BaseAddress = new Uri(baseUrl);
+    client.DefaultRequestHeaders.Add("User-Agent", "MangaReaderWeb/1.0");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    AllowAutoRedirect = true,
+    MaxAutomaticRedirections = 5,
+    AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+});
+
 // Đăng ký các service trong DataProcessing
 builder.Services.AddScoped<IMangaDataExtractor, MangaDataExtractorService>();
 builder.Services.AddScoped<IMangaToMangaViewModelMapper, MangaToMangaViewModelMapperService>();
@@ -69,21 +96,77 @@ builder.Services.AddScoped<IMangaToInfoViewModelMapper, MangaToInfoViewModelMapp
 builder.Services.AddScoped<IFollowedMangaViewModelMapper, FollowedMangaViewModelMapperService>();
 builder.Services.AddScoped<ILastReadMangaViewModelMapper, LastReadMangaViewModelMapperService>();
 
+// Đăng ký các MangaReaderLib Mappers đã tạo ở Bước III
+builder.Services.AddScoped<IMangaReaderLibToMangaViewModelMapper, MangaReaderLibToMangaViewModelMapper>();
+builder.Services.AddScoped<IMangaReaderLibToMangaDetailViewModelMapper, MangaReaderLibToMangaDetailViewModelMapper>();
+builder.Services.AddScoped<IMangaReaderLibToChapterViewModelMapper, MangaReaderLibToChapterViewModelMapper>();
+builder.Services.AddScoped<IMangaReaderLibToSimpleChapterInfoMapper, MangaReaderLibToSimpleChapterInfoMapper>();
+builder.Services.AddScoped<IMangaReaderLibToMangaInfoViewModelMapper, MangaReaderLibToMangaInfoViewModelMapper>();
+builder.Services.AddScoped<IMangaReaderLibToChapterInfoMapper, MangaReaderLibToChapterInfoMapper>();
+builder.Services.AddScoped<IMangaReaderLibToTagListResponseMapper, MangaReaderLibToTagListResponseMapper>();
+builder.Services.AddScoped<IMangaReaderLibToAtHomeServerResponseMapper, MangaReaderLibToAtHomeServerResponseMapper>();
+
+// Đăng ký các MangaReaderLib API Clients
+// IApiClient sẽ được inject với HttpClient "MangaReaderLibApiClient"
+builder.Services.AddScoped<IMangaReaderLibApiClient, MangaReaderLibApiClientService>(provider =>
+{
+    var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
+    var httpClient = httpClientFactory.CreateClient("MangaReaderLibApiClient");
+    
+    // Lấy ILogger cho client gốc từ MangaReaderLib
+    var innerClientLogger = provider.GetRequiredService<ILogger<MangaReaderLib.Services.Implementations.ApiClient>>();
+    
+    // Lấy ILogger cho service wrapper
+    var wrapperLoggerForApiClient = provider.GetRequiredService<ILogger<MangaReaderLibApiClientService>>();
+    
+    return new MangaReaderLibApiClientService(httpClient, innerClientLogger, wrapperLoggerForApiClient);
+});
+builder.Services.AddScoped<IMangaReaderLibAuthorClient, MangaReaderLibAuthorClientService>();
+builder.Services.AddScoped<IMangaReaderLibChapterClient, MangaReaderLibChapterClientService>();
+builder.Services.AddScoped<IMangaReaderLibChapterPageClient, MangaReaderLibChapterPageClientService>();
+builder.Services.AddScoped<IMangaReaderLibCoverApiService, MangaReaderLibCoverApiService>();
+builder.Services.AddScoped<IMangaReaderLibMangaClient, MangaReaderLibMangaClientService>();
+builder.Services.AddScoped<IMangaReaderLibTagClient, MangaReaderLibTagClientService>();
+builder.Services.AddScoped<IMangaReaderLibTagGroupClient, MangaReaderLibTagGroupClientService>();
+builder.Services.AddScoped<IMangaReaderLibTranslatedMangaClient, MangaReaderLibTranslatedMangaClientService>();
+
 // Đăng ký các service liên quan đến xác thực 
 builder.Services.AddScoped<IUserService, UserService>();
 
-// Đăng ký API Request Handler
+// Đăng ký API Request Handler (chung cho cả hai nguồn)
 builder.Services.AddScoped<IApiRequestHandler, ApiRequestHandler>();
 
-// Đăng ký các API Services mới thay thế cho MangaDexService
-builder.Services.AddScoped<IMangaApiService, MangaApiService>();
-builder.Services.AddScoped<IChapterApiService, ChapterApiService>();
-builder.Services.AddScoped<ICoverApiService, CoverApiService>();
-builder.Services.AddScoped<ITagApiService, TagApiService>();
-builder.Services.AddScoped<IApiStatusService, ApiStatusService>();
+// Thay đổi đăng ký MangaDex API Services: đăng ký chúng dưới dạng concrete class
+builder.Services.AddScoped<MangaReader.WebUI.Services.APIServices.Services.MangaApiService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.APIServices.Services.ChapterApiService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.APIServices.Services.CoverApiService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.APIServices.Services.TagApiService>();
+builder.Services.AddScoped<MangaReader.WebUI.Services.APIServices.Services.ApiStatusService>();
+
+// Đăng ký các Strategy (MỚI)
+// MangaDex Strategies
+builder.Services.AddScoped<MangaDexMangaSourceStrategy>();
+builder.Services.AddScoped<MangaDexChapterSourceStrategy>();
+builder.Services.AddScoped<MangaDexCoverSourceStrategy>();
+builder.Services.AddScoped<MangaDexTagSourceStrategy>();
+builder.Services.AddScoped<MangaDexApiStatusSourceStrategy>();
+
+// MangaReaderLib Strategies
+builder.Services.AddScoped<MangaReaderLibMangaSourceStrategy>();
+builder.Services.AddScoped<MangaReaderLibChapterSourceStrategy>();
+builder.Services.AddScoped<MangaReaderLibCoverSourceStrategy>();
+builder.Services.AddScoped<MangaReaderLibTagSourceStrategy>();
+builder.Services.AddScoped<MangaReaderLibApiStatusSourceStrategy>();
 
 // Đăng ký ViewRenderService
 builder.Services.AddScoped<MangaReader.WebUI.Services.UtilityServices.ViewRenderService>();
+
+// Đăng ký MangaSourceManagerService với tất cả các interface API chính
+builder.Services.AddScoped<IMangaApiService, MangaSourceManagerService>();
+builder.Services.AddScoped<IChapterApiService, MangaSourceManagerService>();
+builder.Services.AddScoped<ICoverApiService, MangaSourceManagerService>();
+builder.Services.AddScoped<ITagApiService, MangaSourceManagerService>();
+builder.Services.AddScoped<IApiStatusService, MangaSourceManagerService>();
 
 // Đăng ký các service mới tách từ MangaController
 builder.Services.AddScoped<MangaReader.WebUI.Services.UtilityServices.LocalizationService>();
@@ -124,9 +207,6 @@ builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.IReadingHist
 
 builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaPageService.MangaDetailsService>();
 builder.Services.AddScoped<MangaReader.WebUI.Services.MangaServices.MangaPageService.MangaSearchService>();
-
-// Đăng ký HttpContextAccessor để các service có thể truy cập HttpContext
-builder.Services.AddHttpContextAccessor();
 
 // Cấu hình Razor View Engine để sử dụng View Location Expander tùy chỉnh
 builder.Services.Configure<RazorViewEngineOptions>(options =>

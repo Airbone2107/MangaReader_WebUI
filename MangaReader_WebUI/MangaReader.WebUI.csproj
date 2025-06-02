@@ -28,5 +28,8 @@
   <ItemGroup>
     <Folder Include="Models\ViewModels\" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MangaReaderLib\MangaReaderLib.csproj" />
+  </ItemGroup>
 
 </Project>

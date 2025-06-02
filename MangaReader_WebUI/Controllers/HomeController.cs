@@ -6,6 +6,7 @@ using System.Dynamic;
 using System.Text.Json;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.APIServices.Services;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
 
 namespace MangaReader.WebUI.Controllers
 {
@@ -15,17 +16,20 @@ namespace MangaReader.WebUI.Controllers
         private readonly IMangaApiService _mangaApiService;
         private readonly ICoverApiService _coverApiService;
         private readonly ILogger<HomeController> _logger;
+        private readonly IMangaToMangaViewModelMapper _mangaViewModelMapper;
 
         public HomeController(
             IApiStatusService apiStatusService, 
             IMangaApiService mangaApiService,
             ICoverApiService coverApiService,
-            ILogger<HomeController> logger)
+            ILogger<HomeController> logger,
+            IMangaToMangaViewModelMapper mangaViewModelMapper)
         {
             _apiStatusService = apiStatusService;
             _mangaApiService = mangaApiService;
             _coverApiService = coverApiService;
             _logger = logger;
+            _mangaViewModelMapper = mangaViewModelMapper;
         }
 
         public async Task<IActionResult> Index()
@@ -74,44 +78,13 @@ namespace MangaReader.WebUI.Controllers
                     {
                         try
                         {
-                            string id = manga.Id.ToString();
-                            var attributes = manga.Attributes;
-                            
-                            if (attributes == null)
-                            {
-                                _logger.LogWarning($"Manga ID: {id} không có thuộc tính Attributes");
-                                continue;
-                            }
-                            
-                            // Lấy title từ Dictionary<string, string> Title
-                            string title = GetLocalizedTitle(JsonSerializer.Serialize(attributes.Title ?? new Dictionary<string, string>()));
-
-                            // *** LẤY COVER TỪ RELATIONSHIP ***
-                            string coverUrl = "/images/cover-placeholder.jpg"; // Mặc định
-                            // Truyền _logger vào hàm helper
-                            var coverFileName = CoverApiService.ExtractCoverFileNameFromRelationships(manga.Relationships, _logger);
-                            if (!string.IsNullOrEmpty(coverFileName))
-                            {
-                                // Sử dụng instance _coverApiService để gọi GetProxiedCoverUrl
-                                coverUrl = _coverApiService.GetProxiedCoverUrl(id, coverFileName);
-                            }
-                            else
-                            {
-                                _logger.LogDebug($"Không tìm thấy cover filename cho manga ID {id} từ relationships trong HomeController.");
-                            }
-                            // ********************************
-
-                            viewModels.Add(new MangaViewModel
-                            {
-                                Id = id,
-                                Title = title,
-                                CoverUrl = coverUrl
-                            });
+                            // Sử dụng mapper để chuyển đổi
+                            var viewModel = await _mangaViewModelMapper.MapToMangaViewModelAsync(manga);
+                            viewModels.Add(viewModel);
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, $"Lỗi khi xử lý manga ID: {manga?.Id} trên trang chủ.");
-                            // Ghi log nhưng vẫn tiếp tục với manga tiếp theo
+                            _logger.LogError(ex, $"Lỗi khi map manga ID: {manga?.Id} trên trang chủ.");
                         }
                     }
 
@@ -276,43 +249,11 @@ namespace MangaReader.WebUI.Controllers
                 {
                     try
                     {
-                        string id = manga.Id.ToString();
-                        var attributes = manga.Attributes;
-                        
-                        if (attributes == null)
-                        {
-                            _logger.LogWarning($"Manga ID: {id} không có thuộc tính Attributes");
-                            continue;
-                        }
-                        
-                        // Lấy title từ Dictionary<string, string> Title
-                        string title = GetLocalizedTitle(JsonSerializer.Serialize(attributes.Title ?? new Dictionary<string, string>()));
-
-                        // *** LẤY COVER TỪ RELATIONSHIP ***
-                        string coverUrl = "/images/cover-placeholder.jpg";
-                        // Truyền _logger vào hàm helper
-                        var coverFileName = CoverApiService.ExtractCoverFileNameFromRelationships(manga.Relationships, _logger);
-                        if (!string.IsNullOrEmpty(coverFileName))
-                        {
-                            // Sử dụng instance _coverApiService để gọi GetProxiedCoverUrl
-                            coverUrl = _coverApiService.GetProxiedCoverUrl(id, coverFileName);
-                        }
-                        else
-                        {
-                            _logger.LogDebug($"Không tìm thấy cover filename cho manga ID {id} từ relationships trong GetLatestMangaPartial.");
-                        }
-                        // ********************************
-
-                        viewModels.Add(new MangaViewModel
-                        {
-                            Id = id,
-                            Title = title,
-                            CoverUrl = coverUrl
-                        });
+                        viewModels.Add(await _mangaViewModelMapper.MapToMangaViewModelAsync(manga));
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, $"Lỗi khi xử lý manga ID: {manga?.Id} trong partial.");
+                        _logger.LogError(ex, $"Lỗi khi map manga ID: {manga?.Id} trong partial.");
                     }
                 }
                 

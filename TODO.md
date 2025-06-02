@@ -1,252 +1,273 @@
-# TODO: Khắc phục lỗi tải ảnh bìa Manga
+Để điều chỉnh bộ lọc mặc định cho `contentRating` dựa trên nguồn truyện và trang hiện tại, chúng ta cần thực hiện các thay đổi ở cả phía backend (Controller và Service của WebUI) và frontend (JavaScript).
 
-Việc hiển thị ảnh bìa cho danh sách Manga đang gặp vấn đề do hiểu sai trường `id` trong `relationships` của API. Trường `id` cho `cover_art` là GUID của bản ghi `CoverArt`, không phải `publicId` trực tiếp trên Cloudinary. Cần thực hiện thêm một request `GET /CoverArts/{id}` để lấy `publicId` thực sự.
+Dưới đây là các bước chi tiết:
 
-## 1. Cập nhật cấu trúc dữ liệu Manga ở Frontend
+**Bước 1: Cập nhật Model `SortManga`**
 
-**File:** `MangaReader_ManagerUI\mangareader_managerui.client\src\types\manga.ts`
+Gỡ bỏ giá trị mặc định của `ContentRating` trong constructor để việc quyết định giá trị mặc định được thực hiện ở tầng Controller/Service.
 
-Chúng ta sẽ thêm một trường `coverArtPublicId` kiểu `string` vào interface `Manga` để lưu trữ `publicId` của ảnh bìa sau khi được fetch.
+```csharp
+// MangaReader_WebUI\Models\MangaDexModels.cs
+// ...
+    public class SortManga
+    {
+        // ...
+        public List<string> ContentRating { get; set; } = new List<string>(); // Khởi tạo rỗng
+        // ...
 
-```typescript
-// MangaReader_ManagerUI\mangareader_managerui.client\src\types\manga.ts
-// ... (các import và interface khác)
-
-export interface Manga {
-  id: string
-  type: 'manga'
-  attributes: MangaAttributes
-  relationships?: RelationshipObject[]
-  // Thêm trường mới để lưu trữ publicId của ảnh bìa sau khi được xử lý ở frontend
-  coverArtPublicId?: string // <-- DÒNG NÀY ĐÃ ĐƯỢC THÊM
-}
-
-// ... (các interface Request DTOs và SelectedRelationship khác)
-```
-
-## 2. Sửa đổi logic fetch Manga trong `useMangaStore.js`
-
-**File:** `MangaReader_ManagerUI\mangareader_managerui.client\src\stores\mangaStore.js`
-
-Logic fetch manga cần được điều chỉnh để sau khi nhận được danh sách manga từ `mangaApi.getMangas()`, chúng ta sẽ duyệt qua từng manga. Nếu có mối quan hệ `cover_art`, chúng ta sẽ thực hiện một request riêng biệt đến `coverArtApi.getCoverArtById(CoverArtId)` để lấy `publicId` và cập nhật vào đối tượng `manga` trong state.
-
-```javascript
-// MangaReader_ManagerUI\mangareader_managerui.client\src\stores\mangaStore.js
-import { create } from 'zustand'
-import { persistStore } from '../utils/zustandPersist'
-import mangaApi from '../api/mangaApi'
-import coverArtApi from '../api/coverArtApi' // <-- IMPORT THÊM DÒNG NÀY
-import { showSuccessToast } from '../components/common/Notification'
-import { DEFAULT_PAGE_LIMIT, RELATIONSHIP_TYPES } from '../constants/appConstants' // <-- IMPORT THÊM RELATIONSHIP_TYPES
-
-/**
- * @typedef {import('../types/manga').Manga} Manga
- * @typedef {import('../types/api').ApiCollectionResponse<Manga>} MangaCollectionResponse
- */
-
-const useMangaStore = create(persistStore((set, get) => ({
-  /** @type {Manga[]} */
-  mangas: [],
-  totalMangas: 0,
-  page: 0,
-  rowsPerPage: DEFAULT_PAGE_LIMIT,
-  filters: {
-    titleFilter: '',
-    statusFilter: '',
-    contentRatingFilter: '',
-    demographicFilter: '',
-    originalLanguageFilter: '',
-    yearFilter: null,
-    tagIdsFilter: [],
-    authorIdsFilter: [],
-  },
-  sort: {
-    orderBy: 'updatedAt',
-    ascending: false, // Default to descending for updatedAt
-  },
-
-  /**
-   * Fetch mangas from API.
-   * @param {boolean} [resetPagination=false] - Whether to reset page and offset.
-   */
-  fetchMangas: async (resetPagination = false) => {
-    const { page, rowsPerPage, filters, sort } = get()
-    const offset = resetPagination ? 0 : page * rowsPerPage
-
-    const queryParams = {
-      offset: offset,
-      limit: rowsPerPage,
-      titleFilter: filters.titleFilter || undefined,
-      statusFilter: filters.statusFilter || undefined,
-      contentRatingFilter: filters.contentRatingFilter || undefined,
-      demographicFilter: filters.demographicFilter || undefined,
-      originalLanguageFilter: filters.originalLanguageFilter || undefined,
-      yearFilter: filters.yearFilter || undefined,
-      orderBy: sort.orderBy,
-      ascending: sort.ascending,
+        public SortManga()
+        {
+            // Giá trị mặc định
+            Title = "";
+            Status = new List<string>();
+            Safety = "";
+            Demographic = new List<string>();
+            SortBy = "latest";
+            IncludedTags = new List<string>();
+            ExcludedTags = new List<string>();
+            Languages = new List<string>();
+            Genres = new List<string>();
+            // ContentRating = new List<string>() { "safe", "suggestive", "erotica"}; // Gỡ bỏ dòng này
+            Authors = new List<string>();
+            Artists = new List<string>();
+            OriginalLanguage = new List<string>();
+            ExcludedOriginalLanguage = new List<string>();
+        }
+        // ...
     }
-
-    // Handle array filters explicitly for Axios (Axios params will stringify arrays correctly)
-    if (filters.tagIdsFilter && filters.tagIdsFilter.length > 0) {
-      queryParams['tagIdsFilter[]'] = filters.tagIdsFilter;
-    }
-    if (filters.authorIdsFilter && filters.authorIdsFilter.length > 0) {
-      queryParams['authorIdsFilter[]'] = filters.authorIdsFilter;
-    }
-
-    try {
-      /** @type {MangaCollectionResponse} */
-      const response = await mangaApi.getMangas(queryParams)
-      
-      // Bắt đầu logic mới để fetch publicId cho ảnh bìa
-      const mangasWithCovers = await Promise.all(
-        response.data.map(async (manga) => {
-          const coverArtRelationship = manga.relationships?.find(
-            (rel) => rel.type === RELATIONSHIP_TYPES.COVER_ART
-          )
-
-          if (coverArtRelationship) {
-            try {
-              // Lấy CoverArtId từ mối quan hệ
-              const coverArtId = coverArtRelationship.id
-              // Thực hiện request GET /CoverArts/{id} để lấy đối tượng CoverArt đầy đủ
-              const coverArtResponse = await coverArtApi.getCoverArtById(coverArtId)
-              // Trích xuất publicId và thêm vào đối tượng manga
-              if (coverArtResponse && coverArtResponse.data?.attributes?.publicId) {
-                return { ...manga, coverArtPublicId: coverArtResponse.data.attributes.publicId }
-              }
-            } catch (coverError) {
-              console.warn(
-                `Failed to fetch cover art publicId for manga ${manga.id}. CoverArtId: ${coverArtRelationship.id}`,
-                coverError
-              )
-              // Nếu có lỗi khi lấy publicId, vẫn trả về manga gốc nhưng không có coverArtPublicId
-              return manga 
-            }
-          }
-          return manga // Trả về manga gốc nếu không có mối quan hệ cover_art hoặc có lỗi
-        })
-      )
-      // Kết thúc logic mới
-
-      set({
-        mangas: mangasWithCovers, // Cập nhật state với danh sách manga đã có publicId
-        totalMangas: response.total,
-        page: resetPagination ? 0 : response.offset / response.limit,
-      })
-    } catch (error) {
-      console.error('Failed to fetch mangas:', error)
-      set({ mangas: [], totalMangas: 0 }) // Clear data on error
-    }
-  },
-
-  // ... (các hàm setPage, setRowsPerPage, setSort, setFilter, applyFilters, resetFilters, deleteManga giữ nguyên)
-})) // Tên duy nhất cho persistence
-
-export default useMangaStore
-```
-
-**Lưu ý về `RELATIONSHIP_TYPES`**: Tôi đã thêm `RELATIONSHIP_TYPES` vào `constants/appConstants.js` để tránh các chuỗi cố định ('magic strings') trong code. Hãy đảm bảo bạn có `RELATIONSHIP_TYPES` trong file đó:
-
-```javascript
-// MangaReader_ManagerUI\mangareader_managerui.client\src\constants\appConstants.js
-export const MANGA_STATUS_OPTIONS = [
-  // ...
-]
-
-// Các loại mối quan hệ (type) trong API Response
-export const RELATIONSHIP_TYPES = {
-  AUTHOR: 'author',
-  ARTIST: 'artist',
-  TAG: 'tag',
-  TAG_GROUP: 'tag_group',
-  COVER_ART: 'cover_art', // <-- Đảm bảo dòng này có
-  MANGA: 'manga',
-  USER: 'user',
-  CHAPTER: 'chapter',
-  CHAPTER_PAGE: 'chapter_page',
-  TRANSLATED_MANGA: 'translated_manga',
-}
-
-// Other constants
 // ...
 ```
 
-## 3. Điều chỉnh hiển thị ảnh bìa trong `MangaTable.jsx`
+**Bước 2: Điều chỉnh `HomeController` cho trang chủ**
 
-**File:** `MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaTable.jsx`
+Khi lấy truyện mới nhất cho trang chủ, chúng ta sẽ áp dụng logic sau:
+*   Nếu nguồn là `MangaDex`, `ContentRating` = `{"safe"}`.
+*   Nếu nguồn là `MangaReaderLib`, `ContentRating` sẽ là danh sách rỗng (không lọc).
 
-Thay đổi cách truy cập `publicId` để sử dụng trường `coverArtPublicId` mới đã được xử lý trong store.
+```csharp
+// MangaReader_WebUI\Controllers\HomeController.cs
+// ...
+using MangaReader.WebUI.Enums; // Thêm using này
 
-```javascript
-// MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaTable.jsx
-// ... (các import khác)
-
-import { CLOUDINARY_BASE_URL, MANGA_STATUS_OPTIONS, CONTENT_RATING_OPTIONS, PUBLICATION_DEMOGRAPHIC_OPTIONS } from '../../../constants/appConstants'
-
-/**
- * @typedef {import('../../../types/manga').Manga} Manga
- */
-
-// ... (các props và state khác)
-
-  const columns = [
+namespace MangaReader.WebUI.Controllers
+{
+    public class HomeController : Controller
     {
-      id: 'title',
-      label: 'Tiêu đề',
-      minWidth: 180,
-      sortable: true,
-      format: (value, row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {row.coverArtPublicId ? ( // <-- THAY ĐỔI TẠI ĐÂY
-            <img
-              src={`${CLOUDINARY_BASE_URL}w_40,h_60,c_fill/${row.coverArtPublicId}`} // <-- THAY ĐỔI TẠI ĐÂY
-              alt="Cover"
-              style={{ width: 40, height: 60, objectFit: 'cover', borderRadius: 4 }}
-            />
-          ) : ( // Thêm placeholder nếu không có ảnh bìa
-            <img
-              src="https://via.placeholder.com/40x60?text=No+Cover"
-              alt="No Cover"
-              style={{ width: 40, height: 60, objectFit: 'cover', borderRadius: 4, border: '1px solid #ddd' }}
-            />
-          )}
-          <span>{value}</span>
-        </Box>
-      )
-    },
-    // ... (các cột khác giữ nguyên)
-  ]
+        // ... (giữ nguyên các dependencies và constructor)
 
-  // Format data for DataTableMUI
-  const formatMangaDataForTable = (mangasData) => {
-    if (!mangasData) return [];
-    return mangasData.map(manga => {
-      // Logic để thêm `coverArtPublicId` đã được chuyển vào useMangaStore.js,
-      // nên ở đây chỉ cần đảm bảo nó được truyền qua `row`.
-      return {
-        ...manga.attributes,
-        id: manga.id, 
-        relationships: manga.relationships, // Vẫn giữ relationships nếu các cột khác cần
-        coverArtPublicId: manga.coverArtPublicId, // <-- ĐẢM BẢO TRƯỜNG NÀY ĐƯỢC CHUYỂN QUA TỪ STORE
-      };
-    });
-  };
+        public async Task<IActionResult> Index()
+        {
+            try
+            {
+                ViewData["PageType"] = "home";
+                bool isConnected = await _apiStatusService.TestConnectionAsync();
+                ViewBag.IsConnected = isConnected;
 
-  // ... (phần render giữ nguyên)
+                if (!isConnected)
+                {
+                    _logger.LogWarning("Không thể kết nối đến API");
+                    ViewBag.ErrorMessage = "Không thể kết nối đến API. Vui lòng thử lại sau.";
+                    return View("Index", new List<MangaViewModel>());
+                }
+                
+                var sortOptions = new SortManga
+                {
+                    SortBy = "Mới cập nhật",
+                    Languages = new List<string> { "vi", "en" }
+                };
+
+                // Lấy nguồn truyện hiện tại từ cookie
+                var currentSource = HttpContext.Request.Cookies.TryGetValue("MangaSource", out var sourceString) &&
+                                    Enum.TryParse(sourceString, true, out MangaSource sourceEnum)
+                                    ? sourceEnum
+                                    : MangaSource.MangaDex; // Mặc định là MangaDex
+
+                _logger.LogInformation("Trang chủ: Nguồn truyện hiện tại là {MangaSource}", currentSource);
+
+                if (currentSource == MangaSource.MangaDex)
+                {
+                    sortOptions.ContentRating = new List<string> { "safe" };
+                    _logger.LogInformation("Trang chủ (MangaDex): Áp dụng ContentRating = 'safe'");
+                }
+                else // MangaSource.MangaReaderLib
+                {
+                    sortOptions.ContentRating = new List<string>(); // Không áp dụng filter content rating
+                    _logger.LogInformation("Trang chủ (MangaReaderLib): Không áp dụng ContentRating filter");
+                }
+                
+                var recentMangaResponse = await _mangaApiService.FetchMangaAsync(10, 0, sortOptions);
+
+                if (recentMangaResponse?.Data == null || !recentMangaResponse.Data.Any())
+                {
+                    _logger.LogWarning("API đã kết nối nhưng không trả về dữ liệu manga cho trang chủ");
+                    ViewBag.ErrorMessage = "Không có dữ liệu manga. Vui lòng thử lại sau.";
+                    return View("Index", new List<MangaViewModel>());
+                }
+
+                var viewModels = new List<MangaViewModel>();
+                foreach (var manga in recentMangaResponse.Data)
+                {
+                    try
+                    {
+                        var viewModel = await _mangaViewModelMapper.MapToMangaViewModelAsync(manga);
+                        viewModels.Add(viewModel);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Lỗi khi map manga ID: {manga?.Id} trên trang chủ.");
+                    }
+                }
+
+                if (viewModels.Count == 0)
+                {
+                    ViewBag.ErrorMessage = "Không thể hiển thị dữ liệu manga. Định dạng dữ liệu không hợp lệ.";
+                }
+
+                if (Request.Headers.ContainsKey("HX-Request"))
+                {
+                    return PartialView("Index", viewModels);
+                }
+                return View("Index", viewModels);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tải trang chủ");
+                ViewBag.ErrorMessage = $"Không thể tải danh sách manga: {ex.Message}";
+                ViewBag.StackTrace = ex.StackTrace;
+                return View("Index", new List<MangaViewModel>());
+            }
+        }
+
+        // ... (các actions khác giữ nguyên)
+    }
+}
 ```
 
-## Các bước triển khai:
+**Bước 3: Điều chỉnh `MangaSearchService` cho trang tìm kiếm**
 
-1.  **Cập nhật `src/types/manga.ts`**: Thêm `coverArtPublicId?: string;` vào interface `Manga`.
-2.  **Cập nhật `src/constants/appConstants.js`**: Đảm bảo `RELATIONSHIP_TYPES.COVER_ART` đã được định nghĩa.
-3.  **Cập nhật `src/stores/mangaStore.js`**:
-    *   Import `coverArtApi`.
-    *   Thêm logic `Promise.all` và duyệt qua `response.data` để gọi `coverArtApi.getCoverArtById` cho mỗi manga có mối quan hệ `cover_art`.
-    *   Cập nhật đối tượng manga với `coverArtPublicId` trước khi `set` state `mangas`.
-4.  **Cập nhật `src/features/manga/components/MangaTable.jsx`**:
-    *   Thay đổi phần `format` của cột `title` để sử dụng `row.coverArtPublicId` thay vì tìm kiếm trong `relationships`.
-    *   Thêm xử lý placeholder nếu không có ảnh bìa (`coverArtPublicId` là null/undefined).
-    *   Trong hàm `formatMangaDataForTable`, đảm bảo `manga.coverArtPublicId` được truyền vào đối tượng trả về cho `DataTableMUI`.
+Trang tìm kiếm sẽ luôn mặc định là "safe" cho cả hai nguồn nếu người dùng không chọn gì.
 
-Sau khi hoàn thành các bước này, ảnh bìa cho danh sách manga sẽ được tải chính xác theo luồng API đã mô tả.
+```csharp
+// MangaReader_WebUI\Services\MangaServices\MangaPageService\MangaSearchService.cs
+// ...
+        public SortManga CreateSortMangaFromParameters(
+            string title = "", 
+            List<string> status = null, 
+            string sortBy = "latest", // Mặc định là "latest" ở đây
+            string authors = "",
+            string artists = "",
+            int? year = null,
+            List<string> availableTranslatedLanguage = null,
+            List<string> publicationDemographic = null,
+            List<string> contentRating = null, // Nhận contentRating từ controller
+            string includedTagsMode = "AND",
+            string excludedTagsMode = "OR",
+            List<string> genres = null,
+            string includedTagsStr = "",
+            string excludedTagsStr = "")
+        {
+            var sortManga = new SortManga
+            {
+                Title = title,
+                Status = status ?? new List<string>(),
+                SortBy = sortBy ?? "latest",
+                Year = year,
+                Demographic = publicationDemographic ?? new List<string>(),
+                IncludedTagsMode = includedTagsMode ?? "AND",
+                ExcludedTagsMode = excludedTagsMode ?? "OR",
+                Genres = genres
+            };
+
+            // ... (xử lý authors, artists, languages giữ nguyên)
+
+            // Xử lý danh sách đánh giá nội dung
+            if (contentRating != null && contentRating.Any())
+            {
+                sortManga.ContentRating = contentRating;
+                _logger.LogInformation($"Tìm kiếm với mức độ nội dung người dùng chọn: {string.Join(", ", sortManga.ContentRating)}");
+            }
+            else
+            {
+                // Mặc định của trang Search: chỉ "safe" cho cả hai nguồn
+                sortManga.ContentRating = new List<string> { "safe" };
+                _logger.LogInformation($"Tìm kiếm với mức độ nội dung mặc định (Search Page): safe");
+            }
+            
+            // ... (xử lý includedTags, excludedTags giữ nguyên)
+
+            return sortManga;
+        }
+// ...
+```
+
+**Bước 4: Cập nhật `MangaApiService` (cho MangaDex) để không tự thêm `contentRating`**
+
+`MangaApiService` không nên tự thêm `contentRating` mặc định nữa, vì việc này đã được xử lý ở `HomeController` hoặc `MangaSearchService`.
+
+```csharp
+// MangaReader_WebUI\Services\APIServices\Services\MangaApiService.cs
+// ...
+        public async Task<MangaList?> FetchMangaAsync(int? limit = null, int? offset = null, SortManga? sortManga = null)
+        {
+            // ... (logging giữ nguyên)
+            var queryParams = new Dictionary<string, List<string>>();
+
+            if (limit.HasValue) AddOrUpdateParam(queryParams, "limit", limit.Value.ToString());
+            if (offset.HasValue) AddOrUpdateParam(queryParams, "offset", offset.Value.ToString());
+
+            if (sortManga != null)
+            {
+                var sortParams = sortManga.ToParams();
+                foreach (var param in sortParams)
+                {
+                    if (param.Key.EndsWith("[]") && param.Value is IEnumerable<string> values)
+                    {
+                        // Sửa chỗ này để AddOrUpdateParam nhận List<string>
+                        if (!queryParams.ContainsKey(param.Key))
+                        {
+                            queryParams[param.Key] = new List<string>();
+                        }
+                        foreach(var val in values)
+                        {
+                             if (!string.IsNullOrEmpty(val)) queryParams[param.Key].Add(val);
+                        }
+                    }
+                    else if (param.Key.StartsWith("order["))
+                    {
+                        AddOrUpdateParam(queryParams, param.Key, param.Value?.ToString() ?? string.Empty);
+                    }
+                    else if (param.Value != null && !string.IsNullOrEmpty(param.Value.ToString()))
+                    {
+                        AddOrUpdateParam(queryParams, param.Key, param.Value.ToString()!);
+                    }
+                }
+                 // Chỉ thêm contentRating[] nếu nó được cung cấp trong sortManga
+                if (sortManga.ContentRating != null && sortManga.ContentRating.Any())
+                {
+                    if (!queryParams.ContainsKey("contentRating[]"))
+                    {
+                        queryParams["contentRating[]"] = new List<string>();
+                    }
+                    queryParams["contentRating[]"].AddRange(sortManga.ContentRating);
+                }
+            }
+            else // Nếu không có sortManga (ví dụ: gọi từ nơi khác không có filter UI)
+            {
+                // Chỉ thêm order mặc định, không thêm contentRating
+                 AddOrUpdateParam(queryParams, "order[latestUploadedChapter]", "desc");
+            }
+
+            // Luôn bao gồm các relationship cần thiết
+            AddOrUpdateParam(queryParams, "includes[]", "cover_art");
+            AddOrUpdateParam(queryParams, "includes[]", "author");
+            AddOrUpdateParam(queryParams, "includes[]", "artist");
+
+            var url = BuildUrlWithParams("manga", queryParams);
+            // ... (phần còn lại của hàm giữ nguyên)
+            var mangaList = await GetApiAsync<MangaList>(url);
+            // ...
+            return mangaList;
+        }
+// ...
+```
+Lưu ý: Hàm `AddOrUpdateParam` trong `BaseApiService` cần được điều chỉnh để có thể nhận `List<string>` cho `value` hoặc bạn cần lặp qua `sortManga.ContentRating` và gọi `AddOrUpdateParam` cho từng item nếu `param.Key` là `contentRating[]`. Cách đơn giản hơn là xử lý trực tiếp trong `MangaApiService` như trên.

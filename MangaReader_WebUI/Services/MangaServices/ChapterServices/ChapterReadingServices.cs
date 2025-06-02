@@ -47,18 +47,28 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
             {
                 _logger.LogInformation($"Đang tải chapter {chapterId}");
 
-                // 1. Tải thông tin server ảnh và tên file ảnh
                 var atHomeResponse = await _chapterApiService.FetchChapterPagesAsync(chapterId);
-                if (atHomeResponse == null || string.IsNullOrEmpty(atHomeResponse.BaseUrl) || atHomeResponse.Chapter?.Data == null)
+                if (atHomeResponse?.Result != "ok" || atHomeResponse.Chapter?.Data == null || !atHomeResponse.Chapter.Data.Any())
                 {
-                    _logger.LogError($"Không thể lấy thông tin trang ảnh cho chapter {chapterId}");
-                    throw new Exception("Không thể tải trang ảnh cho chapter này.");
+                    _logger.LogError($"Không thể lấy thông tin trang ảnh cho chapter {chapterId}. Result: {atHomeResponse?.Result}");
+                    throw new Exception("Không thể tải trang ảnh cho chương này.");
                 }
 
-                // 2. Mapping: Tạo danh sách URL ảnh đầy đủ qua proxy
-                var pages = atHomeResponse.Chapter.Data
-                    .Select(pageFile => $"{_backendBaseUrl}/mangadex/proxy-image?url={Uri.EscapeDataString($"{atHomeResponse.BaseUrl}/data/{atHomeResponse.Chapter.Hash}/{pageFile}")}")
-                    .ToList();
+                List<string> pages;
+                // Kiểm tra xem BaseUrl có giá trị không. Nếu không, Data đã chứa URL đầy đủ.
+                if (string.IsNullOrEmpty(atHomeResponse.BaseUrl))
+                {
+                    pages = atHomeResponse.Chapter.Data;
+                    _logger.LogInformation("MangaReaderLib source: Using direct image URLs from AtHomeChapterData.Data");
+                }
+                else // Nguồn MangaDex, cần xây dựng URL qua proxy
+                {
+                    pages = atHomeResponse.Chapter.Data
+                        .Select(pageFile => $"{_backendBaseUrl}/mangadex/proxy-image?url={Uri.EscapeDataString($"{atHomeResponse.BaseUrl}/data/{atHomeResponse.Chapter.Hash}/{pageFile}")}")
+                        .ToList();
+                    _logger.LogInformation("MangaDex source: Constructed proxied image URLs.");
+                }
+                
                 _logger.LogInformation($"Đã tạo {pages.Count} URL ảnh cho chapter {chapterId}");
 
                 // 3. Lấy mangaId

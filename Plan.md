@@ -1,194 +1,123 @@
-// Plan.md
-# Kế Hoạch Triển Khai Project MangaReader_ManagerUI
+### **II. Định nghĩa Enum cho Nguồn Truyện**
 
-## 1. Mục Tiêu Dự Án
+1.  **Tạo Enum `MangaSourceType.cs`:**
+    Tạo một thư mục mới `Enums` trong `MangaReader.WebUI` và định nghĩa một enum mới để liệt kê các loại nguồn truyện mà ứng dụng sẽ hỗ trợ. Các giá trị ví dụ bao gồm `MangaDex` và `MangaReaderLib`.
+    *   **Vị trí:** `MangaReader.WebUI\Enums\MangaSourceType.cs`
+    *   **Mục đích:** Cung cấp một cách rõ ràng để phân biệt giữa các nguồn dữ liệu khác nhau.
 
-Xây dựng một ứng dụng Frontend (React App) tên là `MangaReader_ManagerUI` để quản lý danh sách manga, bao gồm các thông tin liên quan như tác giả, thể loại, chương truyện, ảnh bìa, và bản dịch. Project này sẽ tương tác với `MangaReaderAPI` thông qua project `.NET Class Library` tên là `MangaReaderLib`.
+### **III. Tạo các Mapper Chuyển đổi từ DTO của MangaReaderLib sang ViewModel của WebUI**
 
-## 2. Các Bước Thực Hiện Tổng Quát
+1.  **Tạo thư mục mới cho các Mapper của MangaReaderLib:**
+    Tạo một thư mục mới `MangaReaderLibMappers` trong `MangaReader.WebUI\Services\MangaServices\DataProcessing\Services`. Tương tự, tạo thư mục `MangaReaderLibMappers` trong `MangaReader.WebUI\Services\MangaServices\DataProcessing\Interfaces`.
+    *   **Mục đích:** Tổ chức các mapper mới một cách rõ ràng, tách biệt với các mapper của MangaDex.
 
-### Bước 1: Thiết Lập Môi Trường và Project Frontend (MangaReader_ManagerUI.Client)
+2.  **Tạo các Interface Mapper cho MangaReaderLib:**
+    Trong thư mục `MangaReader.WebUI\Services\MangaServices\DataProcessing\Interfaces\MangaReaderLibMappers`, định nghĩa các interface tương ứng với mỗi cặp ánh xạ. Các interface này sẽ bao gồm:
+    *   `IMangaReaderLibToMangaViewModelMapper`
+    *   `IMangaReaderLibToMangaDetailViewModelMapper`
+    *   `IMangaReaderLibToChapterViewModelMapper`
+    *   `IMangaReaderLibToSimpleChapterInfoMapper`
+    *   `IMangaReaderLibToMangaInfoViewModelMapper`
+    *   `IMangaReaderLibToChapterInfoMapper`
+    *   `IMangaReaderLibToTagListResponseMapper`
+    *   `IMangaReaderLibToAtHomeServerResponseMapper`
+    *   **Mục đích:** Đảm bảo tính trừu tượng và dễ dàng kiểm thử cho các mapper mới.
 
-1.  **Tạo Project React App:**
-    *   Trong Visual Studio, tạo một project mới sử dụng template "ASP.NET Core with React.js".
-    *   Đặt tên project là `MangaReader_ManagerUI`. Điều này sẽ tạo ra `MangaReader_ManagerUI.Server` (ASP.NET Core) và `mangareader_managerui.client` (React).
-    *   Đặt project này song song với `MangaReader_WebUI` trong solution `MangaReaderFrontEnd`.
+3.  **Triển khai các Mapper cho MangaReaderLib:**
+    Trong thư mục `MangaReader.WebUI\Services\MangaServices\DataProcessing\Services\MangaReaderLibMappers`, triển khai các lớp ánh xạ cụ thể từ DTO của MangaReaderLib (ví dụ: `MangaAttributesDto`, `ChapterAttributesDto`, `TagAttributesDto` từ thư viện `MangaReaderLib`) sang các ViewModel/Models hiện có của WebUI (ví dụ: `MangaViewModel`, `ChapterViewModel`, `TagListResponse`).
+    *   **Mục đích:** Cung cấp các công cụ ánh xạ chuyên biệt và hiệu quả cho dữ liệu từ MangaReaderLib, ánh xạ trực tiếp từ DTO của MangaReaderLib sang ViewModel của WebUI.
+    *   **Lưu ý quan trọng:** Các mapper này sẽ cần inject các Client của MangaReaderLib (ví dụ: `IAuthorClient`, `ICoverArtClient`, `IChapterClient`) và các service dùng chung (ví dụ: `ILogger`, `LocalizationService`) để lấy thông tin liên quan hoặc xử lý dữ liệu trong quá trình ánh xạ. Ví dụ, để ánh xạ `MangaAttributesDto` sang `MangaViewModel`, mapper cần gọi `IAuthorClient` để lấy tên tác giả/họa sĩ và `ICoverArtClient` để tạo URL ảnh bìa, do các thông tin này chỉ tồn tại dưới dạng ID trong DTO của MangaReaderLib chứ không phải đối tượng lồng ghép. Tương tự, mapper cho Chapter Pages sẽ cần xây dựng URL đầy đủ dựa trên `publicId` và base URL của MangaReaderLib API.
 
-2.  **Cài đặt thư viện cần thiết cho `mangareader_managerui.client`:**
-    *   **Axios:** Để thực hiện các request HTTP đến `MangaReader_ManagerUI.Server`.
-        ```bash
-        npm install axios
-        ```
-    *   **React Router DOM:** Cho việc điều hướng trang.
-        ```bash
-        npm install react-router-dom
-        ```
-    *   **Zustand:** State management library.
-        ```bash
-        npm install zustand
-        ```
-    *   **Material UI (MUI):** Thư viện UI.
-        ```bash
-        npm install @mui/material @emotion/react @emotion/styled @mui/icons-material
-        ```
-    *   **React Hook Form & Zod:** Cho quản lý form và validation.
-        ```bash
-        npm install react-hook-form zod @hookform/resolvers
-        ```
-    *   **React Toastify:** Để hiển thị thông báo (toast).
-        ```bash
-        npm install react-toastify
-        ```
-    *   **Date-fns:** Thư viện tiện ích cho ngày tháng.
-        ```bash
-        npm install date-fns
-        ```
-    *   **Sass:** Để sử dụng SCSS cho styling.
-        ```bash
-        npm install sass --save-dev
-        ```
+### **IV. Cấu hình các Client API cho MangaReaderLib**
 
-3.  **Cấu trúc thư mục ban đầu cho `mangareader_managerui.client` (sử dụng SCSS):**
-    *   `public/`: Các file tĩnh public.
-    *   `src/`:
-        *   `api/`: Chứa các module gọi API (sử dụng Axios).
-            *   `apiClient.js`: Cấu hình instance Axios.
-            *   Các file service cho từng resource (ví dụ: `mangaApi.js`, `authorApi.js`).
-        *   `assets/`: Hình ảnh, fonts, etc.
-            *   `scss/`: Thư mục chứa các file SCSS.
-                *   `base/`: SCSS cho các element HTML cơ bản, typography, resets.
-                    *   `_reset.scss`
-                    *   `_typography.scss`
-                *   `components/`: SCSS cho các UI components tái sử dụng (Button, Modal, Table).
-                    *   `_buttons.scss`
-                    *   `_tables.scss`
-                *   `layout/`: SCSS cho các phần layout (Sidebar, Navbar, Grid).
-                    *   `_sidebar.scss`
-                    *   `_navbar.scss`
-                *   `pages/`: SCSS đặc thù cho từng trang hoặc feature.
-                    *   `_login.scss`
-                    *   `_mangaList.scss`
-                *   `themes/`: (Tùy chọn) SCSS cho theme (ví dụ: dark mode, light mode).
-                    *   `_default.scss`
-                *   `utils/`: SCSS chứa mixins, functions, variables.
-                    *   `_variables.scss`
-                    *   `_mixins.scss`
-                    *   `_functions.scss`
-                *   `main.scss`: File SCSS chính, import tất cả các partials khác.
-        *   `components/`: UI components tái sử dụng.
-            *   `common/`: Components chung (Button, Modal, TableWrapper - có thể dùng MUI).
-            *   `layout/`: Components layout (Sidebar, Navbar - sử dụng MUI).
-        *   `constants/`: Hằng số ứng dụng.
-        *   `features/`: Nhóm code theo chức năng lớn (ví dụ: auth, manga, chapter).
-            *   Mỗi feature có thể có `components/`, `pages/`, `storeNameStore.js` (Zustand store).
-            *   Form trong features sẽ dùng React Hook Form và Zod.
-        *   `hooks/`: Custom React Hooks.
-        *   `router/`: Cấu hình React Router DOM.
-            *   `AppRoutes.jsx`
-            *   `ProtectedRoute.jsx` (nếu cần).
-        *   `schemas/`: Chứa các Zod schema cho validation.
-        *   `stores/`: Chứa các Zustand stores.
-            *   `authStore.js`
-            *   `mangaStore.js`
-            *   `uiStore.js` (cho UI state như loading, modals).
-        *   `types/` (Nếu dùng TypeScript): Định nghĩa types/interfaces.
-        *   `utils/`: Các hàm tiện ích (ví dụ: `dateUtils.js` sử dụng `date-fns`).
-        *   `App.jsx`: Component gốc, chứa RouterProvider, ThemeProvider (MUI), ToastContainer (React Toastify). Import `main.scss` ở đây.
-        *   `main.jsx`: Điểm vào của React app.
+1.  **Cấu hình HttpClient cho MangaReaderLib Backend API:**
+    Trong `Program.cs`, thêm cấu hình cho `HttpClient` dành riêng cho MangaReaderLib API. `HttpClient` này sẽ được đặt tên (ví dụ: "MangaReaderLibApiClient") và cấu hình `BaseAddress` từ `MangaReaderApiSettings:BaseUrl` trong `appsettings.json`.
+    *   **Mục đích:** Cung cấp một `HttpClient` được đặt tên để giao tiếp với MangaReaderLib.
 
-### Bước 2: Xây Dựng Project `MangaReaderLib` và Tích Hợp
+2.  **Đăng ký các Client từ `MangaReaderLib`:**
+    Trong `Program.cs`, đăng ký tất cả các Client API được triển khai trong thư viện `MangaReaderLib` (ví dụ: `AuthorClient`, `ChapterClient`, `MangaClient`) với `HttpClient` đã cấu hình ở bước trên. Các service này sẽ được đăng ký dưới dạng `Scoped` (ví dụ: `builder.Services.AddScoped<IApiClient, ApiClient>();`).
+    *   **Mục đích:** Đảm bảo các service này có thể được inject và sử dụng.
 
-1.  **Phân tích `FrontendAPI.md`:**
-    *   Xác định DTOs cần thiết cho request và response của `MangaReaderAPI`.
-    *   Nắm rõ cấu trúc `ResourceObject`, `RelationshipObject`, và các cấu trúc response chung.
-2.  **Thiết kế Client Services/Repositories trong `MangaReaderLib`:**
-    *   Tạo các interfaces (ví dụ: `IMangaClient`, `IAuthorClient`).
-    *   Triển khai các client này, sử dụng `HttpClient` (quản lý qua `IHttpClientFactory` trong `MangaReader_ManagerUI.Server`) để gọi đến các endpoint của `MangaReaderAPI` được định nghĩa trong `FrontendAPI.md`.
-    *   Mỗi client sẽ chứa các phương thức tương ứng với các API.
-3.  **Xử lý dữ liệu trong `MangaReaderLib`:**
-    *   Deserialize JSON response từ `MangaReaderAPI` thành các DTOs.
-    *   Xử lý lỗi cơ bản từ API.
-    *   Xây dựng request với các tham số phân trang, lọc, sắp xếp.
-    *   Xử lý upload file (sẽ được `MangaReader_ManagerUI.Server` gọi).
-4.  **Tích hợp `MangaReaderLib` vào `MangaReader_ManagerUI.Server`:**
-    *   Project `MangaReader_ManagerUI.Server` (ASP.NET Core) sẽ tham chiếu đến `MangaReaderLib`.
-    *   Các API Controllers trong `MangaReader_ManagerUI.Server` sẽ inject và sử dụng các client services từ `MangaReaderLib` để tương tác với `MangaReaderAPI`.
-    *   `MangaReader_ManagerUI.Client` (React App) sẽ gọi các API do `MangaReader_ManagerUI.Server` cung cấp.
+### **V. Tạo Service Quản lý Nguồn Truyện Trung tâm (`MangaSourceManagerService`)**
 
-### Bước 3: Thiết Kế và Triển Khai Giao Diện Người Dùng (UI) với Material UI và SCSS
+1.  **Tạo thư mục `MangaSourceManager`:**
+    Tạo một thư mục mới `MangaReader.WebUI\Services\MangaServices\MangaSourceManager`.
+    *   **Mục đích:** Chứa logic cốt lõi cho việc chuyển đổi nguồn.
 
-1.  **Layout chính:**
-    *   Sử dụng các component layout của Material UI (ví dụ: `AppBar`, `Drawer`, `Container`, `Grid`) để xây dựng layout chung cho ứng dụng quản lý.
-    *   Style cho layout sẽ được viết bằng SCSS, đặt trong thư mục `src/assets/scss/layout/`.
-    *   Tích hợp React Router DOM cho điều hướng.
-2.  **UI Components cơ bản:**
-    *   Tạo các components tái sử dụng từ Material UI:
-        *   Bảng dữ liệu: Sử dụng `<Table>`, `<TableHead>`, `<TableRow>`, `<TableCell>` của MUI, tích hợp phân trang, sắp xếp. Style tùy chỉnh bằng SCSS nếu cần (`src/assets/scss/components/_tables.scss`).
-        *   Form nhập liệu: Sử dụng `<TextField>`, `<Select>`, `<DatePicker>` (từ `@mui/x-date-pickers` nếu cần) của MUI, tích hợp với React Hook Form và Zod.
-        *   Modal/Dialog: Sử dụng `<Dialog>` của MUI.
-        *   Nút bấm: Sử dụng `<Button>` của MUI. Style tùy chỉnh bằng SCSS (`src/assets/scss/components/_buttons.scss`).
-3.  **Trang chủ quản lý:**
-    *   Một dashboard cơ bản hoặc trang danh sách manga mặc định.
-    *   SCSS cho trang này sẽ nằm trong `src/assets/scss/pages/_dashboard.scss` hoặc tương tự.
+2.  **Tạo Service `MangaSourceManagerService.cs`:**
+    Đây là service trung gian duy nhất và là điểm kiểm soát cho tất cả các yêu cầu dữ liệu manga.
+    *   **Vị trí:** `MangaReader.WebUI\Services\MangaServices\MangaSourceManager\MangaSourceManagerService.cs`.
+    *   **Interfaces:** `MangaSourceManagerService` sẽ triển khai tất cả các interface của API service hiện có mà các Controller và service cấp cao hơn đang phụ thuộc: `IMangaApiService`, `IChapterApiService`, `ICoverApiService`, `ITagApiService`, và `IApiStatusService`.
+    *   **Constructor:** Sẽ nhận vào các dependency cần thiết:
+        *   Các triển khai cụ thể của MangaDex API Clients (ví dụ: `MangaApiService`, `ChapterApiService`, `CoverApiService`, `TagApiService`, `ApiStatusService` - các lớp này giờ đây sẽ được inject dưới dạng các kiểu cụ thể thay vì interface).
+        *   Tất cả các Client từ thư viện `MangaReaderLib` (ví dụ: `IMangaClient`, `IChapterClient`).
+        *   Tất cả các mapper từ `MangaReaderLibMappers` (ví dụ: `IMangaReaderLibToMangaViewModelMapper`).
+        *   Tất cả các mapper từ MangaDex DTO sang ViewModel (ví dụ: `IMangaToMangaViewModelMapper`).
+        *   `IMangaDataExtractor` (vì các mapper MangaDex vẫn sử dụng nó), `IConfiguration`, `ILogger`, `IHttpContextAccessor`.
+    *   **Logic Lựa chọn Nguồn:**
+        *   Sẽ có một phương thức nội bộ để đọc lựa chọn nguồn truyện của người dùng từ cookie (dùng key "MangaSource") thông qua `IHttpContextAccessor`. Nếu không có cookie, sẽ mặc định là `MangaSourceType.MangaDex`.
+    *   **Triển khai các phương thức truy vấn dữ liệu:**
+        *   Mỗi phương thức của các interface mà `MangaSourceManagerService` triển khai (ví dụ: `FetchMangaAsync`, `FetchMangaDetailsAsync`, `GetProxiedCoverUrl`, `FetchTagsAsync`...) sẽ chứa logic như sau:
+            1.  Đọc nguồn truyện hiện tại (MangaDex hoặc MangaReaderLib) từ cookie.
+            2.  Sử dụng câu lệnh `if/else` hoặc `switch` để xác định logic tiếp theo dựa trên nguồn.
+            3.  **Nếu nguồn là MangaDex:** Gọi phương thức tương ứng từ các instance MangaDex API Client đã được inject. Sau đó, sử dụng các mapper MangaDex DTO -> ViewModel để ánh xạ kết quả và trả về.
+            4.  **Nếu nguồn là MangaReaderLib:** Gọi phương thức tương ứng từ các instance MangaReaderLib Client đã được inject. Sau đó, sử dụng các mapper MangaReaderLib DTO -> ViewModel để ánh xạ kết quả và trả về.
+            5.  Đối với `GetProxiedCoverUrl` và các phương thức liên quan đến URL ảnh chapter, nó sẽ tạo URL phù hợp với cấu trúc của MangaReaderLib (ví dụ: `/mangas/{mangaId}/covers/{publicId}` hoặc `/chapters/{chapterId}/pages/{publicId}` của MangaReaderLib API) hoặc MangaDex tùy theo nguồn đã chọn.
+    *   **Mục đích:** Đóng vai trò là điểm truy cập duy nhất cho tất cả các yêu cầu dữ liệu liên quan đến manga, che giấu hoàn toàn sự phức tạp của việc lựa chọn nguồn và ánh xạ dữ liệu thành ViewModel.
 
-### Bước 4: Triển Khai Chức Năng Quản Lý Chính
+### **VI. Cập nhật Dependency Injection (`Program.cs`)**
 
-Triển khai các chức năng CRUD cho từng resource, sử dụng các components đã tạo và gọi API thông qua `MangaReader_ManagerUI.Server` (và `MangaReaderLib`). SCSS cho từng trang/feature sẽ được đặt trong `src/assets/scss/pages/`.
+1.  **Thay đổi đăng ký các `*ApiService` của MangaDex:**
+    Các triển khai cụ thể của MangaDex API Clients (ví dụ: `MangaApiService`, `ChapterApiService`, `CoverApiService`, `TagApiService`, `ApiStatusService` trong thư mục `MangaReader.WebUI\Services\APIServices\Services`) sẽ được đăng ký với chính kiểu của chúng (ví dụ: `builder.Services.AddScoped<MangaReader.WebUI.Services.APIServices.Services.MangaApiService>();`).
+    *   **Quan trọng:** Chúng sẽ không còn được đăng ký dưới các interface (ví dụ: `IMangaApiService`) nữa, vì các interface đó sẽ được triển khai bởi `MangaSourceManagerService`.
 
-1.  **Quản lý Manga (`/Mangas`):**
-    *   UI: Trang danh sách manga (dùng `DataTableMUI`), trang tạo/chỉnh sửa manga (dùng `MangaForm` với MUI components, React Hook Form, Zod).
-    *   Logic: Gọi các API tương ứng từ `mangaApi.js` (React).
-2.  **Quản lý Ảnh bìa (`/mangas/{mangaId}/covers`, `/CoverArts/{coverId}`):**
-    *   UI: Component upload ảnh (có thể dùng input file HTML hoặc component upload của MUI), danh sách ảnh bìa.
-    *   Logic: Xử lý upload file ở client, gửi đến API của `MangaReader_ManagerUI.Server`.
-3.  **Quản lý Bản dịch (`/TranslatedMangas`, `/mangas/{mangaId}/translations`):**
-    *   Tương tự quản lý Manga.
-4.  **Quản lý Chapters (cho từng `TranslatedManga`):**
-    *   Tương tự quản lý Manga.
-5.  **Quản lý Trang (ChapterPage) (cho từng `Chapter`):**
-    *   Tương tự quản lý Ảnh bìa (có bước tạo entry trước).
-6.  **Quản lý Tác giả (Authors) và Tags/TagGroups (phục vụ chọn lựa):**
-    *   UI: Component chọn (ví dụ: `Autocomplete` của MUI) để chọn từ danh sách.
-    *   Logic: Lấy danh sách từ API để hiển thị trong component chọn.
+2.  **Đăng ký `MangaSourceManagerService`:**
+    Đăng ký `MangaSourceManagerService` với tất cả các interface API mà nó triển khai. Điều này đảm bảo khi một Controller hoặc Service yêu cầu `IMangaApiService`, `IChapterApiService`, v.v., thì `MangaSourceManagerService` sẽ được cung cấp.
+    *   **Mục đích:** Đảm bảo `MangaSourceManagerService` là điểm truy cập duy nhất cho các yêu cầu dữ liệu manga ở các tầng cao hơn.
 
-### Bước 5: Triển Khai Xác Thực
+3.  **Đăng ký các Mapper của MangaReaderLib:**
+    Đăng ký tất cả các mapper mới đã tạo trong `MangaReaderLibMappers` (ví dụ: `builder.Services.AddScoped<IMangaReaderLibToMangaViewModelMapper, MangaReaderLibToMangaViewModelMapper>();`).
 
-1.  **Trang Đăng Nhập:**
-    *   UI: Form đăng nhập sử dụng Material UI, React Hook Form, Zod. SCSS trong `src/assets/scss/pages/_login.scss`.
-2.  **Logic Đăng Nhập:**
-    *   React App gọi API đăng nhập của `MangaReader_ManagerUI.Server`.
-    *   `MangaReader_ManagerUI.Server` sẽ gọi API đăng nhập của `MangaReaderAPI` (cần backend cung cấp cơ chế này).
-    *   Lưu trữ token (JWT) trong `localStorage` hoặc `sessionStorage` (hoặc dùng HttpOnly cookie từ server nếu có thể).
-    *   Sử dụng Zustand (`authStore.js`) để quản lý trạng thái đăng nhập.
-3.  **Xử lý Request xác thực:**
-    *   `apiClient.js` (Axios instance) sẽ có interceptor để tự động đính kèm token vào header `Authorization` cho các request cần xác thực.
-4.  **Bảo vệ Route:**
-    *   Sử dụng `ProtectedRoute.jsx` kết hợp với `authStore` để bảo vệ các trang quản lý.
-5.  **Đăng Xuất:**
-    *   Xóa token, cập nhật `authStore`.
+4.  **Cập nhật các Service và Controller:**
+    Các Controller và Service (ví dụ: `HomeController`, `MangaController`, `MangaDetailsService`, `ChapterService`, `ChapterReadingServices`, `MangaIdService`, `ChapterLanguageServices`, `MangaInfoService`, `ReadingHistoryService`) sẽ không cần thay đổi lớn về Dependency Injection trong constructor của chúng. Chúng vẫn sẽ nhận các interface API Service (ví dụ: `IMangaApiService`). Tuy nhiên, nhờ các cập nhật trong `Program.cs`, các interface này giờ đây sẽ được resolve thành `MangaSourceManagerService`, tự động chuyển đổi nguồn dữ liệu một cách minh bạch.
 
-### Bước 6: Kiểm Thử và Hoàn Thiện
+### **VII. Cập nhật Giao diện người dùng và JavaScript**
 
-1.  **Kiểm thử chức năng:** Toàn diện các tính năng CRUD, xác thực, phân trang, lọc, sắp xếp.
-2.  **Xử lý lỗi:**
-    *   Hiển thị thông báo lỗi thân thiện (dùng `react-toastify`) khi có lỗi từ API hoặc client-side.
-3.  **Tối ưu hóa:** Hiệu năng, lazy loading components.
-4.  **Responsive Design:** Kiểm tra với các components của Material UI và các SCSS tùy chỉnh.
-5.  **Review và Refactor Code.**
+1.  **Cập nhật `_Layout.cshtml`:**
+    Thêm một phần tử `div` có `id="customSourceSwitcherItem"` (có role button và tabindex) cho nút chuyển đổi nguồn truyện bên cạnh nút chuyển đổi sáng tối trong dropdown tài khoản. Bên trong nó sẽ có một `span` với `id="customSourceSwitcherText"` để hiển thị tên nguồn và một `i` với `id="customSourceIcon"` cho biểu tượng, cùng với một div cho phần chuyển đổi trực quan (`custom-source-toggle-switch`).
+    *   **Mục đích:** Cung cấp phần tử HTML cho nút chuyển đổi nguồn trên giao diện người dùng.
 
-### Bước 7 (Tương lai): Phân Quyền
+2.  **Cập nhật `wwwroot/css/components/custom-dropdown.css`:**
+    Thêm các CSS rules để định kiểu cho nút chuyển đổi nguồn truyện (`.custom-source-switcher`, `.custom-source-toggle-switch`, `.custom-source-toggle-slider`) tương tự như các style đã có của nút chuyển đổi theme, bao gồm các trạng thái `mangadex-source` và `mangareader-source`.
+    *   **Mục đích:** Tạo giao diện trực quan cho nút chuyển đổi nguồn.
 
-1.  Sau khi `MangaReaderAPI` có cơ chế phân quyền:
-    *   `MangaReader_ManagerUI.Server` sẽ lấy thông tin quyền và truyền cho client.
-    *   React App (sử dụng `authStore` hoặc context riêng) sẽ quản lý quyền.
-    *   Ẩn/hiện UI elements hoặc hạn chế truy cập route dựa trên quyền.
+3.  **Đổi tên và cập nhật `wwwroot/js/modules/theme.js` thành `wwwroot/js/modules/ui-toggles.js`:**
+    *   **Vị trí:** `MangaReader.WebUI\wwwroot\js\modules\ui-toggles.js` (tạo file này và di chuyển nội dung từ `theme.js`).
+    *   File này sẽ chứa logic cho cả hai nút chuyển đổi (theme và nguồn).
+    *   **Trong `ui-toggles.js`:**
+        *   Thêm các hằng số cho key localStorage, tên cookie và các loại nguồn (ví dụ: `SOURCE_MANGADEX`, `SOURCE_MANGAREADERLIB`).
+        *   Tạo các hàm `saveMangaSource`, `getSavedMangaSource`, `applyMangaSource` tương tự như các hàm cho theme.
+        *   Tạo hàm `initCustomSourceSwitcherInternal()` để khởi tạo nút chuyển đổi nguồn. Hàm này sẽ đọc trạng thái nguồn truyện đã lưu từ localStorage/cookie, cập nhật giao diện của nút (biểu tượng, văn bản hiển thị tên nguồn).
+        *   Khi nút được click, nó sẽ chuyển đổi giữa các nguồn, lưu lựa chọn mới vào localStorage và cookie. Sau đó, nó sẽ **kích hoạt một yêu cầu HTMX** (sử dụng `htmx.ajax` để GET lại trang hiện tại) để buộc `MangaSourceManagerService` ở backend nhận ra nguồn mới và tải lại dữ liệu.
+        *   Hàm `initUIToggles()` sẽ được tạo (hoặc cập nhật nếu đã tồn tại) để gọi cả `initCustomThemeSwitcherInternal()` và `initCustomSourceSwitcherInternal()`.
+    *   **Mục đích:** Gom nhóm logic UI toggle, giúp dễ quản lý và khởi tạo, đồng thời đảm bảo việc chuyển đổi nguồn được lưu trữ và kích hoạt tải lại dữ liệu.
 
-## Lưu ý
+4.  **Cập nhật `wwwroot/js/main.js` và `wwwroot/js/modules/htmx-handlers.js`:**
+    Sửa đổi các câu lệnh `import` để nhập module `ui-toggles.js` mới thay cho `theme.js`. Đồng thời, cập nhật các hàm khởi tạo trong `main.js` và các hàm `reinitializeAfterHtmxSwap`, `reinitializeAfterHtmxLoad` trong `htmx-handlers.js` để gọi hàm `initUIToggles()` mới.
+    *   **Mục đích:** Đảm bảo JavaScript chính của ứng dụng và HTMX khởi tạo đúng các chức năng chuyển đổi UI mới khi trang tải và sau khi nội dung được cập nhật động.
 
-*   **Cloudinary URL:** Việc xây dựng URL ảnh từ `publicId` sẽ thực hiện ở `MangaReader_ManagerUI.Client`.
-*   **API Base URL:**
-    *   `MangaReader_ManagerUI.Client` sẽ gọi đến base URL của `MangaReader_ManagerUI.Server`.
-    *   `MangaReaderLib` (thông qua `MangaReader_ManagerUI.Server`) sẽ gọi đến base URL của `MangaReaderAPI`.
-*   **Xử lý `relationships`:** Frontend Manager UI sẽ phân tích `relationships` từ API để hiển thị hoặc fetch thêm dữ liệu liên quan.
+### **VIII. Kiểm tra và Test**
 
-Kế hoạch này đã được cập nhật để phản ánh các thư viện bạn đã chọn và bổ sung việc sử dụng SCSS. Chúc bạn triển khai dự án thành công!
+1.  **Chạy ứng dụng:** Khởi động dự án WebUI và MangaReaderLib API backend.
+2.  **Kiểm tra chức năng chuyển đổi nguồn:**
+    *   Kiểm tra nút chuyển đổi nguồn trên giao diện người dùng.
+    *   Chuyển đổi giữa MangaDex và MangaReaderLib.
+    *   Đảm bảo nội dung trang chủ (manga mới nhất) thay đổi tương ứng với nguồn đã chọn.
+    *   Điều hướng đến trang tìm kiếm, trang chi tiết manga, trang đọc chapter, trang truyện đang theo dõi, lịch sử đọc và đảm bảo chúng hoạt động đúng với nguồn đã chọn.
+3.  **Kiểm tra tính bền vững của lựa chọn:**
+    *   Thay đổi nguồn, sau đó tải lại trang hoặc đóng/mở trình duyệt để xem lựa chọn nguồn có được duy trì không.
+4.  **Kiểm tra các trường hợp lỗi:**
+    *   Thử ngắt kết nối với một trong hai API backend và kiểm tra xem ứng dụng có hiển thị thông báo lỗi phù hợp không.
+5.  **Kiểm tra hiệu suất:**
+    *   So sánh tốc độ tải dữ liệu giữa hai nguồn.
+```

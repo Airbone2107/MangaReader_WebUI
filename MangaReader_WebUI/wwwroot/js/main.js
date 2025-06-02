@@ -13,7 +13,7 @@ import { initReadPage } from './modules/read-page.js';
 import { initReadingState } from './modules/reading-state.js';
 import SearchModule from './modules/search.js';
 import { initSidebar } from './modules/sidebar.js';
-import { initCustomThemeSwitcher } from './modules/theme.js';
+import { initUIToggles } from './modules/ui-toggles.js';
 import { initToasts } from './modules/toast.js';
 import {
     adjustFooterPosition,
@@ -70,7 +70,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initLazyLoading();
     
     // Khởi tạo module tìm kiếm
-    // Luôn khởi tạo module để đăng ký các hàm và sự kiện cần thiết
     SearchModule.init();
     console.log('Search module registered');
     
@@ -95,8 +94,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initCustomDropdowns();
     console.log('Custom dropdowns initialized');
     
-    // Khởi tạo chức năng chuyển đổi chế độ tối/sáng tùy chỉnh
-    initCustomThemeSwitcher();
+    // Khởi tạo chức năng chuyển đổi chế độ tối/sáng và nguồn truyện tùy chỉnh
+    initUIToggles();
     
     // Khởi tạo nút back-to-top
     initBackToTop();
