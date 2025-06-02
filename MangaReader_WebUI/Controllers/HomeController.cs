@@ -7,6 +7,7 @@ using System.Text.Json;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.APIServices.Services;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
+using MangaReader.WebUI.Enums;
 
 namespace MangaReader.WebUI.Controllers
 {
@@ -58,6 +59,25 @@ namespace MangaReader.WebUI.Controllers
                         SortBy = "Mới cập nhật",
                         Languages = new List<string> { "vi", "en" }
                     };
+                    
+                    // Lấy nguồn truyện hiện tại từ cookie
+                    var currentSource = HttpContext.Request.Cookies.TryGetValue("MangaSource", out var sourceString) &&
+                                        Enum.TryParse(sourceString, true, out MangaSource sourceEnum)
+                                        ? sourceEnum
+                                        : MangaSource.MangaDex; // Mặc định là MangaDex
+
+                    _logger.LogInformation("Trang chủ: Nguồn truyện hiện tại là {MangaSource}", currentSource);
+
+                    if (currentSource == MangaSource.MangaDex)
+                    {
+                        sortOptions.ContentRating = new List<string> { "safe" };
+                        _logger.LogInformation("Trang chủ (MangaDex): Áp dụng ContentRating = 'safe'");
+                    }
+                    else // MangaSource.MangaReaderLib
+                    {
+                        sortOptions.ContentRating = new List<string>(); // Không áp dụng filter content rating
+                        _logger.LogInformation("Trang chủ (MangaReaderLib): Không áp dụng ContentRating filter");
+                    }
                     
                     Console.WriteLine("Đang lấy danh sách manga mới nhất...");
                     var recentMangaResponse = await _mangaApiService.FetchMangaAsync(10, 0, sortOptions);

@@ -76,12 +76,13 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
             if (contentRating != null && contentRating.Any())
             {
                 sortManga.ContentRating = contentRating;
-                _logger.LogInformation($"Tìm kiếm với mức độ nội dung: {string.Join(", ", sortManga.ContentRating)}");
+                _logger.LogInformation($"Tìm kiếm với mức độ nội dung người dùng chọn: {string.Join(", ", sortManga.ContentRating)}");
             }
             else
             {
-                // Mặc định: nội dung an toàn
-                sortManga.ContentRating = new List<string> { "safe", "suggestive", "erotica" };
+                // Mặc định của trang Search: chỉ "safe" cho cả hai nguồn
+                sortManga.ContentRating = new List<string> { "safe" };
+                _logger.LogInformation($"Tìm kiếm với mức độ nội dung mặc định (Search Page): safe");
             }
 
             // Xử lý danh sách includedTags từ chuỗi

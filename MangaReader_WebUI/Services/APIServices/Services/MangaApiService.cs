@@ -34,37 +34,42 @@ namespace MangaReader.WebUI.Services.APIServices.Services
             if (limit.HasValue) AddOrUpdateParam(queryParams, "limit", limit.Value.ToString());
             if (offset.HasValue) AddOrUpdateParam(queryParams, "offset", offset.Value.ToString());
 
-            // Áp dụng các tham số từ SortManga nếu có
             if (sortManga != null)
             {
-                var sortParams = sortManga.ToParams(); // Lấy dictionary từ SortManga
+                var sortParams = sortManga.ToParams();
                 foreach (var param in sortParams)
                 {
-                    // Xử lý các tham số dạng mảng (kết thúc bằng [])
                     if (param.Key.EndsWith("[]") && param.Value is IEnumerable<string> values)
                     {
-                        foreach (var value in values)
+                        if (!queryParams.ContainsKey(param.Key))
                         {
-                            if (!string.IsNullOrEmpty(value)) AddOrUpdateParam(queryParams, param.Key, value);
+                            queryParams[param.Key] = new List<string>();
+                        }
+                        foreach(var val in values)
+                        {
+                             if (!string.IsNullOrEmpty(val)) queryParams[param.Key].Add(val);
                         }
                     }
-                    // Xử lý các tham số order (dạng order[key]=value)
                     else if (param.Key.StartsWith("order["))
                     {
                         AddOrUpdateParam(queryParams, param.Key, param.Value?.ToString() ?? string.Empty);
                     }
-                    // Xử lý các tham số đơn lẻ khác
                     else if (param.Value != null && !string.IsNullOrEmpty(param.Value.ToString()))
                     {
                         AddOrUpdateParam(queryParams, param.Key, param.Value.ToString()!);
                     }
                 }
+                if (sortManga.ContentRating != null && sortManga.ContentRating.Any())
+                {
+                    if (!queryParams.ContainsKey("contentRating[]"))
+                    {
+                        queryParams["contentRating[]"] = new List<string>();
+                    }
+                    queryParams["contentRating[]"].AddRange(sortManga.ContentRating);
+                }
             }
-            else // Tham số mặc định nếu không có SortManga
+            else
             {
-                AddOrUpdateParam(queryParams, "contentRating[]", "safe");
-                AddOrUpdateParam(queryParams, "contentRating[]", "suggestive");
-                AddOrUpdateParam(queryParams, "contentRating[]", "erotica");
                 AddOrUpdateParam(queryParams, "order[latestUploadedChapter]", "desc");
             }
 

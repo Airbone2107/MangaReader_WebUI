@@ -55,7 +55,6 @@ namespace MangaReader.WebUI.Models
             ExcludedTags = new List<string>();
             Languages = new List<string>();
             Genres = new List<string>();
-            ContentRating = new List<string>() { "safe", "suggestive", "erotica"};
             Authors = new List<string>();
             Artists = new List<string>();
             OriginalLanguage = new List<string>();
