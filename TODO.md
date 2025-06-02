@@ -1,390 +1,464 @@
-# TODO: Cải thiện xử lý lưu tiến độ đọc và tải danh sách theo dõi/lịch sử
 
-## Mục 1: Ngăn chặn gửi request `SaveReadingProgress` nếu người dùng chưa đăng nhập
+# TODO: Bỏ qua thông báo lỗi 401 cho SaveReadingProgress
 
-### Bước 1.1: Cập nhật Client-side (`MangaReader_WebUI\wwwroot\js\modules\read-page.js`)
+## Mục tiêu
 
-**Mục tiêu:** Kiểm tra trạng thái đăng nhập của người dùng trước khi gửi request `SaveReadingProgress`. Nếu chưa đăng nhập, không thực hiện request.
+Hiện tại, khi người dùng chưa đăng nhập truy cập vào trang đọc truyện, API `/Chapter/SaveReadingProgress` sẽ trả về lỗi 401 (Unauthorized) vì không thể lưu tiến độ đọc. Hệ thống đang hiển thị một thông báo lỗi chung "Đã xảy ra lỗi khi tải nội dung. Vui lòng thử lại." cho trường hợp này.
 
-**Cách thực hiện:**
+Yêu cầu là **loại bỏ thông báo lỗi này** khi gặp lỗi 401 từ endpoint `/Chapter/SaveReadingProgress` vì đây là trường hợp bình thường và sẽ được xử lý bằng cơ chế khác sau này. Các lỗi khác từ các endpoint khác hoặc các mã lỗi khác từ endpoint này vẫn phải hiển thị thông báo như bình thường.
 
-1.  Mở file `MangaReader_WebUI\wwwroot\js\modules\read-page.js`.
-2.  Tìm đến hàm hoặc đoạn code chịu trách nhiệm gửi request `SaveReadingProgress`. Hiện tại, việc này được thực hiện thông qua một div ẩn với các thuộc tính `hx-post`.
-3.  Chúng ta sẽ không sửa trực tiếp div đó, mà sẽ đảm bảo rằng `IUserService` trên server đã kiểm tra. Logic client hiện tại không có hàm `saveReadingProgress` tường minh để can thiệp. Phần xử lý chính sẽ ở server.
-4.  Tuy nhiên, để cẩn thận hơn và có thể mở rộng trong tương lai, chúng ta có thể thêm một hàm kiểm tra trạng thái đăng nhập global trong `auth.js` để các module khác có thể sử dụng nếu cần.
+## Các bước thực hiện
 
-**Cập nhật `MangaReader_WebUI\wwwroot\js\auth.js`:**
+### Bước 1: Chỉnh sửa file `MangaReader_WebUI\wwwroot\js\modules\htmx-handlers.js`
 
-Thêm hàm `isUserAuthenticated` vào `auth.js` để các module khác có thể gọi và kiểm tra.
+File này chứa logic xử lý các sự kiện của HTMX, bao gồm cả việc xử lý lỗi khi một request HTMX không thành công. Chúng ta sẽ cập nhật hàm xử lý sự kiện `htmx:responseError` để kiểm tra và bỏ qua thông báo lỗi cụ thể này.
+
+**Nội dung file `MangaReader_WebUI\wwwroot\js\modules\htmx-handlers.js` sau khi cập nhật:**
 
 ```javascript
-// MangaReader_WebUI\wwwroot\js\auth.js
+// MangaReader_WebUI\wwwroot\js\modules\htmx-handlers.js
 /**
- * auth.js - Xử lý xác thực và quản lý thông tin người dùng (Module ES6)
+ * htmx-handlers.js - Quản lý tất cả chức năng liên quan đến HTMX
+ * 
+ * File này đóng vai trò quan trọng trong việc đảm bảo các chức năng JavaScript vẫn hoạt động 
+ * sau khi HTMX thay đổi nội dung (swap). Nó chịu trách nhiệm khởi tạo lại các chức năng JavaScript
+ * cần thiết cho nội dung mới mà không cần load lại toàn bộ trang.
+ * 
+ * Các nguyên tắc chính:
+ * 1. Chỉ khởi tạo lại những gì cần thiết dựa trên nội dung đã được swap
+ * 2. Dọn dẹp (dispose) các instance cũ trước khi tạo mới
+ * 3. Sử dụng event delegation khi có thể
  */
 
-// Biến cục bộ để lưu trạng thái đăng nhập, cập nhật bởi checkAuthState
-let currentUserIsAuthenticated = false;
-let currentUserData = null;
+// Import các hàm từ các module khác (sẽ được sử dụng trong HTMX)
+import { initAuthUI } from '../auth.js';
+import { initCustomDropdowns } from './custom-dropdown.js';
+import { initMangaDetailsPage } from './manga-details.js';
+import { initTagsInSearchForm } from './manga-tags.js';
+import { initChapterDropdownNav, initImageLoading, initImageScaling, initPlaceholderButtons, initReadPage, initSidebarToggle } from './read-page.js';
+import SearchModule from './search.js';
+import { initSidebar, updateActiveSidebarLink } from './sidebar.js';
+import { initUIToggles } from './ui-toggles.js';
+import { adjustFooterPosition, adjustMangaTitles, createDefaultImage, fixAccordionIssues, initBackToTop, initResponsive, initTooltips } from './ui.js';
 
 /**
- * Khởi tạo UI xác thực
- * Hàm này gọi checkAuthState để kiểm tra trạng thái đăng nhập khi được gọi
+ * Khởi tạo lại các chức năng cần thiết sau khi HTMX cập nhật nội dung
+ *
+ * @param {HTMLElement} targetElement - Phần tử được HTMX swap
  */
-export function initAuthUI() {
-    console.log('Auth module: Khởi tạo UI xác thực');
-    checkAuthState();
-}
+function reinitializeAfterHtmxSwap(targetElement) {
+    console.log('[HTMX Swap] Reinitializing JS for swapped element:', targetElement);
+    // Cập nhật active sidebar link - luôn thực hiện khi có swap
+    updateActiveSidebarLink();
 
-/**
- * Kiểm tra trạng thái đăng nhập và cập nhật giao diện
- */
-function checkAuthState() {
-    fetch('/Auth/GetCurrentUser')
-        .then(response => response.json())
-        .then(data => {
-            currentUserIsAuthenticated = data.isAuthenticated; // Cập nhật biến cục bộ
-            currentUserData = data.user || null; // Cập nhật dữ liệu người dùng
-            updateUserInterface(data);
-        })
-        .catch(error => {
-            console.error('Lỗi khi kiểm tra trạng thái đăng nhập:', error);
-            currentUserIsAuthenticated = false;
-            currentUserData = null;
-            updateUserInterface({ isAuthenticated: false });
-        });
-}
-
-/**
- * Trả về trạng thái đăng nhập hiện tại (đồng bộ)
- * Lưu ý: Hàm này trả về trạng thái đã được cache từ lần gọi checkAuthState gần nhất.
- * Để có trạng thái chính xác nhất, nên gọi checkAuthState() và đợi nó hoàn thành nếu cần.
- * @returns {boolean} True nếu người dùng đã đăng nhập, ngược lại False.
- */
-export function isUserAuthenticated() {
-    return currentUserIsAuthenticated;
-}
-
-/**
- * Lấy thông tin người dùng hiện tại (đồng bộ)
- * @returns {Object|null} Thông tin người dùng hoặc null.
- */
-export function getCurrentUserData() {
-    return currentUserData;
-}
-
-/**
- * Cập nhật giao diện dựa trên trạng thái đăng nhập
- * @param {Object} data - Dữ liệu người dùng từ API
- */
-function updateUserInterface(data) {
-    // ... (giữ nguyên phần còn lại của hàm updateUserInterface)
-// ...
-    const guestUserMenu = document.getElementById('guestUserMenu');
-    const authenticatedUserMenu = document.getElementById('authenticatedUserMenu');
-    const userNameDisplay = document.getElementById('userNameDisplay');
-    const userDropdownToggle = document.getElementById('userDropdownToggle');
-    
-    if (data.isAuthenticated && data.user) {
-        // Người dùng đã đăng nhập
-        if (guestUserMenu) guestUserMenu.classList.add('d-none');
-        if (authenticatedUserMenu) authenticatedUserMenu.classList.remove('d-none');
-        
-        // Hiển thị tên người dùng
-        if (userNameDisplay) {
-            userNameDisplay.textContent = data.user.displayName;
-            userNameDisplay.classList.remove('d-none');
+    // Xử lý khi main-content được swap (toàn bộ trang hoặc phần lớn)
+    if (targetElement.id === 'main-content' || targetElement.closest('#main-content')) {
+        console.log('[HTMX Swap] Main content swapped, reinitializing page-specific modules...');
+        // Khi nội dung chính được swap, khởi tạo lại các thành phần trong đó
+        if (targetElement.querySelector('#searchForm')) {
+            SearchModule.initSearchPage?.();
+            initTagsInSearchForm();
         }
-        
-        // Hiển thị icon người dùng 
-        if (userDropdownToggle) {
-            const icon = userDropdownToggle.querySelector('.user-icon');
-            if (icon) icon.style.display = '';
+        if (targetElement.querySelector('.details-manga-header-background')) {
+            initMangaDetailsPage();
         }
-        
+        // Khởi tạo lại trang đọc chapter nếu có
+        if (targetElement.querySelector('.chapter-reader-container') || targetElement.querySelector('#readingSidebar')) {
+            console.log('[HTMX Swap] Chapter Read page detected, initializing read-page modules');
+            initReadPage();
+        }
+        // Khởi tạo lại pagination nếu có
+        if (targetElement.querySelector('.pagination')) {
+            SearchModule.initPageGoTo?.();
+        }
+        // Điều chỉnh tiêu đề manga nếu có
+        adjustMangaTitles(targetElement);
+    }
+    // Xử lý khi chỉ kết quả tìm kiếm và phân trang được swap
+    else if (targetElement.id === 'search-results-and-pagination') {
+        console.log('[HTMX Swap] Search results swapped, reinitializing pagination/tooltips...');
+        SearchModule.initPageGoTo?.();
+        initTooltips();
+    }
+    // Xử lý khi chỉ container kết quả được swap (chuyển đổi view mode)
+    else if (targetElement.id === 'search-results-container') {
+        console.log('[HTMX Swap] Search results container swapped (view mode change).');
+        initTooltips();
+    }
+    // Xử lý khi chỉ container ảnh chapter được swap
+    else if (targetElement.id === 'chapterImagesContainer') {
+        console.log('[HTMX Swap] Chapter images container swapped, initializing image loading...');
+        initImageLoading('#chapterImagesContainer');
+    }
+    // Xử lý khi chỉ sidebar đọc truyện được swap (nếu có)
+    else if (targetElement.id === 'readingSidebar') {
+        console.log('[HTMX Swap] Reading sidebar swapped, reinitializing relevant parts...');
+        initSidebarToggle();
+        initChapterDropdownNav();
+        initPlaceholderButtons();
+        initImageScaling();
+    }
+    // Xử lý khi các nút chuyển đổi UI (theme/source) bị swap (ít khả năng, nhưng cần)
+    // (Kiểm tra nếu bất kỳ phần tử con nào của #userDropdownMenu chứa một trong các switcher)
+    if (targetElement.querySelector('#userDropdownMenu') || targetElement.closest('#userDropdownMenu')) {
+         if (targetElement.querySelector('#customThemeSwitcherItem') || targetElement.querySelector('#customSourceSwitcherItem')) {
+             console.log('[HTMX Swap] UI Toggles detected in swapped content, reinitializing.');
+             initUIToggles(); // Gọi hàm khởi tạo chính cho cả hai nút
+         }
+    }
+
+    // Luôn khởi tạo lại các component Bootstrap trong phần tử đã swap
+    initializeBootstrapComponents(targetElement);
+    console.log('[HTMX Swap] Reinitialization complete for swapped element.');
+}
+
+
+/**
+ * Khởi tạo lại các chức năng sau khi HTMX khôi phục nội dung từ lịch sử (Back/Forward)
+ * @param {HTMLElement} targetElement - Thường là body hoặc main-content
+ */
+function reinitializeAfterHtmxLoad(targetElement) {
+    console.log('[HTMX Load] Reinitializing JS after history navigation for element:', targetElement);
+
+    // *** BƯỚC QUAN TRỌNG: Xóa loading state ngay lập tức ***
+    if (targetElement && targetElement.classList.contains('htmx-loading-target')) {
+        console.log('[HTMX Load] Force removing htmx-loading-target on restored element.');
+        targetElement.classList.remove('htmx-loading-target');
+    }
+    const mainContent = document.getElementById('main-content');
+    if (mainContent && mainContent.classList.contains('htmx-loading-target')) {
+         mainContent.classList.remove('htmx-loading-target');
+    }
+    const searchResults = document.getElementById('search-results-and-pagination');
+     if (searchResults && searchResults.classList.contains('htmx-loading-target')) {
+          searchResults.classList.remove('htmx-loading-target');
+     }
+    // *** KẾT THÚC BƯỚC XÓA LOADING STATE ***
+
+    // --- 1. Khởi tạo lại các chức năng TOÀN CỤC ---
+    console.log('[HTMX Load] Reinitializing global functions...');
+    initSidebar();
+    initAuthUI();
+    initCustomDropdowns();
+    initUIToggles();
+    initBackToTop();
+    initResponsive();
+    fixAccordionIssues();
+    adjustFooterPosition();
+    initTooltips();
+    createDefaultImage();
+
+    // --- 2. Khởi tạo lại các chức năng TRANG CỤ THỂ (Có điều kiện) ---
+    if (targetElement.querySelector('#searchForm')) {
+        console.log('[HTMX Load] Reinitializing Search Page...');
+        SearchModule.initSearchPage?.();
+        initTagsInSearchForm();
+        SearchModule.initPageGoTo?.();
+    } else if (targetElement.querySelector('.details-manga-header-background')) {
+        console.log('[HTMX Load] Reinitializing Manga Details Page...');
+        initMangaDetailsPage();
+    } else if (targetElement.querySelector('.chapter-reader-container') || targetElement.querySelector('#readingSidebar')) {
+        console.log('[HTMX Load] Reinitializing Chapter Read Page...');
+        initReadPage();
     } else {
-        // Người dùng chưa đăng nhập
-        if (guestUserMenu) guestUserMenu.classList.remove('d-none');
-        if (authenticatedUserMenu) authenticatedUserMenu.classList.add('d-none');
-        
-        // Ẩn tên người dùng
-        if (userNameDisplay) userNameDisplay.classList.add('d-none');
-        
-        // Đảm bảo hiển thị icon mặc định
-        if (userDropdownToggle) {
-            const icon = userDropdownToggle.querySelector('.user-icon');
-            if (icon) icon.style.display = '';
+        console.log('[HTMX Load] Reinitializing Home Page or other...');
+        const latestGrid = document.getElementById('latest-manga-grid');
+        if (latestGrid && latestGrid.innerHTML.includes('spinner')) {
+            console.log('[HTMX Load] Retriggering hx-trigger="load" for #latest-manga-grid');
+            setTimeout(() => htmx.trigger(latestGrid, 'load'), 50);
         }
     }
+
+    // --- 3. Khởi tạo lại các thành phần UI/Bootstrap chung ---
+    initializeBootstrapComponents(targetElement);
+
+    // --- 4. Điều chỉnh UI cuối cùng ---
+    adjustMangaTitles(targetElement);
+
+    console.log('[HTMX Load] Reinitialization complete.');
 }
 
-```
+/**
+ * Helper function to initialize Bootstrap components within a target element.
+ * This function now includes more robust error handling and logging.
+ */
+function initializeBootstrapComponents(targetElement) {
+    if (!targetElement || typeof targetElement.querySelectorAll !== 'function') {
+        console.warn('[Bootstrap Init] Invalid targetElement provided:', targetElement);
+        return;
+    }
+    console.log('[Bootstrap Init] Initializing components within:', targetElement);
 
-**Lưu ý cho `MangaReader_WebUI\wwwroot\js\modules\read-page.js`:**
-
-Hiện tại, div `SaveReadingProgress` đang tự động gửi request khi `load`. Chúng ta sẽ dựa vào kiểm tra ở server-side controller. Nếu sau này bạn muốn thêm logic client-side để *hoàn toàn* chặn request trước khi gửi (ví dụ, để không tạo request không cần thiết lên server), bạn sẽ cần:
-
-1.  Bỏ thuộc tính `hx-trigger="load"` khỏi div đó.
-2.  Trong `initReadPage()` hoặc một hàm tương tự của `read-page.js`:
-    *   Import `isUserAuthenticated` từ `auth.js`.
-    *   Kiểm tra `if (isUserAuthenticated()) { ... }`.
-    *   Nếu `true`, thì dùng `htmx.trigger('#yourDivId', 'saveProgressTrigger');` (bạn cần định nghĩa `saveProgressTrigger` trong `hx-trigger` của div, ví dụ `hx-trigger="saveProgressTrigger"`) để kích hoạt request.
-
-Tuy nhiên, với yêu cầu hiện tại, việc kiểm tra ở server là đủ và an toàn hơn.
-
-### Bước 1.2: Cập nhật Server-side (`MangaReader_WebUI\Controllers\ChapterController.cs`)
-
-**Mục tiêu:** Đảm bảo action `SaveReadingProgress` trong `ChapterController` kiểm tra trạng thái đăng nhập và trả về lỗi 401 nếu chưa đăng nhập.
-
-**Cách thực hiện:**
-
-1.  Mở file `MangaReader_WebUI\Controllers\ChapterController.cs`.
-2.  Trong phương thức `SaveReadingProgress`, thêm kiểm tra `_userService.IsAuthenticated()`.
-
-**File cập nhật:** `MangaReader_WebUI\Controllers\ChapterController.cs`
-
-```csharp
-// MangaReader_WebUI\Controllers\ChapterController.cs
-using MangaReader.WebUI.Models;
-using MangaReader.WebUI.Services.AuthServices;
-using MangaReader.WebUI.Services.MangaServices.ChapterServices;
-using MangaReader.WebUI.Services.UtilityServices;
-using Microsoft.AspNetCore.Mvc;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
-
-namespace MangaReader.WebUI.Controllers
-{
-    public class ChapterController : Controller
-    {
-        private readonly ILogger<ChapterController> _logger;
-        private readonly ChapterReadingServices _chapterReadingServices;
-        private readonly ViewRenderService _viewRenderService;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IUserService _userService;
-
-        public ChapterController(
-            ChapterReadingServices chapterReadingServices,
-            ViewRenderService viewRenderService,
-            ILogger<ChapterController> logger,
-            IHttpClientFactory httpClientFactory,
-            IUserService userService)
-        {
-            _chapterReadingServices = chapterReadingServices;
-            _viewRenderService = viewRenderService;
-            _logger = logger;
-            _httpClientFactory = httpClientFactory;
-            _userService = userService;
-        }
-
-        // GET: Chapter/Read/5
-        public async Task<IActionResult> Read(string id)
-        {
-            try
-            {
-                _logger.LogInformation($"Bắt đầu xử lý yêu cầu đọc chapter {id}");
-                
-                var viewModel = await _chapterReadingServices.GetChapterReadViewModel(id);
-                
-                // Sử dụng ViewRenderService để trả về view phù hợp với loại request
-                return _viewRenderService.RenderViewBasedOnRequest(this, "Read", viewModel);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Lỗi khi tải chapter: {ex.Message}");
-                ViewBag.ErrorMessage = $"Không thể tải chapter. Lỗi: {ex.Message}";
-                return View("Read", new ChapterReadViewModel());
-            }
-        }
+    // Dropdowns
+    targetElement.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(el => {
+        // Skip custom dropdowns
+        if (el.closest('.custom-user-dropdown')) return;
         
-        // GET: Chapter/GetChapterImagesPartial/5
-        public async Task<IActionResult> GetChapterImagesPartial(string id)
-        {
-            try
-            {
-                _logger.LogInformation($"Bắt đầu xử lý yêu cầu lấy ảnh cho chapter {id}");
-                
-                var viewModel = await _chapterReadingServices.GetChapterReadViewModel(id);
-                
-                return PartialView("_ChapterImagesPartial", viewModel.Pages);
+        const elId = el.id || el.tagName; // Use ID if available for logging
+        console.log(`[Bootstrap Init - Dropdown] Processing element: ${elId}`);
+        try {
+            var instance = bootstrap.Dropdown.getInstance(el);
+            if (instance) {
+                console.log(`[Bootstrap Init - Dropdown] Disposing existing instance for ${elId}`);
+                instance.dispose();
+            } else {
+                 console.log(`[Bootstrap Init - Dropdown] No existing instance found for ${elId}`);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Lỗi khi tải ảnh chapter: {ex.Message}");
-                return PartialView("_ChapterImagesPartial", new List<string>());
-            }
+            console.log(`[Bootstrap Init - Dropdown] Creating new instance for ${elId}`);
+            new bootstrap.Dropdown(el);
+        } catch (e) {
+            console.error(`[Bootstrap Init - Dropdown] Error re-initializing ${elId}:`, e);
         }
+    });
+    // Collapse
+    targetElement.querySelectorAll('[data-bs-toggle="collapse"]').forEach(el => {
+         try {
+            var instance = bootstrap.Collapse.getInstance(el);
+            if (instance) instance.dispose();
+            new bootstrap.Collapse(el);
+         } catch (e) { console.error("Error re-init Collapse:", e); }
+    });
+    // Tabs
+     targetElement.querySelectorAll('[data-bs-toggle="tab"]').forEach(el => {
+         try {
+            var instance = bootstrap.Tab.getInstance(el);
+            if (instance) instance.dispose();
+            new bootstrap.Tab(el);
+         } catch (e) { console.error("Error re-init Tab:", e); }
+     });
+    // Tooltips (được gọi riêng)
+    // initTooltips(); // Gọi lại nếu cần quét toàn bộ document
+}
 
-        [HttpPost]
-        public async Task<IActionResult> SaveReadingProgress(string mangaId, string chapterId)
-        {
-            _logger.LogInformation($"Nhận yêu cầu lưu tiến độ đọc: MangaId={mangaId}, ChapterId={chapterId}");
+/**
+ * Khởi tạo các sự kiện xử lý HTMX
+ */
+function initHtmxHandlers() {
+    console.log("Initializing generic HTMX handlers with loading state...");
 
-            if (!_userService.IsAuthenticated())
-            {
-                _logger.LogWarning("Người dùng chưa đăng nhập, không thể lưu tiến độ.");
-                // Trả về lỗi 401 Unauthorized nếu người dùng chưa đăng nhập
-                // HTMX sẽ xử lý lỗi này dựa trên cấu hình của nó (mặc định là không làm gì)
-                // hoặc có thể cấu hình hx-on::after-request="if(event.detail.failed && event.detail.xhr.status === 401) { // Xử lý ở đây }"
-                return Unauthorized(new { message = "Vui lòng đăng nhập để lưu tiến độ đọc." });
-            }
+    // Lưu trữ target element đang loading để xử lý lỗi
+    let loadingTargetElement = null;
 
-            var token = _userService.GetToken();
-            if (string.IsNullOrEmpty(token))
-            {
-                _logger.LogError("Không thể lấy token người dùng đã đăng nhập.");
-                return Unauthorized(new { message = "Phiên đăng nhập không hợp lệ." });
-            }
+    // Trước khi gửi request
+    htmx.on('htmx:beforeRequest', function (event) {
+        // Xác định phần tử target
+        const requestConfig = event.detail.requestConfig;
+        let targetElement = null;
 
-            try
-            {
-                var client = _httpClientFactory.CreateClient("BackendApiClient");
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-                var payload = new { mangaId = mangaId, lastChapter = chapterId };
-                var jsonPayload = JsonSerializer.Serialize(payload);
-                var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
-
-                var response = await client.PostAsync("/api/users/reading-progress", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    _logger.LogInformation($"Lưu tiến độ đọc thành công cho MangaId={mangaId}, ChapterId={chapterId}");
-                    return Ok();
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError($"Lỗi khi gọi API backend để lưu tiến độ đọc. Status: {response.StatusCode}, Content: {errorContent}");
-                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                    {
-                        _userService.RemoveToken(); // Xóa token không hợp lệ
-                        return Unauthorized(new { message = "Phiên đăng nhập hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại." });
+        // Ưu tiên lấy target từ requestConfig.target
+        if (requestConfig.target) {
+            // Kiểm tra xem requestConfig.target là chuỗi selector hay đối tượng DOM
+            if (typeof requestConfig.target === 'string') {
+                try {
+                    // Cố gắng querySelector với chuỗi target
+                    targetElement = document.querySelector(requestConfig.target);
+                    if (!targetElement) {
+                         console.warn(`[HTMX BeforeRequest] Target element not found for selector: ${requestConfig.target}`);
                     }
-                    return StatusCode((int)response.StatusCode, $"Lỗi từ backend: {response.ReasonPhrase} - {errorContent}");
+                } catch (e) {
+                     // Nếu querySelector lỗi (selector không hợp lệ), ghi log và fallback
+                     console.error(`[HTMX BeforeRequest] Invalid selector provided for target: '${requestConfig.target}'`, e);
+                     targetElement = event.detail.elt; // Fallback về phần tử kích hoạt
+                     console.log('[HTMX BeforeRequest] Fallback target to triggering element due to invalid selector:', targetElement);
                 }
+            } else if (requestConfig.target instanceof Element) {
+                // Nếu requestConfig.target đã là một đối tượng DOM
+                targetElement = requestConfig.target;
+                console.log('[HTMX BeforeRequest] Target is already a DOM element:', targetElement);
+            } else {
+                 // Trường hợp target không phải chuỗi cũng không phải Element
+                 console.warn('[HTMX BeforeRequest] requestConfig.target is neither a string nor an Element:', requestConfig.target);
+                 targetElement = event.detail.elt; // Fallback về phần tử kích hoạt
+                 console.log('[HTMX BeforeRequest] Fallback target to triggering element:', targetElement);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Lỗi ngoại lệ khi lưu tiến độ đọc cho MangaId={mangaId}, ChapterId={chapterId}");
-                return StatusCode(500, "Lỗi máy chủ nội bộ khi lưu tiến độ đọc.");
-            }
-        }
-    }
-}
-```
-
-## Mục 2: Bỏ qua truyện không tìm thấy trong Theo dõi/Lịch sử
-
-### Bước 2.1: Cập nhật `FollowedMangaService.cs`
-
-**Mục tiêu:** Khi lấy danh sách truyện đang theo dõi, nếu không tìm thấy thông tin của một manga (ví dụ, manga đã bị xóa ở nguồn), thì bỏ qua manga đó và tiếp tục xử lý các manga khác, không dừng lại hoặc báo lỗi toàn bộ.
-
-**Cách thực hiện:**
-
-1.  Mở file `MangaReader_WebUI\Services\MangaServices\FollowedMangaService.cs`.
-2.  Trong vòng lặp `foreach (var mangaId in user.FollowingManga)`, sau khi gọi `_mangaInfoService.GetMangaInfoAsync(mangaId)`, kiểm tra xem `mangaInfo` có `null` không. Nếu `null`, ghi log cảnh báo và sử dụng `continue` để chuyển sang manga tiếp theo.
-
-**File cập nhật:** `MangaReader_WebUI\Services\MangaServices\FollowedMangaService.cs`
-
-```csharp
-// MangaReader_WebUI\Services\MangaServices\FollowedMangaService.cs
-using MangaReader.WebUI.Models.Auth;
-using MangaReader.WebUI.Services.AuthServices;
-using MangaReader.WebUI.Services.MangaServices.ChapterServices;
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
-using MangaReader.WebUI.Services.MangaServices.Models;
-
-namespace MangaReader.WebUI.Services.MangaServices
-{
-    public class FollowedMangaService : IFollowedMangaService
-    {
-        private readonly IUserService _userService;
-        private readonly IMangaInfoService _mangaInfoService; 
-        private readonly ChapterService _chapterService; 
-        private readonly ILogger<FollowedMangaService> _logger;
-        private readonly TimeSpan _rateLimitDelay = TimeSpan.FromMilliseconds(550); 
-        private readonly IFollowedMangaViewModelMapper _followedMangaMapper;
-
-        public FollowedMangaService(
-            IUserService userService,
-            IMangaInfoService mangaInfoService, 
-            ChapterService chapterService,
-            ILogger<FollowedMangaService> logger,
-            IFollowedMangaViewModelMapper followedMangaMapper)
-        {
-            _userService = userService;
-            _mangaInfoService = mangaInfoService; 
-            _chapterService = chapterService;
-            _logger = logger;
-            // _rateLimitDelay = TimeSpan.FromMilliseconds(550); // Đã có sẵn
-            _followedMangaMapper = followedMangaMapper;
+        } else {
+            // Nếu không có target rõ ràng, sử dụng phần tử kích hoạt
+            targetElement = event.detail.elt;
+            console.log('[HTMX BeforeRequest] No explicit target found, using triggering element:', targetElement);
         }
 
-        public async Task<List<FollowedMangaViewModel>> GetFollowedMangaListAsync()
-        {
-            var followedMangaList = new List<FollowedMangaViewModel>();
+        // Chỉ thêm class loading nếu targetElement là một Element hợp lệ
+        if (targetElement instanceof Element) {
+            console.log(`[HTMX BeforeRequest] Adding htmx-loading-target to:`, targetElement);
+            targetElement.classList.add('htmx-loading-target');
+            loadingTargetElement = targetElement; // Lưu lại target đang load
+        } else {
+            console.warn('[HTMX BeforeRequest] Could not determine a valid target element for loading state. Target:', targetElement);
+            loadingTargetElement = null;
+        }
 
-            if (!_userService.IsAuthenticated())
-            {
-                _logger.LogWarning("Người dùng chưa đăng nhập, không thể lấy danh sách theo dõi.");
-                return followedMangaList; 
-            }
+        // Xử lý spinner toàn cục (nếu vẫn muốn giữ lại cho main-content)
+        if (targetElement && targetElement.id === 'main-content') {
+             const mainSpinner = document.getElementById('content-loading-spinner');
+             if (mainSpinner) mainSpinner.style.display = 'block';
+        }
+    });
 
-            try
-            {
-                UserModel user = await _userService.GetUserInfoAsync();
-                if (user == null || user.FollowingManga == null || !user.FollowingManga.Any())
-                {
-                    _logger.LogInformation("Người dùng không theo dõi manga nào.");
-                    return followedMangaList;
-                }
+     // Sau khi swap xong nội dung
+     htmx.on('htmx:afterSwap', function (event) {
+        const swappedElement = event.detail.target; // Phần tử đã được swap
 
-                _logger.LogInformation($"Người dùng đang theo dõi {user.FollowingManga.Count} manga. Bắt đầu lấy thông tin...");
+        if (swappedElement && swappedElement instanceof Element) {
+            console.log(`[HTMX AfterSwap] Removing htmx-loading-target from swapped:`, swappedElement);
+            // Xóa class loading state khỏi phần tử MỚI được swap vào
+            swappedElement.classList.remove('htmx-loading-target');
+        } else {
+             console.warn('[HTMX AfterSwap] Swapped target is not a valid Element:', swappedElement);
+        }
 
-                foreach (var mangaId in user.FollowingManga)
-                {
-                    try
-                    {
-                        await Task.Delay(_rateLimitDelay);
-                        var mangaInfo = await _mangaInfoService.GetMangaInfoAsync(mangaId);
+        // Khởi tạo lại JS cho nội dung mới (Quan trọng - Giữ lại dòng này)
+        reinitializeAfterHtmxSwap(swappedElement);
 
-                        if (mangaInfo == null) 
-                        {
-                             _logger.LogWarning($"Không thể lấy thông tin cơ bản cho manga ID: {mangaId} trong danh sách theo dõi. Bỏ qua manga này.");
-                             continue; // Bỏ qua manga này và tiếp tục vòng lặp
+        loadingTargetElement = null; // Reset target đang load
+    });
+
+    // Sau khi request hoàn tất (thành công hoặc lỗi) - Dọn dẹp nếu swap không xảy ra
+    htmx.on('htmx:afterRequest', function(event) {
+        // Ẩn spinner toàn cục (nếu có)
+        const mainSpinner = document.getElementById('content-loading-spinner');
+        if (mainSpinner) mainSpinner.style.display = 'none';
+
+        // *** LUÔN kiểm tra và xóa loading state khỏi target đã lưu ***
+        if (loadingTargetElement && loadingTargetElement instanceof Element && loadingTargetElement.classList.contains('htmx-loading-target')) {
+            console.warn(`[HTMX AfterRequest] Cleaning up potentially stuck loading state from:`, loadingTargetElement, `(Request Success: ${event.detail.successful})`);
+            loadingTargetElement.classList.remove('htmx-loading-target');
+        }
+        // *** KẾT THÚC KIỂM TRA VÀ XÓA ***
+
+        loadingTargetElement = null; // Reset target đang load
+    });
+
+    // Xử lý lỗi response (trước khi swap)
+    htmx.on('htmx:responseError', function(event) {
+        console.error("HTMX response error:", event.detail.xhr);
+        const xhr = event.detail.xhr;
+        const requestPath = event.detail.requestConfig?.path || '';
+
+        // Nếu có target đang loading, xóa trạng thái loading
+        if (loadingTargetElement && loadingTargetElement instanceof Element) {
+            console.warn('[HTMX ResponseError] Removing loading state due to response error from:', loadingTargetElement);
+            loadingTargetElement.classList.remove('htmx-loading-target');
+            loadingTargetElement = null; // Reset
+        }
+
+        // <<< START: THAY ĐỔI LOGIC HIỂN THỊ TOAST LỖI >>>
+        // Kiểm tra điều kiện để bỏ qua thông báo lỗi 401 cho SaveReadingProgress
+        if (requestPath.includes('/Chapter/SaveReadingProgress') && xhr.status === 401) {
+            console.warn('[HTMX ResponseError] Ignored 401 error for /Chapter/SaveReadingProgress. User likely not logged in.');
+            // Không hiển thị toast cho trường hợp này
+        } else {
+            // Hiển thị toast lỗi cho các trường hợp khác (nếu có)
+            if (window.showToast) {
+                let errorMessage = 'Đã xảy ra lỗi khi tải nội dung. Vui lòng thử lại.';
+                // Cố gắng lấy thông tin lỗi chi tiết hơn từ server nếu có
+                if (xhr.responseText) {
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        if (errorData && errorData.errors && errorData.errors.length > 0) {
+                            errorMessage = errorData.errors.map(e => e.detail || e.title).join('\n');
+                        } else if (errorData && errorData.title) { // Xử lý trường hợp lỗi đơn lẻ như ApiError
+                            errorMessage = errorData.detail || errorData.title;
                         }
-
-                        await Task.Delay(_rateLimitDelay);
-                        var latestChapters = await _chapterService.GetLatestChaptersAsync(mangaId, 3, "vi,en");
-
-                        var followedMangaViewModel = _followedMangaMapper.MapToFollowedMangaViewModel(mangaInfo, latestChapters ?? new List<SimpleChapterInfo>());
-                        followedMangaList.Add(followedMangaViewModel);
-                        _logger.LogDebug($"Đã xử lý xong manga trong danh sách theo dõi: {mangaInfo.MangaTitle}");
-
-                    }
-                    catch (Exception mangaEx)
-                    {
-                        _logger.LogError(mangaEx, $"Lỗi khi xử lý manga ID: {mangaId} trong danh sách theo dõi.");
-                        // Bỏ qua manga bị lỗi và tiếp tục với manga tiếp theo
+                    } catch (e) {
+                        // Bỏ qua nếu không parse được JSON, giữ errorMessage mặc định
+                        console.warn("[HTMX ResponseError] Could not parse JSON from error responseText for toast.");
                     }
                 }
-
-                _logger.LogInformation($"Hoàn tất lấy thông tin cho {followedMangaList.Count} truyện đang theo dõi.");
-                return followedMangaList;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Lỗi nghiêm trọng khi lấy danh sách truyện đang theo dõi.");
-                return new List<FollowedMangaViewModel>();
+                window.showToast('Lỗi', errorMessage, 'error');
             }
         }
-    }
+        // <<< END: THAY ĐỔI LOGIC HIỂN THỊ TOAST LỖI >>>
+    });
+
+     // Xử lý lỗi swap (sau khi nhận response nhưng trước khi swap)
+     htmx.on('htmx:swapError', function(event) {
+        console.error("HTMX swap error:", event.detail.error);
+
+        // Nếu có target đang loading, xóa trạng thái loading
+        if (loadingTargetElement && loadingTargetElement instanceof Element) {
+            console.warn('[HTMX SwapError] Removing loading state due to swap error from:', loadingTargetElement);
+            loadingTargetElement.classList.remove('htmx-loading-target');
+            loadingTargetElement = null; // Reset
+        }
+
+        // Hiển thị toast lỗi (nếu có)
+         if (window.showToast) {
+             window.showToast('Lỗi', 'Đã xảy ra lỗi khi cập nhật giao diện.', 'error');
+         }
+     });
+    
+    // *** LẮNG NGHE SỰ KIỆN htmx:load CHO HISTORY NAVIGATION ***
+    htmx.on('htmx:load', function(event) {
+        // event.detail.elt thường là body hoặc container chính được khôi phục
+        const restoredElement = event.detail.elt;
+        if (restoredElement) {
+            console.log('[HTMX Load] Content restored via history navigation into:', restoredElement);
+            // Gọi hàm khởi tạo lại cho nội dung được khôi phục
+            reinitializeAfterHtmxLoad(restoredElement);
+
+            // Xóa loading state nếu còn sót lại (ít khả năng xảy ra với htmx:load)
+            if (restoredElement.classList.contains('htmx-loading-target')) {
+                restoredElement.classList.remove('htmx-loading-target');
+            }
+        } else {
+            console.warn('[HTMX Load] No element found in event detail.');
+        }
+        loadingTargetElement = null; // Reset target đang load
+    });
+    // *** KẾT THÚC LẮNG NGHE htmx:load ***
+
+    // Bắt sự kiện popstate (nếu cần cập nhật UI khác)
+    window.addEventListener('popstate', function() {
+        updateActiveSidebarLink();
+    });
+
+    console.log("Generic HTMX Handlers Initialized.");
 }
+
+// Export các hàm cần thiết
+export { initHtmxHandlers, reinitializeAfterHtmxLoad, reinitializeAfterHtmxSwap };
 ```
 
-### Bước 2.2: Cập nhật `ReadingHistoryService.cs`
+**Giải thích thay đổi:**
+
+Trong hàm xử lý sự kiện `htmx:responseError`:
+1.  Lấy thông tin về request `xhr` và đường dẫn `requestPath` từ `event.detail`.
+2.  Thêm điều kiện kiểm tra:
+    ```javascript
+    if (requestPath.includes('/Chapter/SaveReadingProgress') && xhr.status === 401)
+    ```
+    *   `requestPath.includes('/Chapter/SaveReadingProgress')`: Kiểm tra xem đường dẫn của request có chứa chuỗi `/Chapter/SaveReadingProgress` hay không. Sử dụng `includes` thay vì so sánh bằng (`===`) để linh hoạt hơn với các prefix URL có thể có.
+    *   `xhr.status === 401`: Kiểm tra xem mã trạng thái của lỗi có phải là 401 (Unauthorized) không.
+3.  Nếu cả hai điều kiện trên đều đúng:
+    *   Một thông báo cảnh báo được ghi ra console (`console.warn`) để thông báo rằng lỗi 401 này đã được bỏ qua.
+    *   Lệnh gọi `window.showToast` được bỏ qua, do đó không có thông báo lỗi nào được hiển thị cho người dùng.
+4.  Nếu một trong hai điều kiện trên không đúng (hoặc cả hai đều không đúng):
+    *   Logic hiển thị toast lỗi chung vẫn được thực thi như cũ.
+    *   Thêm vào đó, cố gắng parse `xhr.responseText` để lấy thông điệp lỗi chi tiết hơn từ server nếu có, giúp người dùng hiểu rõ hơn về các lỗi khác.
+
+---
+
+## Bước 2: Kiểm tra
+
+Sau khi áp dụng thay đổi, bạn cần kiểm tra để đảm bảo chức năng hoạt động đúng như mong đợi:
+
+1.  **Trường hợp lỗi 401 từ `/Chapter/SaveReadingProgress` (Người dùng chưa đăng nhập):**
+    *   Mở trình duyệt ở chế độ ẩn danh hoặc đăng xuất khỏi tài khoản.
+    *   Truy cập vào một trang đọc truyện bất kỳ.
+    *   Mở Developer Console (thường là F12) và chuyển sang tab "Console".
+    *   **Kết quả mong đợi:**
+        *   **Không có** thông báo toast lỗi "Đã xảy ra lỗi khi tải nội dung. Vui lòng thử lại." xuất hiện trên giao diện.
+        *   Trong tab "Console", bạn sẽ thấy một dòng log tương tự như: `[HTMX ResponseError] Ignored 401 error for /Chapter/SaveReadingProgress. User likely not logged in.`
+        *   Trong tab "Network", bạn vẫn sẽ thấy request đến `/Chapter/SaveReadingProgress` thất bại với mã lỗi 401.
+
+2.  **Trường hợp lỗi khác (Ví dụ: Lỗi mạng hoặc lỗi server khác):**
+    *   Mô phỏng một lỗi mạng (ví dụ: ngắt kết nối mạng tạm thời) hoặc một lỗi server khác (nếu có thể).
+    *   Thực hiện một thao tác HTMX bất kỳ (ví dụ: chuyển trang trong danh sách tìm kiếm, tải lại một phần của trang chi tiết truyện).
+    *   **Kết quả mong đợi:**
+        *   Thông báo toast lỗi "Đã xảy ra lỗi khi tải nội dung. Vui lòng thử lại." (hoặc thông báo lỗi chi tiết hơn từ server nếu có) **vẫn phải xuất hiện** như bình thường.
+
+Việc kiểm tra kỹ lưỡng cả hai trường hợp sẽ đảm bảo rằng bạn chỉ bỏ qua đúng lỗi mong muốn và không ảnh hưởng đến việc xử lý các lỗi hợp lệ khác.
+```
 
 **Mục tiêu:** Tương tự như `FollowedMangaService`, khi lấy lịch sử đọc, nếu không tìm thấy thông tin của manga hoặc chapter, bỏ qua mục đó và tiếp tục.
 

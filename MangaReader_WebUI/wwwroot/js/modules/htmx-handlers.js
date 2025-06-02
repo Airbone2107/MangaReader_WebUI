@@ -312,6 +312,8 @@ function initHtmxHandlers() {
     // Xử lý lỗi response (trước khi swap)
     htmx.on('htmx:responseError', function(event) {
         console.error("HTMX response error:", event.detail.xhr);
+        const xhr = event.detail.xhr;
+        const requestPath = event.detail.requestConfig?.path || '';
 
         // Nếu có target đang loading, xóa trạng thái loading
         if (loadingTargetElement && loadingTargetElement instanceof Element) {
@@ -320,9 +322,30 @@ function initHtmxHandlers() {
             loadingTargetElement = null; // Reset
         }
 
-        // Hiển thị toast lỗi (nếu có)
-        if (window.showToast) {
-            window.showToast('Lỗi', 'Đã xảy ra lỗi khi tải nội dung. Vui lòng thử lại.', 'error');
+        // Kiểm tra điều kiện để bỏ qua thông báo lỗi 401 cho SaveReadingProgress
+        if (requestPath.includes('/Chapter/SaveReadingProgress') && xhr.status === 401) {
+            console.warn('[HTMX ResponseError] Ignored 401 error for /Chapter/SaveReadingProgress. User likely not logged in.');
+            // Không hiển thị toast cho trường hợp này
+        } else {
+            // Hiển thị toast lỗi cho các trường hợp khác (nếu có)
+            if (window.showToast) {
+                let errorMessage = 'Đã xảy ra lỗi khi tải nội dung. Vui lòng thử lại.';
+                // Cố gắng lấy thông tin lỗi chi tiết hơn từ server nếu có
+                if (xhr.responseText) {
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        if (errorData && errorData.errors && errorData.errors.length > 0) {
+                            errorMessage = errorData.errors.map(e => e.detail || e.title).join('\n');
+                        } else if (errorData && errorData.title) { // Xử lý trường hợp lỗi đơn lẻ như ApiError
+                            errorMessage = errorData.detail || errorData.title;
+                        }
+                    } catch (e) {
+                        // Bỏ qua nếu không parse được JSON, giữ errorMessage mặc định
+                        console.warn("[HTMX ResponseError] Could not parse JSON from error responseText for toast.");
+                    }
+                }
+                window.showToast('Lỗi', errorMessage, 'error');
+            }
         }
     });
 

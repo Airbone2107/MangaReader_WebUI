@@ -52,7 +52,7 @@ namespace MangaReader.WebUI.Services.MangaServices
             _configuration = configuration;
             _logger = logger;
             // Lấy giá trị delay từ config hoặc đặt mặc định (vd: 550ms)
-            _rateLimitDelay = TimeSpan.FromMilliseconds(configuration.GetValue<int>("ApiRateLimitDelayMs", 550));
+            _rateLimitDelay = TimeSpan.FromMilliseconds(configuration.GetValue<int>("ApiRateLimitDelayMs", 250));
             _lastReadMapper = lastReadMapper;
             _chapterSimpleInfoMapper = chapterSimpleInfoMapper;
             _mangaDataExtractor = mangaDataExtractor;
@@ -108,53 +108,46 @@ namespace MangaReader.WebUI.Services.MangaServices
 
                 foreach (var item in backendHistory)
                 {
-                    // Áp dụng rate limit trước khi gọi API cho mỗi item
                     await Task.Delay(_rateLimitDelay);
 
-                    // Lấy thông tin Manga (Title, Cover)
                     var mangaInfo = await _mangaInfoService.GetMangaInfoAsync(item.MangaId);
                     if (mangaInfo == null)
                     {
-                        _logger.LogWarning($"Không thể lấy thông tin cho MangaId: {item.MangaId}. Bỏ qua mục lịch sử này.");
-                        continue; // Bỏ qua nếu không lấy được info manga
+                        _logger.LogWarning($"Không thể lấy thông tin cho MangaId: {item.MangaId} trong lịch sử đọc. Bỏ qua mục này.");
+                        continue; 
                     }
 
-                    // Lấy thông tin Chapter (Title, PublishedAt)
                     ChapterInfo chapterInfo = null;
                     try 
                     {
-                        // Gọi API để lấy thông tin chapter
                         var chapterResponse = await _chapterApiService.FetchChapterInfoAsync(item.ChapterId);
                         if (chapterResponse?.Result != "ok" || chapterResponse.Data == null)
                         {
-                            _logger.LogWarning($"Không tìm thấy chapter với ID: {item.ChapterId} hoặc API lỗi.");
-                            continue; // Bỏ qua nếu không lấy được info chapter
+                            _logger.LogWarning($"Không tìm thấy chapter với ID: {item.ChapterId} trong lịch sử đọc hoặc API lỗi. Bỏ qua mục này.");
+                            continue; 
                         }
                         
-                        // Sử dụng mapper để xử lý dữ liệu
-                        var simpleInfo = _chapterSimpleInfoMapper.MapToSimpleChapterInfo(chapterResponse.Data);
-                        
-                        // Chuyển từ SimpleChapterInfo sang ChapterInfo để tương thích với mapper
+                        // Sử dụng _chapterSimpleInfoMapper để lấy thông tin đơn giản
+                        var simpleChapter = _chapterSimpleInfoMapper.MapToSimpleChapterInfo(chapterResponse.Data);
                         chapterInfo = new ChapterInfo
                         {
                             Id = item.ChapterId,
-                            Title = simpleInfo.DisplayTitle,
-                            PublishedAt = simpleInfo.PublishedAt
+                            Title = simpleChapter.DisplayTitle, // DisplayTitle đã được format
+                            PublishedAt = simpleChapter.PublishedAt
                         };
                     }
                     catch (Exception ex) 
                     {
-                        _logger.LogError(ex, $"Lỗi khi lấy thông tin chapter {item.ChapterId}");
-                        continue; // Bỏ qua nếu có lỗi xảy ra
+                        _logger.LogError(ex, $"Lỗi khi lấy thông tin chapter {item.ChapterId} trong lịch sử đọc. Bỏ qua mục này.");
+                        continue; 
                     }
                     
-                    if (chapterInfo == null)
+                    if (chapterInfo == null) // Kiểm tra lại sau try-catch
                     {
-                        _logger.LogWarning($"Không thể lấy thông tin cho ChapterId: {item.ChapterId}. Bỏ qua mục lịch sử này.");
-                        continue; // Bỏ qua nếu không lấy được info chapter
+                        _logger.LogWarning($"Thông tin Chapter cho ChapterId: {item.ChapterId} vẫn null sau khi thử lấy. Bỏ qua mục lịch sử này.");
+                        continue; 
                     }
 
-                    // Sử dụng mapper mới
                     var historyViewModel = _lastReadMapper.MapToLastReadMangaViewModel(mangaInfo, chapterInfo, item.LastReadAt);
                     historyViewModels.Add(historyViewModel);
                     
@@ -162,19 +155,18 @@ namespace MangaReader.WebUI.Services.MangaServices
                 }
 
                 _logger.LogInformation($"Hoàn tất xử lý {historyViewModels.Count} mục lịch sử đọc.");
-                // Backend đã sắp xếp, không cần sắp xếp lại ở đây
                 return historyViewModels;
 
             }
             catch (JsonException jsonEx)
             {
                  _logger.LogError(jsonEx, "Lỗi khi deserialize lịch sử đọc từ backend.");
-                 return historyViewModels; // Trả về rỗng nếu lỗi deserialize
+                 return historyViewModels; 
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi ngoại lệ khi lấy và xử lý lịch sử đọc.");
-                return historyViewModels; // Trả về rỗng nếu có lỗi khác
+                return historyViewModels; 
             }
         }
     }
