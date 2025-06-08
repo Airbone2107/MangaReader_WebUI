@@ -952,7 +952,7 @@ Tài nguyên Chapter đại diện cho một chương cụ thể của một `Tr
               "type": "chapter_page",
               "attributes": {
                 "pageNumber": 1,
-                "publicId": "chapters/chapter_guid/pages/1.jpg" // Public ID trên Cloudinary
+                "publicId": "chapters/123e4567-e89b-12d3-a456-426614174000/pages/dcb7e89b-12d3-a456-426614174000" // Public ID trên Cloudinary
               },
               "relationships": [
                 { "id": "123e4567-e89b-12d3-a456-426614174000", "type": "chapter" }
@@ -966,13 +966,93 @@ Tài nguyên Chapter đại diện cho một chương cụ thể của một `Tr
         ```
     *   `404 Not Found` (Nếu `chapterId` không tồn tại)
 
+#### 6.6.8. `POST /Chapters/{chapterId}/pages/batch` (MỚI)
+
+*   **Mô tả:** Upload hàng loạt các trang ảnh mới cho một chương truyện. Mỗi file ảnh cần được đi kèm với số trang mong muốn. Các trang được tạo tuần tự và ảnh được upload lên Cloudinary.
+*   **Request Parameters:**
+    *   `chapterId`: (Path Parameter, GUID, Bắt buộc) Định danh duy nhất của chương mà các trang này thuộc về.
+*   **Request Body:** `multipart/form-data`
+    *   `files`: (Mảng `IFormFile`, Bắt buộc) Danh sách các file ảnh cần upload.
+    *   `pageNumbers`: (Mảng `int`, Bắt buộc) Danh sách số trang tương ứng với từng file trong `files`. Số lượng và thứ tự phải khớp với `files`. Số trang phải lớn hơn 0 và duy nhất trong chương.
+*   **Responses:**
+    *   `201 Created` (Trả về `ApiResponse` với `List<ChapterPageAttributesDto>` của các trang mới được tạo và upload)
+        ```json
+        {
+          "result": "ok",
+          "response": "entity", // Hoặc "collection" nếu bạn muốn
+          "data": [
+            {
+              "pageNumber": 1,
+              "publicId": "chapters/guid-chapter-id/pages/guid-page-1-id"
+            },
+            {
+              "pageNumber": 2,
+              "publicId": "chapters/guid-chapter-id/pages/guid-page-2-id"
+            }
+          ]
+        }
+        ```
+    *   `400 Bad Request` (Nếu `files` hoặc `pageNumbers` trống, số lượng không khớp, file không hợp lệ, `pageNumber` không hợp lệ hoặc đã tồn tại).
+    *   `404 Not Found` (Nếu `chapterId` không tồn tại).
+    *   `500 Internal Server Error` (Nếu có lỗi trong quá trình upload hoặc lưu DB).
+
+#### 6.6.9. `PUT /Chapters/{chapterId}/pages` (MỚI)
+
+*   **Mô tả:** Đồng bộ hóa toàn bộ danh sách trang của một chương truyện. Endpoint này cho phép thêm mới trang, cập nhật trang hiện có (thay đổi thứ tự hoặc thay thế ảnh) và xóa các trang không còn trong danh sách yêu cầu.
+*   **Request Parameters:**
+    *   `chapterId`: (Path Parameter, GUID, Bắt buộc) Định danh duy nhất của chương.
+*   **Request Body:** `multipart/form-data`
+    *   `pageOperationsJson`: (Chuỗi JSON, Bắt buộc) Một chuỗi JSON chứa một mảng các đối tượng `PageOperationDto`.
+        *   **Cấu trúc `PageOperationDto`:**
+            ```json
+            {
+              "pageId": "guid-cua-trang-neu-la-update", // (GUID, Tùy chọn) ID của trang hiện tại. Để null/trống nếu là trang mới.
+              "pageNumber": 1, // (Số nguyên, Bắt buộc) Số trang mong muốn (thứ tự mới). Phải lớn hơn 0 và duy nhất trong chapter.
+              "fileIdentifier": "file_key_1" // (Chuỗi, Tùy chọn) Tên định danh của file trong form-data (nếu trang này là mới hoặc cần thay thế ảnh).
+                                            // Để null/trống nếu không thay đổi ảnh của trang hiện tại (chỉ thay đổi PageNumber).
+            }
+            ```
+    *   `files`: (`IFormFileCollection`, Tùy chọn) Tập hợp các file ảnh mới hoặc cần thay thế. **Tên (key) của mỗi file trong `IFormFileCollection` phải khớp với giá trị `fileIdentifier`** trong `PageOperationDto` tương ứng.
+*   **Logic Xử Lý:**
+    1.  Các `ChapterPage` hiện có trong DB mà `PageId` không xuất hiện trong `pageOperationsJson` sẽ bị **XÓA**.
+    2.  Đối với mỗi `PageOperationDto`:
+        *   Nếu `pageId` được cung cấp và tồn tại trong DB:
+            *   `PageNumber` của trang sẽ được cập nhật thành `pageNumber` trong DTO.
+            *   Nếu `fileIdentifier` được cung cấp và có file tương ứng trong `files`, ảnh của trang sẽ được **THAY THẾ**. `PublicId` trên Cloudinary sẽ được ghi đè.
+        *   Nếu `pageId` là `null` hoặc không tồn tại trong DB (và `fileIdentifier` phải được cung cấp cùng file tương ứng):
+            *   Một `ChapterPage` mới sẽ được **TẠO RA** với `PageNumber` từ DTO.
+            *   Ảnh từ `fileIdentifier` sẽ được upload.
+            *   `PageId` sẽ được tạo tự động.
+*   **Responses:**
+    *   `200 OK` (Trả về `ApiResponse` với `List<ChapterPageAttributesDto>` của danh sách các trang cuối cùng của chapter sau khi đồng bộ)
+        ```json
+        {
+          "result": "ok",
+          "response": "entity", // Hoặc "collection"
+          "data": [ // Danh sách các trang sau khi đồng bộ, đã sắp xếp theo PageNumber
+            {
+              "pageNumber": 1,
+              "publicId": "chapters/guid-chapter-id/pages/guid-page-A-id"
+            },
+            {
+              "pageNumber": 2,
+              "publicId": "chapters/guid-chapter-id/pages/guid-page-B-id"
+            }
+            // ...
+          ]
+        }
+        ```
+    *   `400 Bad Request` (Nếu JSON không hợp lệ, `pageNumber` không hợp lệ/trùng lặp, `fileIdentifier` được yêu cầu nhưng không có file, hoặc các lỗi validation khác).
+    *   `404 Not Found` (Nếu `chapterId` không tồn tại).
+    *   `500 Internal Server Error`.
+
 ### 6.7. ChapterPages (Trang Chương)
 
 Tài nguyên ChapterPage đại diện cho một trang ảnh cụ thể trong một chương.
 
 #### 6.7.1. `POST /chapterpages/{pageId}/image`
 
-*   **Mô tả:** Upload ảnh cho một `ChapterPage` entry đã tồn tại. Public ID trên Cloudinary sẽ được tạo dựa trên ChapterId và PageNumber. Nếu ảnh đã tồn tại cho PageId đó, ảnh cũ sẽ bị xóa và ảnh mới sẽ được ghi đè.
+*   **Mô tả:** Upload ảnh cho một `ChapterPage` entry đã tồn tại. Public ID trên Cloudinary sẽ được tạo dựa trên `ChapterId` và `PageId`. Nếu ảnh đã tồn tại cho `PageId` đó, ảnh cũ sẽ được ghi đè.
 *   **Request Parameters:**
     *   `pageId`: (Path Parameter, GUID, Bắt buộc) Định danh duy nhất của `ChapterPage` entry đã được tạo trước đó.
 *   **Request Body:** `multipart/form-data`
@@ -984,7 +1064,7 @@ Tài nguyên ChapterPage đại diện cho một trang ảnh cụ thể trong m�
           "result": "ok",
           "response": "entity",
           "data": {
-            "publicId": "chapters/123e4567-e89b-12d3-a456-426614174000/pages/1.jpg" // Public ID của ảnh trên Cloudinary
+            "publicId": "chapters/guid-chapter-id/pages/guid-page-id" // Public ID của ảnh trên Cloudinary (không có đuôi file)
           }
         }
         ```
@@ -1042,7 +1122,7 @@ Tài nguyên CoverArt đại diện cho một ảnh bìa của một Manga.
             "type": "cover_art",
             "attributes": {
               "volume": "Vol. 1",
-              "publicId": "mangas_v2/manga_guid/covers/Vol._1_uniqueid.jpg", // Public ID trên Cloudinary
+              "publicId": "mangas_v2/manga_guid/covers/Vol._1_uniqueid", // Public ID trên Cloudinary (không có đuôi file)
               "description": "Ảnh bìa tập 1.",
               "createdAt": "2023-10-27T10:00:00Z",
               "updatedAt": "2023-10-27T10:00:00Z"
@@ -1173,5 +1253,4 @@ Thay đổi này được thực hiện để:
 * Kiểm tra và cập nhật tất cả các nơi trong code Frontend đang gửi hoặc nhận các trường Enum liên quan.
 * Đảm bảo các model hoặc interface ở Frontend được cập nhật để phản ánh rằng các trường này giờ đây là `string` thay vì `number`.
 * Thực hiện kiểm thử kỹ lưỡng các luồng dữ liệu liên quan đến Manga và các thực thể có sử dụng Enum.
-
 ```

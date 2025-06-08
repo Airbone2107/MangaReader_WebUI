@@ -1,5 +1,9 @@
 using MangaReaderLib.DTOs.Chapters;
 using MangaReaderLib.DTOs.Common;
+using System.IO;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MangaReaderLib.Services.Interfaces
 {
@@ -46,6 +50,24 @@ namespace MangaReaderLib.Services.Interfaces
         /// </summary>
         Task DeleteChapterAsync(
             Guid chapterId,
+            CancellationToken cancellationToken = default);
+            
+        /// <summary>
+        /// Upload hàng loạt các trang cho một chapter
+        /// </summary>
+        Task<ApiResponse<List<ChapterPageAttributesDto>>?> BatchUploadChapterPagesAsync(
+            Guid chapterId,
+            IEnumerable<(Stream stream, string fileName, string contentType)> files,
+            IEnumerable<int> pageNumbers,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Đồng bộ hóa các trang của một chapter
+        /// </summary>
+        Task<ApiResponse<List<ChapterPageAttributesDto>>?> SyncChapterPagesAsync(
+            Guid chapterId,
+            string pageOperationsJson, 
+            IDictionary<string, (Stream stream, string fileName, string contentType)>? files,
             CancellationToken cancellationToken = default);
     }
 } 

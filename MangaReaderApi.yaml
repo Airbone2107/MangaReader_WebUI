@@ -1053,6 +1053,226 @@
             }
           }
         }
+      },
+      "put": {
+        "tags": [
+          "Chapters"
+        ],
+        "parameters": [
+          {
+            "name": "chapterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pageOperationsJson": {
+                    "type": "string"
+                  },
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              },
+              "encoding": {
+                "pageOperationsJson": {
+                  "style": "form"
+                },
+                "files": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterPageAttributesDtoListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterPageAttributesDtoListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterPageAttributesDtoListApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/Chapters/{chapterId}/pages/batch": {
+      "post": {
+        "tags": [
+          "Chapters"
+        ],
+        "parameters": [
+          {
+            "name": "chapterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  },
+                  "pageNumbers": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "format": "int32"
+                    }
+                  }
+                }
+              },
+              "encoding": {
+                "files": {
+                  "style": "form"
+                },
+                "pageNumbers": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterPageAttributesDtoListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterPageAttributesDtoListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterPageAttributesDtoListApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/mangas/{mangaId}/covers": {
@@ -1429,21 +1649,21 @@
             "name": "StatusFilter",
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/MangaStatusNullable"
+              "$ref": "#/components/schemas/MangaStatus"
             }
           },
           {
             "name": "ContentRatingFilter",
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ContentRatingNullable"
+              "$ref": "#/components/schemas/ContentRating"
             }
           },
           {
             "name": "DemographicFilter",
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/PublicationDemographicNullable"
+              "$ref": "#/components/schemas/PublicationDemographic"
             }
           },
           {
@@ -2995,6 +3215,27 @@
         },
         "additionalProperties": false
       },
+      "ChapterPageAttributesDtoListApiResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "nullable": true
+          },
+          "response": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChapterPageAttributesDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ChapterPageAttributesDtoResourceObject": {
         "type": "object",
         "properties": {
@@ -3060,16 +3301,6 @@
           "Pornographic"
         ],
         "type": "string"
-      },
-      "ContentRatingNullable": {
-        "enum": [
-          "Safe",
-          "Suggestive",
-          "Erotica",
-          "Pornographic",
-          null],
-        "type": "string",
-        "nullable": true
       },
       "CoverArtAttributesDto": {
         "type": "object",
@@ -3245,7 +3476,7 @@
             "nullable": true
           },
           "publicationDemographic": {
-            "$ref": "#/components/schemas/PublicationDemographicNullable"
+            "$ref": "#/components/schemas/PublicationDemographic"
           },
           "status": {
             "$ref": "#/components/schemas/MangaStatus"
@@ -3334,7 +3565,7 @@
             "nullable": true
           },
           "publicationDemographic": {
-            "$ref": "#/components/schemas/PublicationDemographicNullable"
+            "$ref": "#/components/schemas/PublicationDemographic"
           },
           "status": {
             "$ref": "#/components/schemas/MangaStatus"
@@ -3464,16 +3695,6 @@
         ],
         "type": "string"
       },
-      "MangaStatusNullable": {
-        "enum": [
-          "Ongoing",
-          "Completed",
-          "Hiatus",
-          "Cancelled",
-          null],
-        "type": "string",
-        "nullable": true
-      },
       "ObjectApiResponse": {
         "type": "object",
         "properties": {
@@ -3491,16 +3712,15 @@
         },
         "additionalProperties": false
       },
-      "PublicationDemographicNullable": {
+      "PublicationDemographic": {
         "enum": [
           "Shounen",
           "Shoujo",
           "Josei",
           "Seinen",
-          "None",
-          null],
-        "type": "string",
-        "nullable": true
+          "None"
+        ],
+        "type": "string"
       },
       "RelationshipObject": {
         "type": "object",
@@ -3870,7 +4090,7 @@
             "nullable": true
           },
           "publicationDemographic": {
-            "$ref": "#/components/schemas/PublicationDemographicNullable"
+            "$ref": "#/components/schemas/PublicationDemographic"
           },
           "status": {
             "$ref": "#/components/schemas/MangaStatus"

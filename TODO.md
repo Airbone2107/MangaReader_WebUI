@@ -1,472 +1,885 @@
-# TODO: Cải thiện giao diện Trang Tạo/Chỉnh sửa Manga
+# TODO: Cập Nhật Client API MangaReader
 
-Tài liệu này mô tả các bước cần thực hiện để cải thiện giao diện người dùng của trang tạo và chỉnh sửa Manga trong ứng dụng MangaReader_ManagerUI.
+Tài liệu này mô tả các bước cần thực hiện để cập nhật `MangaReaderLib`, `MangaReader_ManagerUI`, và `MangaReader_WebUI` theo những thay đổi mới nhất của Backend API được nêu trong `ClientAPI_Update.md`.
 
-## Mục tiêu
+## Thứ tự ưu tiên:
 
-1.  **Đồng bộ Label:** Đảm bảo label của các trường "Tác giả / Họa sĩ" và "Tags" hiển thị nhất quán với các trường khác trong form (label nằm trong viền của input/dropdown).
-2.  **Thiết kế lại Dropdown Tags:**
-    *   Hiển thị danh sách các tag tùy chọn dưới dạng các khối chữ nhật (sử dụng `Chip` của MUI).
-    *   Cho phép người dùng chọn nhiều tags mà không làm ẩn dropdown ngay sau mỗi lần chọn.
-    *   Các tag đã chọn sẽ hiển thị dưới dạng Chip bên dưới ô input (hành vi mặc định của `Autocomplete multiple`).
+1.  **`MangaReaderLib`**: Cập nhật thư viện client để làm việc với các endpoint mới và cấu trúc dữ liệu đã thay đổi.
+2.  **`MangaReader_ManagerUI` và `MangaReader_WebUI`**: Cập nhật logic xây dựng đường dẫn ảnh mới.
 
-## Các thay đổi cần thực hiện
+---
 
-Các thay đổi chủ yếu tập trung vào file `MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaForm.jsx`.
+## I. Cập nhật `MangaReaderLib`
 
-### Bước 1: Đồng bộ hóa Label cho trường "Tác giả / Họa sĩ" và "Tags"
+Mục tiêu: Thêm các DTOs mới và cập nhật/thêm các phương thức trong client services để hỗ trợ các API quản lý trang chương mới được mô tả trong `ClientAPI_Update.md`.
 
-#### 1.1. Vấn đề
+### Bước 1: Định nghĩa/Cập nhật Data Transfer Objects (DTOs)
 
-Hiện tại, label "Tác giả / Họa sĩ" và "Tags" đang được hiển thị bằng component `Typography` phía trên các `Autocomplete` tương ứng, thay vì là label chuẩn của `TextField` bên trong `Autocomplete`. Điều này gây ra sự thiếu nhất quán so với các trường khác.
+Các DTO này cần được thêm hoặc cập nhật trong thư mục `MangaReaderLib\DTOs`.
 
-#### 1.2. Giải pháp
+1.  **Cập nhật `ChapterPageAttributesDto.cs`**
+    *   Đảm bảo trường `PublicId` phản ánh đúng định dạng mới: `chapters/{ChapterId}/pages/{PageId}`.
 
-*   Bỏ các component `Typography` hiện tại cho "Tác giả / Họa sĩ" và "Tags".
-*   Thêm prop `label` trực tiếp vào `TextField` được render bởi `Autocomplete` tương ứng.
-
-#### 1.3. Cập nhật code trong `MangaForm.jsx`
-
-```javascript
-// MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaForm.jsx
-import { Add as AddIcon, CheckBox as CheckBoxIcon, CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon, Delete as DeleteIcon } from '@mui/icons-material' // Thêm icon
-import { Autocomplete, Box, Button, Checkbox, Chip, FormControlLabel, Grid, Paper, Switch, TextField, Typography } from '@mui/material' // Thêm Checkbox, Paper
-import React, { useEffect, useState } from 'react'
-import authorApi from '../../../api/authorApi'
-import tagApi from '../../../api/tagApi'
-import FormInput from '../../../components/common/FormInput'
-import {
-    CONTENT_RATING_OPTIONS,
-    MANGA_STAFF_ROLE_OPTIONS,
-    MANGA_STATUS_OPTIONS,
-    ORIGINAL_LANGUAGE_OPTIONS,
-    PUBLICATION_DEMOGRAPHIC_OPTIONS,
-} from '../../../constants/appConstants'
-import useFormWithZod from '../../../hooks/useFormWithZod'
-import { createMangaSchema, updateMangaSchema } from '../../../schemas/mangaSchema'
-import { handleApiError } from '../../../utils/errorUtils'
-
-/**
- * @typedef {import('../../../types/manga').Manga} Manga
- * @typedef {import('../../../types/manga').Author} Author
- * @typedef {import('../../../types/manga').Tag} Tag
- * @typedef {import('../../../types/manga').MangaAuthorInput} MangaAuthorInput
- * @typedef {import('../../../types/manga').SelectedRelationship} SelectedRelationship
- */
-
-/**
- * MangaForm component for creating or editing manga.
- * @param {object} props
- * @param {Manga} [props.initialData] - Initial data for editing.
- * @param {function(CreateMangaRequest | UpdateMangaRequest): void} props.onSubmit - Function to handle form submission.
- * @param {boolean} props.isEditMode - True if in edit mode, false for create mode.
- */
-function MangaForm({ initialData, onSubmit, isEditMode }) {
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-    // Lấy thêm `getValues` để truy cập giá trị form cho nút "Thêm" tác giả
-    getValues,
-  } = useFormWithZod({
-    schema: isEditMode ? updateMangaSchema : createMangaSchema,
-    defaultValues: initialData
-      ? {
-          title: initialData.attributes.title || '',
-          originalLanguage: initialData.attributes.originalLanguage || '',
-          publicationDemographic: initialData.attributes.publicationDemographic || null,
-          status: initialData.attributes.status || 'Ongoing',
-          year: initialData.attributes.year || null,
-          contentRating: initialData.attributes.contentRating || 'Safe',
-          isLocked: initialData.attributes.isLocked || false,
-          tagIds: initialData.relationships
-            ?.filter((rel) => rel.type === 'tag')
-            .map((rel) => rel.id) || [],
-          authors: initialData.relationships
-            ?.filter((rel) => rel.type === 'author' || rel.type === 'artist')
-            .map((rel) => ({
-              authorId: rel.id,
-              role: rel.type === 'author' ? 'Author' : 'Artist',
-            })) || [],
-          tempAuthor: null, // Thêm state tạm cho Autocomplete tác giả
-          tempAuthorRole: 'Author', // Giữ nguyên state tạm cho vai trò
+    ```csharp
+    // MangaReaderLib\DTOs\Chapters\ChapterPageAttributesDto.cs
+    namespace MangaReaderLib.DTOs.Chapters
+    {
+        public class ChapterPageAttributesDto
+        {
+            public int PageNumber { get; set; }
+            public string PublicId { get; set; } = string.Empty;
+            // Giữ lại các thuộc tính khác nếu có.
         }
-      : {
-          title: '',
-          originalLanguage: 'ja',
-          publicationDemographic: null,
-          status: 'Ongoing',
-          year: new Date().getFullYear(),
-          contentRating: 'Safe',
-          isLocked: false,
-          tagIds: [],
-          authors: [],
-          tempAuthor: null,
-          tempAuthorRole: 'Author',
-        },
-  })
-
-  /** @type {[SelectedRelationship[], React.Dispatch<React.SetStateAction<SelectedRelationship[]>>]} */
-  const [selectedAuthorsVisual, setSelectedAuthorsVisual] = useState([])
-  /** @type {[SelectedRelationship[], React.Dispatch<React.SetStateAction<SelectedRelationship[]>>]} */
-  const [selectedTagsVisual, setSelectedTagsVisual] = useState([])
-
-  const [availableAuthors, setAvailableAuthors] = useState([])
-  const [availableTags, setAvailableTags] = useState([])
-
-  const currentAuthorsFormValue = watch('authors') || []
-  const currentTagIdsFormValue = watch('tagIds') || []
-  const isLocked = watch('isLocked')
-
-  // State cho Autocomplete chọn tác giả (không phải là một phần của form data chính thức)
-  const [tempSelectedAuthor, setTempSelectedAuthor] = useState(null);
-
-
-  useEffect(() => {
-    const fetchDropdownData = async () => {
-      try {
-        const authorsResponse = await authorApi.getAuthors({ limit: 1000 })
-        setAvailableAuthors(authorsResponse.data.map(a => ({ id: a.id, name: a.attributes.name })))
-
-        const tagsResponse = await tagApi.getTags({ limit: 1000 })
-        setAvailableTags(tagsResponse.data.map(t => ({ id: t.id, name: t.attributes.name, tagGroupId: t.attributes.tagGroupId, tagGroupName: t.attributes.tagGroupName })))
-      } catch (error) {
-        handleApiError(error, 'Không thể tải dữ liệu tác giả/tag.');
-      }
     }
-    fetchDropdownData()
-  }, [])
+    ```
 
-  useEffect(() => {
-    if (initialData && availableAuthors.length > 0 && availableTags.length > 0) {
-      const initialAuthorRelationships = initialData.relationships
-        ?.filter((rel) => rel.type === 'author' || rel.type === 'artist')
-        .map((rel) => ({
-          authorId: rel.id,
-          role: rel.type === 'author' ? 'Author' : 'Artist',
-        })) || [];
+2.  **Tạo `PageOperationDto.cs`** (cho API Sync Pages)
+    *   DTO này dùng để định nghĩa các thao tác trên từng trang khi đồng bộ.
 
-      const hydratedAuthors = initialAuthorRelationships
-        .map((rel) => {
-          const author = availableAuthors.find((a) => a.id === rel.authorId)
-          return author ? { ...author, role: rel.role } : null
-        })
-        .filter(Boolean)
-
-      setSelectedAuthorsVisual(hydratedAuthors)
-      // setValue('authors', initialAuthorRelationships) // RHF đã có giá trị từ defaultValues
-
-      const initialTagIds = initialData.relationships
-        ?.filter((rel) => rel.type === 'tag')
-        .map((rel) => rel.id) || [];
-
-      const hydratedTags = initialTagIds
-        .map((tagId) => {
-          const tag = availableTags.find((t) => t.id === tagId)
-          return tag ? { id: tag.id, name: tag.name, tagGroupName: tag.attributes?.tagGroupName || 'N/A' } : null // Lấy thêm tagGroupName
-        })
-        .filter(Boolean)
-
-      setSelectedTagsVisual(hydratedTags)
-      // setValue('tagIds', initialTagIds) // RHF đã có giá trị từ defaultValues
+    ```csharp
+    // MangaReaderLib\DTOs\Chapters\PageOperationDto.cs
+    namespace MangaReaderLib.DTOs.Chapters
+    {
+        public class PageOperationDto
+        {
+            public Guid? PageId { get; set; } 
+            public int PageNumber { get; set; } 
+            public string? FileIdentifier { get; set; } 
+        }
     }
-  }, [initialData, availableAuthors, availableTags, setValue]) // `setValue` được giữ lại nếu bạn muốn cập nhật programmatically
-  
-  // Cập nhật selectedAuthorsVisual khi currentAuthorsFormValue thay đổi
-  useEffect(() => {
-    const hydratedAuthors = currentAuthorsFormValue
-      .map((formAuthor) => {
-        const authorDetails = availableAuthors.find(a => a.id === formAuthor.authorId);
-        return authorDetails ? { ...authorDetails, role: formAuthor.role } : null;
-      })
-      .filter(Boolean);
-    setSelectedAuthorsVisual(hydratedAuthors);
-  }, [currentAuthorsFormValue, availableAuthors]);
+    ```
 
-  // Cập nhật selectedTagsVisual khi currentTagIdsFormValue thay đổi
-  useEffect(() => {
-    const hydratedTags = currentTagIdsFormValue
-      .map((tagId) => {
-        const tagDetails = availableTags.find(t => t.id === tagId);
-        return tagDetails ? { id: tagDetails.id, name: tagDetails.name, tagGroupName: tagDetails.tagGroupName } : null;
-      })
-      .filter(Boolean);
-    setSelectedTagsVisual(hydratedTags);
-  }, [currentTagIdsFormValue, availableTags]);
+### Bước 2: Cập nhật Interface `IChapterClient.cs`
 
+Thêm các phương thức mới để hỗ trợ batch upload và sync pages.
 
-  const handleAddAuthorToList = () => {
-    const role = getValues('tempAuthorRole') || 'Author'; // Lấy vai trò từ form
-    if (!tempSelectedAuthor || !role) return;
+```csharp
+// MangaReaderLib\Services\Interfaces\IChapterClient.cs
+using MangaReaderLib.DTOs.Chapters;
+using MangaReaderLib.DTOs.Common;
+using System.IO; 
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
-    const newAuthorEntry = { authorId: tempSelectedAuthor.id, role: role };
-    if (!currentAuthorsFormValue.some(
-      (a) => a.authorId === newAuthorEntry.authorId && a.role === newAuthorEntry.role
-    )) {
-      setValue('authors', [...currentAuthorsFormValue, newAuthorEntry]);
-      // Không cần cập nhật selectedAuthorsVisual ở đây nữa, useEffect sẽ xử lý
-      setTempSelectedAuthor(null); // Reset ô chọn tác giả
-    } else {
-      handleApiError(null, `${tempSelectedAuthor.name} với vai trò ${role} đã được thêm.`);
+namespace MangaReaderLib.Services.Interfaces
+{
+    public interface IChapterClient
+    {
+        // ... (các phương thức hiện có: CreateChapterAsync, GetChaptersByTranslatedMangaAsync, GetChapterByIdAsync, UpdateChapterAsync, DeleteChapterAsync)
+
+        Task<ApiResponse<ResourceObject<ChapterAttributesDto>>?> CreateChapterAsync(
+            CreateChapterRequestDto request,
+            CancellationToken cancellationToken = default);
+
+        Task<ApiCollectionResponse<ResourceObject<ChapterAttributesDto>>?> GetChaptersByTranslatedMangaAsync(
+            Guid translatedMangaId,
+            int? offset = null,
+            int? limit = null,
+            string? orderBy = null,
+            bool? ascending = null,
+            CancellationToken cancellationToken = default);
+
+        Task<ApiResponse<ResourceObject<ChapterAttributesDto>>?> GetChapterByIdAsync(
+            Guid chapterId,
+            CancellationToken cancellationToken = default);
+
+        Task UpdateChapterAsync(
+            Guid chapterId,
+            UpdateChapterRequestDto request,
+            CancellationToken cancellationToken = default);
+
+        Task DeleteChapterAsync(
+            Guid chapterId,
+            CancellationToken cancellationToken = default);
+
+        // Phương thức mới cho Batch Upload
+        Task<ApiResponse<List<ChapterPageAttributesDto>>?> BatchUploadChapterPagesAsync(
+            Guid chapterId,
+            IEnumerable<(Stream stream, string fileName, string contentType)> files,
+            IEnumerable<int> pageNumbers,
+            CancellationToken cancellationToken = default);
+
+        // Phương thức mới cho Sync Pages
+        Task<ApiResponse<List<ChapterPageAttributesDto>>?> SyncChapterPagesAsync(
+            Guid chapterId,
+            string pageOperationsJson,
+            IDictionary<string, (Stream stream, string fileName, string contentType)>? files,
+            CancellationToken cancellationToken = default);
     }
-  };
-
-
-  const handleRemoveAuthorVisual = (authorIdToRemove, roleToRemove) => {
-    const updatedAuthorsFormValue = currentAuthorsFormValue.filter(
-      (a) => !(a.authorId === authorIdToRemove && a.role === roleToRemove)
-    );
-    setValue('authors', updatedAuthorsFormValue);
-    // Không cần cập nhật selectedAuthorsVisual ở đây nữa, useEffect sẽ xử lý
-  };
-
-  // Không cần handleAddTag và handleRemoveTag riêng biệt nữa nếu dùng Autocomplete `onChange` đúng cách
-
-  // Custom Paper component cho Autocomplete Tags
-  const HorizontalTagPaper = (props) => {
-    return (
-      <Paper {...props} sx={{ ...props.sx, maxHeight: 300, overflow: 'auto' }}>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', p: 1, gap: 0.5 }}>
-          {props.children}
-        </Box>
-      </Paper>
-    );
-  };
-
-
-  return (
-    <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ mt: 1 }}>
-      <Grid container spacing={2} columns={{ xs: 4, sm: 6, md: 12 }}>
-        <Grid item xs={4} sm={6} md={12}>
-          <FormInput control={control} name="title" label="Tiêu đề Manga" />
-        </Grid>
-        <Grid item xs={4} sm={3} md={6}>
-          <FormInput
-            control={control}
-            name="originalLanguage"
-            label="Ngôn ngữ gốc"
-            type="select"
-            options={ORIGINAL_LANGUAGE_OPTIONS}
-          />
-        </Grid>
-        <Grid item xs={4} sm={3} md={6}>
-          <FormInput
-            control={control}
-            name="publicationDemographic"
-            label="Đối tượng xuất bản"
-            type="select"
-            options={PUBLICATION_DEMOGRAPHIC_OPTIONS}
-          />
-        </Grid>
-        <Grid item xs={4} sm={3} md={6}>
-          <FormInput
-            control={control}
-            name="status"
-            label="Trạng thái"
-            type="select"
-            options={MANGA_STATUS_OPTIONS}
-          />
-        </Grid>
-        <Grid item xs={4} sm={3} md={6}>
-          <FormInput
-            control={control}
-            name="year"
-            label="Năm xuất bản"
-            type="number"
-            inputProps={{ min: 1000, max: new Date().getFullYear() + 5, step: 1 }} // Cho phép năm tương lai gần
-          />
-        </Grid>
-        <Grid item xs={4} sm={6} md={12}>
-          <FormInput
-            control={control}
-            name="contentRating"
-            label="Đánh giá nội dung"
-            type="select"
-            options={CONTENT_RATING_OPTIONS}
-          />
-        </Grid>
-
-        {/* Authors Section - Thay đổi Typography thành label */}
-        <Grid item xs={12}>
-          {/* Bỏ Typography "Tác giả / Họa sĩ" */}
-          <Grid container spacing={1} alignItems="flex-end" columns={{ xs: 12, sm: 12, md: 12 }}>
-            <Grid item xs={12} sm={7} md={7}>
-              <Autocomplete
-                options={availableAuthors}
-                getOptionLabel={(option) => option.name}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                value={tempSelectedAuthor} // Sử dụng state tạm
-                onChange={(event, newValue) => {
-                  setTempSelectedAuthor(newValue); // Cập nhật state tạm
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Tác giả / Họa sĩ" // <- THAY ĐỔI Ở ĐÂY
-                    variant="outlined"
-                    margin="normal"
-                    error={!!errors.authors && currentAuthorsFormValue.length === 0} // Chỉ báo lỗi nếu chưa có tác giả nào được thêm
-                    helperText={errors.authors && currentAuthorsFormValue.length === 0 ? "Vui lòng thêm ít nhất một tác giả/họa sĩ" : null}
-                  />
-                )}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3} md={3}>
-              <FormInput
-                control={control}
-                name="tempAuthorRole" // Giữ nguyên, dùng để lấy giá trị cho nút "Thêm"
-                label="Vai trò"
-                type="select"
-                options={MANGA_STAFF_ROLE_OPTIONS}
-                defaultValue="Author"
-                margin="normal"
-              />
-            </Grid>
-            <Grid item xs={12} sm={2} md={2} sx={{ alignSelf: 'center', mt: { xs: 1, sm: '24px' } }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleAddAuthorToList}
-                startIcon={<AddIcon />}
-                fullWidth
-              >
-                Thêm
-              </Button>
-            </Grid>
-          </Grid>
-          <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {selectedAuthorsVisual.map((author, index) => (
-              <Chip
-                key={`${author.id}-${author.role}-${index}`}
-                label={`${author.name} (${author.role})`}
-                onDelete={() => handleRemoveAuthorVisual(author.id, author.role)}
-                deleteIcon={<DeleteIcon />}
-                color="primary"
-                variant="outlined"
-              />
-            ))}
-          </Box>
-        </Grid>
-
-        {/* Tags Section - Thay đổi Typography thành label, cập nhật Autocomplete */}
-        <Grid item xs={12}>
-          {/* Bỏ Typography "Tags" */}
-          <Autocomplete
-            multiple
-            disableCloseOnSelect // <- THÊM PROP NÀY
-            id="manga-tags-autocomplete"
-            options={availableTags.sort((a, b) => a.tagGroupName.localeCompare(b.tagGroupName) || a.name.localeCompare(b.name))} // Sắp xếp theo nhóm rồi theo tên
-            groupBy={(option) => option.tagGroupName} // Nhóm theo tagGroupName
-            getOptionLabel={(option) => option.name}
-            value={selectedTagsVisual} // Sử dụng state trực quan
-            onChange={(event, newValue) => {
-              // newValue là mảng các tag object đầy đủ {id, name, tagGroupName}
-              setSelectedTagsVisual(newValue); // Cập nhật state trực quan
-              setValue('tagIds', newValue.map(tag => tag.id)); // Cập nhật giá trị cho RHF
-            }}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            renderOption={(props, option, { selected }) => (
-              // props bao gồm key và các thuộc tính cần thiết cho <li>
-              // Thêm sx để đảm bảo Chip chiếm toàn bộ chiều rộng của li và cách đều
-              <Box component="li" {...props} sx={{ width: '100%', justifyContent: 'flex-start', px: 1, py: 0.5 }}>
-                <Checkbox
-                  icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
-                  checkedIcon={<CheckBoxIcon fontSize="small" />}
-                  style={{ marginRight: 8 }}
-                  checked={selected}
-                />
-                {/* Sử dụng Chip để hiển thị từng tag trong danh sách */}
-                <Chip 
-                  label={option.name} 
-                  size="small" 
-                  variant="outlined" 
-                  sx={{ cursor: 'pointer', flexGrow: 1, justifyContent: 'flex-start' }} 
-                /> 
-              </Box>
-            )}
-            PaperComponent={HorizontalTagPaper} // Sử dụng PaperComponent tùy chỉnh
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                variant="outlined"
-                label="Tags" // <- THAY ĐỔI Ở ĐÂY
-                placeholder="Chọn tags"
-                margin="normal"
-                error={!!errors.tagIds}
-                helperText={errors.tagIds ? errors.tagIds.message : null}
-              />
-            )}
-            // renderTags được giữ nguyên để hiển thị các chip đã chọn bên ngoài dropdown
-            renderTags={(value, getTagProps) =>
-              value.map((option, index) => (
-                <Chip
-                  key={option.id}
-                  label={option.name}
-                  {...getTagProps({ index })}
-                  color="secondary" // Có thể đổi màu cho dễ phân biệt
-                  variant="outlined"
-                />
-              ))
-            }
-            fullWidth
-          />
-        </Grid>
-        
-        {isEditMode && (
-          <Grid item xs={4} sm={6} md={12}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={isLocked}
-                  onChange={(e) => setValue('isLocked', e.target.checked)}
-                  name="isLocked"
-                  color="primary"
-                />
-              }
-              label="Khóa Manga (Không cho phép đọc)"
-              sx={{ mt: 2 }}
-            />
-          </Grid>
-        )}
-
-        <Grid item xs={4} sm={6} md={12}>
-          <Button type="submit" variant="contained" color="primary" sx={{ mt: 3, mb: 2 }}>
-            {isEditMode ? 'Cập nhật Manga' : 'Tạo Manga'}
-          </Button>
-        </Grid>
-      </Grid>
-    </Box>
-  )
 }
-
-export default MangaForm
 ```
 
-### Bước 2: Thiết kế lại Dropdown Tags
+### Bước 3: Cập nhật Implementation `ChapterClient.cs`
 
-#### 2.1. Vấn đề
-Dropdown chọn Tags hiện tại dùng `Autocomplete` cơ bản. Cần tùy chỉnh để:
-*   Các tag trong danh sách lựa chọn (dropdown) hiển thị dưới dạng khối chữ nhật, có thể kèm checkbox.
-*   Danh sách các tag options trong dropdown có thể hiển thị theo chiều ngang nếu không gian cho phép, và scroll được.
-*   Người dùng có thể chọn nhiều tags mà dropdown không tự động đóng lại sau mỗi lựa chọn.
+Triển khai các phương thức mới trong `ChapterClient.cs`.
 
-#### 2.2. Giải pháp
-*   Sử dụng prop `disableCloseOnSelect` cho `Autocomplete` của Tags.
-*   Tùy chỉnh `renderOption` để hiển thị mỗi tag với `Checkbox` và `Chip` (hoặc `Box` được style).
-*   Tạo một `PaperComponent` tùy chỉnh cho `Autocomplete` để cho phép các options hiển thị theo chiều ngang và có thể cuộn.
-*   Sắp xếp và nhóm các tags theo `tagGroupName` để dễ quản lý hơn.
+```csharp
+// MangaReaderLib\Services\Implementations\ChapterClient.cs
+using MangaReaderLib.DTOs.Chapters;
+using MangaReaderLib.DTOs.Common;
+using MangaReaderLib.Services.Interfaces;
+using Microsoft.Extensions.Logging;
+using System.Text;
+using System.Net.Http; 
+using System.Text.Json;
+using System.Collections.Generic; 
+using System.IO; 
+using System.Linq; 
 
-#### 2.3. Cập nhật code trong `MangaForm.jsx`
+namespace MangaReaderLib.Services.Implementations
+{
+    public class ChapterClient : IChapterClient
+    {
+        private readonly IApiClient _apiClient;
+        private readonly ILogger<ChapterClient> _logger;
+        private readonly JsonSerializerOptions _jsonSerializerOptions;
 
-Xem lại khối code ở **Bước 1.3** phía trên. Các thay đổi liên quan đến Tags đã được tích hợp:
-*   Import `CheckBoxIcon`, `CheckBoxOutlineBlankIcon`, `Checkbox`, `Paper`.
-*   `Autocomplete` cho Tags:
-    *   Đã thêm `disableCloseOnSelect`.
-    *   Đã thêm `groupBy={(option) => option.tagGroupName}` để nhóm các tag.
-    *   `options` được sắp xếp: `availableTags.sort((a, b) => a.tagGroupName.localeCompare(b.tagGroupName) || a.name.localeCompare(b.name))`.
-    *   `renderOption` được tùy chỉnh để hiển thị `Checkbox` và `Chip` cho mỗi tag.
-    *   `PaperComponent={HorizontalTagPaper}` được sử dụng với `HorizontalTagPaper` là một component tùy chỉnh để style cho dropdown.
-*   `selectedTagsVisual` được sử dụng cho prop `value` của `Autocomplete` tags.
-*   Logic `onChange` của `Autocomplete` tags được cập nhật để làm việc với `selectedTagsVisual` (mảng object) và `setValue` cho `tagIds` (mảng string ID).
+        public ChapterClient(IApiClient apiClient, ILogger<ChapterClient> logger)
+        {
+            _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _jsonSerializerOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            };
+        }
+        
+        // ... (các phương thức hiện có: CreateChapterAsync, GetChaptersByTranslatedMangaAsync, GetChapterByIdAsync, UpdateChapterAsync, DeleteChapterAsync)
+        
+        public async Task<ApiResponse<ResourceObject<ChapterAttributesDto>>?> CreateChapterAsync(
+            CreateChapterRequestDto request, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Creating new chapter for translated manga ID: {TranslatedMangaId}, Chapter: {ChapterNumber}", 
+                request.TranslatedMangaId, request.ChapterNumber);
+            return await _apiClient.PostAsync<CreateChapterRequestDto, ApiResponse<ResourceObject<ChapterAttributesDto>>>("Chapters", request, cancellationToken);
+        }
+
+        public async Task<ApiCollectionResponse<ResourceObject<ChapterAttributesDto>>?> GetChaptersByTranslatedMangaAsync(
+            Guid translatedMangaId, int? offset = null, int? limit = null, 
+            string? orderBy = null, bool? ascending = null, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Getting chapters for translated manga ID: {TranslatedMangaId}", translatedMangaId);
+            var queryParams = new Dictionary<string, List<string>>();
+            AddQueryParam(queryParams, "offset", offset?.ToString());
+            AddQueryParam(queryParams, "limit", limit?.ToString());
+            AddQueryParam(queryParams, "orderBy", orderBy);
+            AddQueryParam(queryParams, "ascending", ascending?.ToString().ToLower());
+            
+            string requestUri = BuildQueryString($"translatedmangas/{translatedMangaId}/chapters", queryParams);
+            return await _apiClient.GetAsync<ApiCollectionResponse<ResourceObject<ChapterAttributesDto>>>(requestUri, cancellationToken);
+        }
+
+        public async Task<ApiResponse<ResourceObject<ChapterAttributesDto>>?> GetChapterByIdAsync(
+            Guid chapterId, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Getting chapter by ID: {ChapterId}", chapterId);
+            return await _apiClient.GetAsync<ApiResponse<ResourceObject<ChapterAttributesDto>>>($"Chapters/{chapterId}", cancellationToken);
+        }
+
+        public async Task UpdateChapterAsync(
+            Guid chapterId, UpdateChapterRequestDto request, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Updating chapter with ID: {ChapterId}", chapterId);
+            await _apiClient.PutAsync($"Chapters/{chapterId}", request, cancellationToken);
+        }
+
+        public async Task DeleteChapterAsync(Guid chapterId, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Deleting chapter with ID: {ChapterId}", chapterId);
+            await _apiClient.DeleteAsync($"Chapters/{chapterId}", cancellationToken);
+        }
+
+        public async Task<ApiResponse<List<ChapterPageAttributesDto>>?> BatchUploadChapterPagesAsync(
+            Guid chapterId,
+            IEnumerable<(Stream stream, string fileName, string contentType)> files,
+            IEnumerable<int> pageNumbers,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Batch uploading pages for Chapter ID: {ChapterId}", chapterId);
+            using var formData = new MultipartFormDataContent();
+
+            if (files == null || !files.Any())
+            {
+                throw new ArgumentException("Files collection cannot be null or empty.", nameof(files));
+            }
+            if (pageNumbers == null || !pageNumbers.Any())
+            {
+                throw new ArgumentException("PageNumbers collection cannot be null or empty.", nameof(pageNumbers));
+            }
+            if (files.Count() != pageNumbers.Count())
+            {
+                throw new ArgumentException("The number of files must match the number of page numbers.");
+            }
+
+            foreach (var fileTuple in files)
+            {
+                var streamContent = new StreamContent(fileTuple.stream);
+                streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(fileTuple.contentType);
+                formData.Add(streamContent, "files", fileTuple.fileName);
+            }
+
+            foreach (var pageNumber in pageNumbers)
+            {
+                formData.Add(new StringContent(pageNumber.ToString()), "pageNumbers");
+            }
+
+            return await _apiClient.PostAsync<ApiResponse<List<ChapterPageAttributesDto>>>(
+                $"Chapters/{chapterId}/pages/batch", formData, cancellationToken);
+        }
+
+        public async Task<ApiResponse<List<ChapterPageAttributesDto>>?> SyncChapterPagesAsync(
+            Guid chapterId,
+            string pageOperationsJson, 
+            IDictionary<string, (Stream stream, string fileName, string contentType)>? files,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Syncing pages for Chapter ID: {ChapterId}", chapterId);
+            using var formData = new MultipartFormDataContent();
+
+            formData.Add(new StringContent(pageOperationsJson, Encoding.UTF8, "application/json"), "pageOperationsJson");
+
+            if (files != null)
+            {
+                foreach (var fileEntry in files)
+                {
+                    var fileIdentifier = fileEntry.Key;
+                    var (stream, fileName, contentType) = fileEntry.Value;
+
+                    var streamContent = new StreamContent(stream);
+                    streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+                    formData.Add(streamContent, fileIdentifier, fileName);
+                }
+            }
+            
+            return await _apiClient.PutAsync<ApiResponse<List<ChapterPageAttributesDto>>>(
+                $"Chapters/{chapterId}/pages", formData, cancellationToken);
+        }
+
+        private string BuildQueryString(string baseUri, Dictionary<string, List<string>> queryParams)
+        {
+            var queryString = new StringBuilder();
+            if (queryParams != null && queryParams.Any())
+            {
+                bool firstParam = true;
+                foreach (var param in queryParams)
+                {
+                    if (param.Value != null && param.Value.Any())
+                    {
+                        foreach (var value in param.Value)
+                        {
+                             if (string.IsNullOrEmpty(value)) continue;
+
+                            if (firstParam)
+                            {
+                                queryString.Append("?");
+                                firstParam = false;
+                            }
+                            else
+                            {
+                                queryString.Append("&");
+                            }
+                            queryString.Append($"{Uri.EscapeDataString(param.Key)}={Uri.EscapeDataString(value)}");
+                        }
+                    }
+                }
+            }
+            return $"{baseUri}{queryString}";
+        }
+
+        private void AddQueryParam(Dictionary<string, List<string>> queryParams, string key, string? value)
+        {
+            if (!string.IsNullOrEmpty(value))
+            {
+                if (!queryParams.ContainsKey(key))
+                {
+                    queryParams[key] = new List<string>();
+                }
+                queryParams[key].Add(value);
+            }
+        }
+    }
+}
+```
+
+### Bước 4: Cập nhật Interface `IApiClient.cs`
+
+Đảm bảo `IApiClient` có phương thức `PutAsync` chấp nhận `HttpContent`.
+
+```csharp
+// MangaReaderLib\Services\Interfaces\IApiClient.cs
+using System.Net.Http; 
+// ... (các using khác)
+
+namespace MangaReaderLib.Services.Interfaces
+{
+    public interface IApiClient
+    {
+        // ... (các phương thức GetAsync, PostAsync đã có)
+        
+        Task<TResponse?> PostAsync<TResponse>(string requestUri, HttpContent content, CancellationToken cancellationToken = default) where TResponse : class;
+        
+        Task<TResponse?> PutAsync<TRequest, TResponse>(string requestUri, TRequest content, CancellationToken cancellationToken = default) 
+            where TRequest : class 
+            where TResponse : class;
+
+        Task PutAsync<TRequest>(string requestUri, TRequest content, CancellationToken cancellationToken = default) where TRequest : class;
+        
+        // Đảm bảo phương thức này tồn tại
+        Task<TResponse?> PutAsync<TResponse>(string requestUri, HttpContent content, CancellationToken cancellationToken = default) where TResponse : class;
+
+        Task DeleteAsync(string requestUri, CancellationToken cancellationToken = default);
+    }
+}
+```
+
+### Bước 5: Cập nhật Implementation `ApiClient.cs`
+
+Triển khai phương thức `PutAsync` với `HttpContent` nếu chưa có.
+
+```csharp
+// MangaReaderLib\Services\Implementations\ApiClient.cs
+using System.Net.Http; 
+// ... (các using khác)
+
+namespace MangaReaderLib.Services.Implementations
+{
+    public class ApiClient : IApiClient
+    {
+        // ... (constructor và các phương thức hiện có)
+
+        public async Task<TResponse?> PostAsync<TResponse>(string requestUri, HttpContent content, CancellationToken cancellationToken = default) 
+            where TResponse : class
+        {
+            try
+            {
+                _logger.LogInformation("Executing POST request with HttpContent to {RequestUri}", requestUri);
+                var response = await _httpClient.PostAsync(requestUri, content, cancellationToken);
+                
+                return await HandleResponseAsync<TResponse>(response, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not HttpRequestException)
+            {
+                _logger.LogError(ex, "Error during POST request with HttpContent to {RequestUri}", requestUri);
+                throw;
+            }
+        }
+
+        public async Task<TResponse?> PutAsync<TRequest, TResponse>(string requestUri, TRequest content, CancellationToken cancellationToken = default) 
+            where TRequest : class 
+            where TResponse : class
+        {
+            try
+            {
+                _logger.LogInformation("Executing PUT request to {RequestUri}", requestUri);
+                var jsonContent = CreateJsonContent(content);
+                var response = await _httpClient.PutAsync(requestUri, jsonContent, cancellationToken);
+                
+                return await HandleResponseAsync<TResponse>(response, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not HttpRequestException)
+            {
+                _logger.LogError(ex, "Error during PUT request to {RequestUri}", requestUri);
+                throw;
+            }
+        }
+
+        public async Task PutAsync<TRequest>(string requestUri, TRequest content, CancellationToken cancellationToken = default) 
+            where TRequest : class
+        {
+            try
+            {
+                _logger.LogInformation("Executing PUT request to {RequestUri}", requestUri);
+                var jsonContent = CreateJsonContent(content);
+                var response = await _httpClient.PutAsync(requestUri, jsonContent, cancellationToken);
+                
+                await EnsureSuccessStatusCodeAsync(response, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not HttpRequestException)
+            {
+                _logger.LogError(ex, "Error during PUT request to {RequestUri}", requestUri);
+                throw;
+            }
+        }
+        
+        // Triển khai phương thức mới (nếu chưa có)
+        public async Task<TResponse?> PutAsync<TResponse>(string requestUri, HttpContent content, CancellationToken cancellationToken = default)
+            where TResponse : class
+        {
+            try
+            {
+                _logger.LogInformation("Executing PUT request with HttpContent to {RequestUri}", requestUri);
+                var response = await _httpClient.PutAsync(requestUri, content, cancellationToken);
+                return await HandleResponseAsync<TResponse>(response, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not HttpRequestException)
+            {
+                _logger.LogError(ex, "Error during PUT request with HttpContent to {RequestUri}", requestUri);
+                throw;
+            }
+        }
+
+        // ... (DeleteAsync và các helper methods như CreateJsonContent, HandleResponseAsync, EnsureSuccessStatusCodeAsync, HandleErrorResponseAsync)
+        private StringContent CreateJsonContent<T>(T content) where T : class
+        {
+            var json = JsonSerializer.Serialize(content, _jsonOptions);
+            var stringContent = new StringContent(json, Encoding.UTF8, "application/json");
+            return stringContent;
+        }
+
+        private async Task<T?> HandleResponseAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken) where T : class
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
+                {
+                    return null;
+                }
+
+                var content = await response.Content.ReadAsStreamAsync(cancellationToken);
+                try
+                {
+                    return await JsonSerializer.DeserializeAsync<T>(content, _jsonOptions, cancellationToken);
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogError(ex, "Error deserializing response from {RequestUri}", response.RequestMessage?.RequestUri);
+                    throw new InvalidOperationException("Invalid response format received from server.", ex);
+                }
+            }
+            else
+            {
+                await HandleErrorResponseAsync(response, cancellationToken);
+                return null; 
+            }
+        }
+
+        private async Task EnsureSuccessStatusCodeAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                await HandleErrorResponseAsync(response, cancellationToken);
+            }
+        }
+
+        private async Task HandleErrorResponseAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+        {
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            ApiErrorResponse? errorResponse = null;
+            try
+            {
+                errorResponse = JsonSerializer.Deserialize<ApiErrorResponse>(content, _jsonOptions);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex, "Could not parse error response as ApiErrorResponse. Status: {StatusCode}, Content: {Content}", 
+                    response.StatusCode, content);
+            }
+
+            if (errorResponse?.Errors?.Count > 0)
+            {
+                throw new ApiException(
+                    errorResponse.Errors[0].Detail ?? errorResponse.Errors[0].Title, 
+                    errorResponse,                                                  
+                    response.StatusCode                                             
+                );
+            }
+            else
+            {
+                throw new HttpRequestException($"API request failed with status code: {(int)response.StatusCode} - {response.ReasonPhrase}", 
+                    null, response.StatusCode);
+            }
+        }
+    }
+}
+```
+
+---
+
+## II. Cập nhật `MangaReader_ManagerUI`
+
+Mục tiêu: Cập nhật logic xây dựng URL ảnh chương để sử dụng `publicId` từ `ChapterPageAttributesDto`.
+
+### Bước 1: Cập nhật logic hiển thị ảnh `ChapterPage`
+
+*   **File bị ảnh hưởng**: `src/features/chapter/components/ChapterPageManager.jsx`
+*   **Thay đổi**: Tìm đến đoạn code render ảnh trang chương. Sử dụng `publicId` từ `pageItem.attributes.publicId` và hằng số `CLOUDINARY_BASE_URL` để tạo URL ảnh.
+
+```javascript
+// src/features/chapter/components/ChapterPageManager.jsx
+import React, { useEffect, useState } from 'react'; // Thêm các import cần thiết
+import {
+    Box, Button, Card, CardActions, CardContent, CardMedia, CircularProgress,
+    Dialog, DialogActions, DialogContent, DialogTitle, Grid, IconButton, TextField, Tooltip, Typography
+} from '@mui/material';
+import { Add as AddIcon, Delete as DeleteIcon, UploadFile as UploadFileIcon } from '@mui/icons-material';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { CLOUDINARY_BASE_URL } from '../../../constants/appConstants';
+import { createChapterPageEntrySchema, uploadChapterPageImageSchema } from '../../../schemas/chapterSchema';
+import useChapterPageStore from '../../../stores/chapterPageStore';
+import ConfirmDialog from '../../../components/common/ConfirmDialog';
+import { handleApiError } from '../../../utils/errorUtils';
+
+
+function ChapterPageManager({ chapterId, onPagesUpdated }) {
+  const {
+    chapterPages,
+    fetchChapterPagesByChapterId,
+    createPageEntry,
+    uploadPageImage,
+    deleteChapterPage,
+  } = useChapterPageStore();
+
+  const [loadingPages, setLoadingPages] = useState(true);
+  const [openCreatePageDialog, setOpenCreatePageDialog] = useState(false);
+  const [openUploadImageDialog, setOpenUploadImageDialog] = useState(false);
+  const [pageEntryToUploadImage, setPageEntryToUploadImage] = useState(null);
+  const [openConfirmDelete, setOpenConfirmDelete] = useState(false);
+  const [pageToDelete, setPageToDelete] = useState(null);
+
+  const {
+    register: registerCreate,
+    handleSubmit: handleSubmitCreate,
+    formState: { errors: errorsCreate },
+    reset: resetCreate,
+  } = useForm({
+    resolver: zodResolver(createChapterPageEntrySchema),
+  });
+
+  const {
+    register: registerUpload,
+    handleSubmit: handleSubmitUpload,
+    formState: { errors: errorsUpload },
+    reset: resetUpload,
+  } = useForm({
+    resolver: zodResolver(uploadChapterPageImageSchema),
+  });
+
+  useEffect(() => {
+    if (chapterId) {
+      setLoadingPages(true);
+      fetchChapterPagesByChapterId(chapterId, true)
+        .finally(() => setLoadingPages(false));
+    }
+  }, [chapterId, fetchChapterPagesByChapterId]);
+
+  const handleCreatePageEntry = async (data) => {
+    try {
+      const pageId = await createPageEntry(chapterId, data);
+      if (pageId) {
+        setPageEntryToUploadImage({ id: pageId, pageNumber: data.pageNumber });
+        setOpenUploadImageDialog(true);
+      }
+      setOpenCreatePageDialog(false);
+      resetCreate();
+      if (onPagesUpdated) onPagesUpdated();
+    } catch (error) {
+      console.error('Failed to create page entry:', error);
+    }
+  };
+
+  const handleUploadImageRequest = (pageId, pageNumber) => {
+    setPageEntryToUploadImage({ id: pageId, pageNumber: pageNumber });
+    setOpenUploadImageDialog(true);
+  };
+
+  const handleUploadImage = async (data) => {
+    if (pageEntryToUploadImage && data.file && data.file[0]) {
+      try {
+        await uploadPageImage(pageEntryToUploadImage.id, data.file[0], chapterId);
+        setOpenUploadImageDialog(false);
+        resetUpload();
+      } catch (error) {
+        console.error('Failed to upload page image:', error);
+      }
+    }
+  };
+
+  const handleDeleteRequest = (page) => {
+    setPageToDelete(page);
+    setOpenConfirmDelete(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (pageToDelete) {
+      try {
+        await deleteChapterPage(pageToDelete.id, chapterId);
+        if (onPagesUpdated) onPagesUpdated();
+      } catch (error) {
+        console.error('Failed to delete chapter page:', error);
+        handleApiError(error, 'Không thể xóa trang chương.');
+      } finally {
+        setOpenConfirmDelete(false);
+        setPageToDelete(null);
+      }
+    }
+  };
+
+  const handleCloseConfirmDelete = () => {
+    setOpenConfirmDelete(false);
+    setPageToDelete(null);
+  };
+
+  return (
+    <Box className="chapter-page-manager" sx={{ mt: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Button
+          variant="contained"
+          color="success"
+          startIcon={<AddIcon />}
+          onClick={() => setOpenCreatePageDialog(true)}
+        >
+          Thêm Trang mới (Entry)
+        </Button>
+      </Box>
+
+      {loadingPages ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+          <CircularProgress />
+        </Box>
+      ) : chapterPages.length === 0 ? (
+        <Typography variant="h6" className="no-pages-message" sx={{ textAlign: 'center', py: 5 }}>
+          Chưa có trang nào cho chương này.
+        </Typography>
+      ) : (
+        <Grid container spacing={2} className="chapter-page-grid" columns={{ xs: 4, sm: 6, md: 12, lg: 12 }}>
+          {chapterPages
+            .sort((a, b) => a.attributes.pageNumber - b.attributes.pageNumber)
+            .map((pageItem) => (
+              <Grid item key={pageItem.id} sx={{ gridColumn: { xs: 'span 4', sm: 'span 3', md: 'span 3', lg: 'span 3' } }}>
+                <Card className="chapter-page-card">
+                  <CardMedia
+                    component="img"
+                    image={
+                      pageItem.attributes.publicId
+                        ? `${CLOUDINARY_BASE_URL}${pageItem.attributes.publicId}` // Sử dụng publicId
+                        : 'https://via.placeholder.com/150x200?text=No+Image'
+                    }
+                    alt={`Page ${pageItem.attributes.pageNumber}`}
+                    sx={{ width: '100%', height: 250, objectFit: 'contain', backgroundColor: '#eee', borderBottom: '1px solid #ddd' }}
+                  />
+                  <CardContent>
+                    <Typography variant="subtitle1" gutterBottom>
+                      Trang số: {pageItem.attributes.pageNumber}
+                    </Typography>
+                  </CardContent>
+                  <CardActions className="card-actions">
+                    <Tooltip title="Tải ảnh lên">
+                      <IconButton
+                        color="primary"
+                        onClick={() => handleUploadImageRequest(pageItem.id, pageItem.attributes.pageNumber)}
+                      >
+                        <UploadFileIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Xóa trang">
+                      <IconButton
+                        color="secondary"
+                        onClick={() => handleDeleteRequest(pageItem)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))}
+        </Grid>
+      )}
+
+      <Dialog open={openCreatePageDialog} onClose={() => setOpenCreatePageDialog(false)}>
+        <DialogTitle>Thêm Trang mới (Entry)</DialogTitle>
+        <Box component="form" onSubmit={handleSubmitCreate(handleCreatePageEntry)} noValidate>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Số trang"
+              type="number"
+              fullWidth
+              variant="outlined"
+              {...registerCreate('pageNumber', { valueAsNumber: true })}
+              error={!!errorsCreate.pageNumber}
+              helperText={errorsCreate.pageNumber?.message}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenCreatePageDialog(false)} variant="outlined">
+              Hủy
+            </Button>
+            <Button type="submit" variant="contained" color="primary">
+              Tạo Entry
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
+      <Dialog open={openUploadImageDialog} onClose={() => setOpenUploadImageDialog(false)}>
+        <DialogTitle>Tải ảnh cho Trang {pageEntryToUploadImage?.pageNumber}</DialogTitle>
+        <Box component="form" onSubmit={handleSubmitUpload(handleUploadImage)} noValidate>
+          <DialogContent>
+            <TextField
+              margin="dense"
+              label="Chọn File ảnh"
+              type="file"
+              fullWidth
+              variant="outlined"
+              {...registerUpload('file')}
+              error={!!errorsUpload.file}
+              helperText={errorsUpload.file?.message}
+              inputProps={{ accept: 'image/jpeg,image/png,image/webp' }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenUploadImageDialog(false)} variant="outlined">
+              Hủy
+            </Button>
+            <Button type="submit" variant="contained" color="primary">
+              Tải lên
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
+      <ConfirmDialog
+        open={openConfirmDelete}
+        onClose={handleCloseConfirmDelete}
+        onConfirm={handleConfirmDelete}
+        title="Xác nhận xóa Trang chương"
+        message={`Bạn có chắc chắn muốn xóa trang ${pageToDelete?.attributes?.pageNumber} này? Thao tác này không thể hoàn tác và sẽ xóa ảnh liên quan.`}
+      />
+    </Box>
+  );
+}
+
+export default ChapterPageManager;
+```
+
+---
+
+## III. Cập nhật `MangaReader_WebUI` (Chỉ Logic Đường Dẫn Ảnh)
+
+Mục tiêu: Đảm bảo logic hiển thị ảnh trang chương sử dụng `publicId` đúng cách khi nguồn dữ liệu là `MangaReaderLib`.
+
+### Bước 1: Cập nhật `MangaReaderLibToAtHomeServerResponseMapper.cs`
+
+*   **File bị ảnh hưởng**: `Services/MangaServices/DataProcessing/Services/MangaReaderLibMappers/MangaReaderLibToAtHomeServerResponseMapper.cs`
+*   **Thay đổi**: Khi map `ChapterPageAttributesDto` từ `MangaReaderLib` sang `AtHomeServerResponse` (được dùng bởi `ChapterReadingServices`), đảm bảo rằng `Data` và `DataSaver` trong `AtHomeChapterData` chứa các URL Cloudinary đầy đủ được xây dựng từ `pageDto.Attributes.PublicId`.
+
+    ```csharp
+    // MangaReader_WebUI\Services\MangaServices\DataProcessing\Services\MangaReaderLibMappers\MangaReaderLibToAtHomeServerResponseMapper.cs
+    using MangaReader.WebUI.Models.Mangadex;
+    using MangaReaderLib.DTOs.Common;
+    using MangaReaderLib.DTOs.Chapters;
+    using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
+    using Microsoft.Extensions.Logging;
+    using System.Diagnostics;
+    using System.Linq;
+    using System.Collections.Generic;
+    using Microsoft.Extensions.Configuration;
+
+    namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaReaderLibMappers
+    {
+        public class MangaReaderLibToAtHomeServerResponseMapper : IMangaReaderLibToAtHomeServerResponseMapper
+        {
+            private readonly ILogger<MangaReaderLibToAtHomeServerResponseMapper> _logger;
+            private readonly string _cloudinaryBaseUrl;
+
+            public MangaReaderLibToAtHomeServerResponseMapper(
+                ILogger<MangaReaderLibToAtHomeServerResponseMapper> logger,
+                IConfiguration configuration)
+            {
+                _logger = logger;
+                _cloudinaryBaseUrl = configuration["MangaReaderApiSettings:CloudinaryBaseUrl"]?.TrimEnd('/')
+                                    ?? throw new InvalidOperationException("MangaReaderApiSettings:CloudinaryBaseUrl is not configured for AtHomeServerResponseMapper.");
+            }
+
+            public AtHomeServerResponse MapToAtHomeServerResponse(
+                ApiCollectionResponse<ResourceObject<ChapterPageAttributesDto>> chapterPagesData,
+                string chapterId,
+                string mangaReaderLibBaseUrlIgnored) 
+            {
+                Debug.Assert(chapterPagesData != null, "chapterPagesData không được null khi mapping.");
+                Debug.Assert(!string.IsNullOrEmpty(chapterId), "chapterId không được rỗng.");
+
+                var pages = new List<string>();
+                if (chapterPagesData.Data != null && chapterPagesData.Data.Any())
+                {
+                    var sortedPagesDto = chapterPagesData.Data.OrderBy(p => p.Attributes.PageNumber);
+
+                    foreach (var pageDto in sortedPagesDto)
+                    {
+                        if (pageDto?.Attributes?.PublicId != null)
+                        {
+                            // PublicId từ API MangaReaderLib đã là "chapters/{ChapterId}/pages/{PageId}"
+                            // Chỉ cần ghép với Cloudinary base URL.
+                            var imageUrl = $"{_cloudinaryBaseUrl}/{pageDto.Attributes.PublicId}";
+                            pages.Add(imageUrl);
+                            _logger.LogDebug("Mapped MangaReaderLib page: ChapterId={ChapterId}, PageNumber={PageNumber}, PublicId={PublicId} to Cloudinary URL: {ImageUrl}",
+                                chapterId, pageDto.Attributes.PageNumber, pageDto.Attributes.PublicId, imageUrl);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Skipping page due to missing PublicId. ChapterId={ChapterId}, PageDtoId={PageDtoId}", chapterId, pageDto?.Id);
+                        }
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("No page data found in chapterPagesData for ChapterId={ChapterId}", chapterId);
+                }
+                
+                return new AtHomeServerResponse
+                {
+                    Result = "ok",
+                    BaseUrl = "", // Không dùng BaseUrl của MangaDex@Home cho MangaReaderLib
+                    Chapter = new AtHomeChapterData
+                    {
+                        Hash = chapterId, 
+                        Data = pages,      
+                        DataSaver = pages  
+                    }
+                };
+            }
+        }
+    }
+    ```
+
+### Bước 2: Kiểm tra `Views/ChapterRead/_ChapterImagesPartial.cshtml`
+
+*   Đảm bảo view này render trực tiếp các URL ảnh từ `Model` (là `List<string>`), vì các URL này đã được chuẩn bị sẵn bởi mapper.
+
+    ```html
+    <!-- Views\ChapterRead\_ChapterImagesPartial.cshtml -->
+    @model List<string>
+
+    @if (Model != null && Model.Any())
+    {
+        <div class="chapter-images">
+            @foreach (var imgPageUrl in Model) <!-- imgPageUrl bây giờ là URL đầy đủ -->
+            {
+                <div class="page-image-container">
+                    <div class="loading-indicator">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>
+                    <img class="chapter-page-image lazy-load" src="" data-src="@imgPageUrl" alt="Trang truyện @(Model.IndexOf(imgPageUrl) + 1)" />
+                    <div class="error-overlay">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <span>Lỗi tải ảnh</span>
+                        <button class="btn btn-sm btn-light retry-button mt-2">Thử lại</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning text-center">
+            <i class="bi bi-exclamation-circle"></i> Không có trang nào cho chương này
+        </div>
+    }
+    ```
+    Logic này không cần thay đổi vì nó đã render URL trực tiếp.
+
+---
