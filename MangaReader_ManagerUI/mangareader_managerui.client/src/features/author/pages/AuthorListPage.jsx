@@ -104,34 +104,37 @@ function AuthorListPage() {
 
       {/* Filter Section */}
       <Box className="filter-section">
-        <Grid container spacing={2} alignItems="flex-end" columns={{ xs: 4, sm: 6, md: 12 }}>
-          <Grid item xs={4} sm={3} md={4}>
+        <Grid container spacing={2} alignItems="flex-start">
+          <Grid item xs={12} sm={6} md={4} lg={6}>
             <TextField
               label="Lọc theo Tên tác giả"
               variant="outlined"
               fullWidth
               value={filters.nameFilter || ''}
               onChange={(e) => setFilter('nameFilter', e.target.value)}
+              sx={{ minWidth: '200px' }}
             />
           </Grid>
-          <Grid item xs={4} sm={3} md={2}>
+          <Grid item xs={12} sm={3} md={2} lg={3} sx={{ display: 'flex', alignItems: 'center' }}>
             <Button
               variant="contained"
               color="primary"
               startIcon={<SearchIcon />}
               onClick={handleApplyFilters}
               fullWidth
+              sx={{ height: '56px' }}
             >
               Áp dụng
             </Button>
           </Grid>
-          <Grid item xs={4} sm={3} md={2}>
+          <Grid item xs={12} sm={3} md={2} lg={3} sx={{ display: 'flex', alignItems: 'center' }}>
             <Button
               variant="outlined"
               color="inherit"
               startIcon={<ClearIcon />}
               onClick={handleResetFilters}
               fullWidth
+              sx={{ height: '56px' }}
             >
               Đặt lại
             </Button>

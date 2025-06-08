@@ -12,6 +12,7 @@ import {
 } from '@mui/material'
 import { visuallyHidden } from '@mui/utils'
 import React from 'react'
+import { ROWS_PER_PAGE_OPTIONS } from '../../constants/appConstants'
 
 function DataTableMUI({
   columns,
@@ -100,7 +101,7 @@ function DataTableMUI({
         </TableBody>
       </Table>
       <TablePagination
-        rowsPerPageOptions={[5, 10, 20]}
+        rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
         component="div"
         count={totalItems}
         rowsPerPage={rowsPerPage}

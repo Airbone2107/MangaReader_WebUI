@@ -35,8 +35,9 @@ import { handleApiError } from '../../../utils/errorUtils'
  * ChapterPageManager component for managing pages of a specific chapter.
  * @param {object} props
  * @param {string} props.chapterId - The ID of the chapter.
+ * @param {() => void} [props.onPagesUpdated] - Optional callback when pages are updated (added/deleted).
  */
-function ChapterPageManager({ chapterId }) {
+function ChapterPageManager({ chapterId, onPagesUpdated }) {
   const {
     chapterPages,
     fetchChapterPagesByChapterId,
@@ -87,6 +88,7 @@ function ChapterPageManager({ chapterId }) {
       }
       setOpenCreatePageDialog(false)
       resetCreate()
+      if (onPagesUpdated) onPagesUpdated()
     } catch (error) {
       console.error('Failed to create page entry:', error)
       // Error handled by store/apiClient
@@ -120,6 +122,7 @@ function ChapterPageManager({ chapterId }) {
     if (pageToDelete) {
       try {
         await deleteChapterPage(pageToDelete.id, chapterId)
+        if (onPagesUpdated) onPagesUpdated()
       } catch (error) {
         console.error('Failed to delete chapter page:', error)
         handleApiError(error, 'Không thể xóa trang chương.')

@@ -25,6 +25,7 @@ import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import { showSuccessToast } from '../../../components/common/Notification'
 import { CLOUDINARY_BASE_URL } from '../../../constants/appConstants'
 import { uploadCoverArtSchema } from '../../../schemas/mangaSchema'
+import useMangaStore from '../../../stores/mangaStore'
 import { handleApiError } from '../../../utils/errorUtils'
 
 /**
@@ -44,6 +45,8 @@ function CoverArtManager({ mangaId }) {
   const [openUploadDialog, setOpenUploadDialog] = useState(false)
   const [openConfirmDelete, setOpenConfirmDelete] = useState(false)
   const [coverArtToDelete, setCoverArtToDelete] = useState(null)
+
+  const fetchMangasGlobal = useMangaStore((state) => state.fetchMangas)
 
   const {
     register,
@@ -85,7 +88,8 @@ function CoverArtManager({ mangaId }) {
         description: data.description,
       })
       showSuccessToast('Tải ảnh bìa thành công!')
-      fetchCovers()
+      await fetchCovers()
+      fetchMangasGlobal()
       setOpenUploadDialog(false)
       reset()
     } catch (error) {
@@ -104,7 +108,8 @@ function CoverArtManager({ mangaId }) {
       try {
         await coverArtApi.deleteCoverArt(coverArtToDelete.id)
         showSuccessToast('Xóa ảnh bìa thành công!')
-        fetchCovers()
+        await fetchCovers()
+        fetchMangasGlobal()
       } catch (error) {
         console.error('Failed to delete cover art:', error)
         handleApiError(error, 'Không thể xóa ảnh bìa.')

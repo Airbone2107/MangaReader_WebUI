@@ -105,17 +105,18 @@ function MangaListPage() {
 
       {/* Filter Section */}
       <Box className="filter-section">
-        <Grid container spacing={2} alignItems="flex-end" columns={{ xs: 4, sm: 6, md: 12 }}>
-          <Grid item xs={4} sm={3} md={3}>
+        <Grid container spacing={2} alignItems="flex-start">
+          <Grid item xs={12} sm={6} md={4} lg={3}>
             <TextField
               label="Lọc theo Tiêu đề"
               variant="outlined"
               fullWidth
               value={filters.titleFilter || ''}
               onChange={(e) => setFilter('titleFilter', e.target.value)}
+              sx={{ minWidth: '150px' }}
             />
           </Grid>
-          <Grid item xs={4} sm={3} md={2}>
+          <Grid item xs={12} sm={6} md={4} lg={2}>
             <TextField
               select
               label="Trạng thái"
@@ -123,6 +124,7 @@ function MangaListPage() {
               fullWidth
               value={filters.statusFilter || ''}
               onChange={(e) => setFilter('statusFilter', e.target.value)}
+              sx={{ minWidth: '150px' }}
             >
               <MenuItem value="">Tất cả</MenuItem>
               {MANGA_STATUS_OPTIONS.map((option) => (
@@ -132,7 +134,7 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={4} sm={3} md={2}>
+          <Grid item xs={12} sm={6} md={4} lg={2}>
             <TextField
               select
               label="Đánh giá"
@@ -140,6 +142,7 @@ function MangaListPage() {
               fullWidth
               value={filters.contentRatingFilter || ''}
               onChange={(e) => setFilter('contentRatingFilter', e.target.value)}
+              sx={{ minWidth: '150px' }}
             >
               <MenuItem value="">Tất cả</MenuItem>
               {CONTENT_RATING_OPTIONS.map((option) => (
@@ -149,7 +152,7 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={4} sm={3} md={2}>
+          <Grid item xs={12} sm={6} md={4} lg={2}>
             <TextField
               select
               label="Đối tượng"
@@ -157,6 +160,7 @@ function MangaListPage() {
               fullWidth
               value={filters.demographicFilter || ''}
               onChange={(e) => setFilter('demographicFilter', e.target.value)}
+              sx={{ minWidth: '150px' }}
             >
               <MenuItem value="">Tất cả</MenuItem>
               {PUBLICATION_DEMOGRAPHIC_OPTIONS.map((option) => (
@@ -166,7 +170,7 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={4} sm={3} md={2}>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
             <TextField
               select
               label="Ngôn ngữ gốc"
@@ -174,6 +178,7 @@ function MangaListPage() {
               fullWidth
               value={filters.originalLanguageFilter || ''}
               onChange={(e) => setFilter('originalLanguageFilter', e.target.value)}
+              sx={{ minWidth: '180px' }}
             >
               <MenuItem value="">Tất cả</MenuItem>
               {ORIGINAL_LANGUAGE_OPTIONS.map((option) => (
@@ -183,7 +188,7 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={4} sm={3} md={1}>
+          <Grid item xs={12} sm={6} md={4} lg={2}>
             <TextField
               label="Năm"
               variant="outlined"
@@ -192,9 +197,10 @@ function MangaListPage() {
               value={filters.yearFilter || ''}
               onChange={(e) => setFilter('yearFilter', e.target.value === '' ? null : parseInt(e.target.value, 10))}
               inputProps={{ min: 1000, max: new Date().getFullYear(), step: 1 }}
+              sx={{ minWidth: '100px' }}
             />
           </Grid>
-          <Grid item xs={4} sm={3} md={3}>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
             <Autocomplete
               multiple
               options={availableAuthors}
@@ -208,15 +214,17 @@ function MangaListPage() {
               onChange={(event, newValue) => {
                 setFilter('authorIdsFilter', newValue.map(item => item.id));
               }}
-              renderInput={(params) => <TextField {...params} label="Lọc theo Tác giả" />}
+              renderInput={(params) => <TextField {...params} label="Lọc theo Tác giả" variant="outlined" />}
               renderTags={(value, getTagProps) =>
                 value.map((option, index) => (
                   <Chip label={option.name} {...getTagProps({ index })} />
                 ))
               }
+              fullWidth
+              sx={{ minWidth: '200px' }}
             />
           </Grid>
-          <Grid item xs={4} sm={3} md={3}>
+          <Grid item xs={12} sm={6} md={4} lg={3}>
             <Autocomplete
               multiple
               options={availableTags}
@@ -230,32 +238,36 @@ function MangaListPage() {
               onChange={(event, newValue) => {
                 setFilter('tagIdsFilter', newValue.map(item => item.id));
               }}
-              renderInput={(params) => <TextField {...params} label="Lọc theo Tags" />}
+              renderInput={(params) => <TextField {...params} label="Lọc theo Tags" variant="outlined" />}
               renderTags={(value, getTagProps) =>
                 value.map((option, index) => (
                   <Chip label={option.name} {...getTagProps({ index })} />
                 ))
               }
+              fullWidth
+              sx={{ minWidth: '200px' }}
             />
           </Grid>
-          <Grid item xs={4} sm={3} md={2}>
+          <Grid item xs={12} sm={6} md={2} lg={2} sx={{ display: 'flex', alignItems: 'center' }}>
             <Button
               variant="contained"
               color="primary"
               startIcon={<SearchIcon />}
               onClick={handleApplyFilters}
               fullWidth
+              sx={{ height: '56px' }} 
             >
               Áp dụng
             </Button>
           </Grid>
-          <Grid item xs={4} sm={3} md={2}>
+          <Grid item xs={12} sm={6} md={2} lg={2} sx={{ display: 'flex', alignItems: 'center' }}>
             <Button
               variant="outlined"
               color="inherit"
               startIcon={<ClearIcon />}
               onClick={handleResetFilters}
               fullWidth
+              sx={{ height: '56px' }}
             >
               Đặt lại
             </Button>

@@ -1,5 +1,5 @@
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
-import { Autocomplete, Box, Button, Chip, FormControlLabel, Grid, Switch, TextField, Typography } from '@mui/material'
+import { Add as AddIcon, CheckBox as CheckBoxIcon, CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon, Delete as DeleteIcon } from '@mui/icons-material'
+import { Autocomplete, Box, Button, Checkbox, Chip, FormControlLabel, Grid, Paper, Switch, TextField, Typography } from '@mui/material'
 import React, { useEffect, useState } from 'react'
 import authorApi from '../../../api/authorApi'
 import tagApi from '../../../api/tagApi'
@@ -37,6 +37,7 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
     setValue,
     watch,
     formState: { errors },
+    getValues,
   } = useFormWithZod({
     schema: isEditMode ? updateMangaSchema : createMangaSchema,
     defaultValues: initialData
@@ -55,8 +56,10 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
             ?.filter((rel) => rel.type === 'author' || rel.type === 'artist')
             .map((rel) => ({
               authorId: rel.id,
-              role: rel.type === 'author' ? 'Author' : 'Artist', // Map based on type
+              role: rel.type === 'author' ? 'Author' : 'Artist',
             })) || [],
+          tempAuthor: null,
+          tempAuthorRole: 'Author',
         }
       : {
           title: '',
@@ -68,30 +71,35 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
           isLocked: false,
           tagIds: [],
           authors: [],
+          tempAuthor: null,
+          tempAuthorRole: 'Author',
         },
   })
 
   /** @type {[SelectedRelationship[], React.Dispatch<React.SetStateAction<SelectedRelationship[]>>]} */
-  const [selectedAuthors, setSelectedAuthors] = useState([])
+  const [selectedAuthorsVisual, setSelectedAuthorsVisual] = useState([])
   /** @type {[SelectedRelationship[], React.Dispatch<React.SetStateAction<SelectedRelationship[]>>]} */
-  const [selectedTags, setSelectedTags] = useState([])
+  const [selectedTagsVisual, setSelectedTagsVisual] = useState([])
 
   const [availableAuthors, setAvailableAuthors] = useState([])
   const [availableTags, setAvailableTags] = useState([])
 
-  const currentAuthors = watch('authors') || []
-  const currentTagIds = watch('tagIds') || []
+  const currentAuthorsFormValue = watch('authors') || []
+  const currentTagIdsFormValue = watch('tagIds') || []
   const isLocked = watch('isLocked')
+
+  // State cho Autocomplete chọn tác giả (không phải là một phần của form data chính thức)
+  const [tempSelectedAuthor, setTempSelectedAuthor] = useState(null);
 
   // Fetch available authors and tags
   useEffect(() => {
     const fetchDropdownData = async () => {
       try {
-        const authorsResponse = await authorApi.getAuthors({ limit: 1000 }) // Fetch all or paginate
+        const authorsResponse = await authorApi.getAuthors({ limit: 1000 })
         setAvailableAuthors(authorsResponse.data.map(a => ({ id: a.id, name: a.attributes.name })))
 
-        const tagsResponse = await tagApi.getTags({ limit: 1000 }) // Fetch all or paginate
-        setAvailableTags(tagsResponse.data.map(t => ({ id: t.id, name: t.attributes.name })))
+        const tagsResponse = await tagApi.getTags({ limit: 1000 })
+        setAvailableTags(tagsResponse.data.map(t => ({ id: t.id, name: t.attributes.name, tagGroupId: t.attributes.tagGroupId, tagGroupName: t.attributes.tagGroupName })))
       } catch (error) {
         handleApiError(error, 'Không thể tải dữ liệu tác giả/tag.');
       }
@@ -99,7 +107,6 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
     fetchDropdownData()
   }, [])
 
-  // Populate selected authors/tags when initialData is loaded
   useEffect(() => {
     if (initialData && availableAuthors.length > 0 && availableTags.length > 0) {
       const initialAuthorRelationships = initialData.relationships
@@ -116,8 +123,7 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
         })
         .filter(Boolean)
 
-      setSelectedAuthors(hydratedAuthors)
-      setValue('authors', initialAuthorRelationships)
+      setSelectedAuthorsVisual(hydratedAuthors)
 
       const initialTagIds = initialData.relationships
         ?.filter((rel) => rel.type === 'tag')
@@ -126,66 +132,68 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
       const hydratedTags = initialTagIds
         .map((tagId) => {
           const tag = availableTags.find((t) => t.id === tagId)
-          return tag ? { id: tag.id, name: tag.name } : null
+          return tag ? { id: tag.id, name: tag.name, tagGroupName: tag.tagGroupName || 'N/A' } : null
         })
         .filter(Boolean)
 
-      setSelectedTags(hydratedTags)
-      setValue('tagIds', initialTagIds)
+      setSelectedTagsVisual(hydratedTags)
     }
   }, [initialData, availableAuthors, availableTags, setValue])
 
-  /**
-   * @param {SelectedRelationship} author
-   * @param {'Author' | 'Artist'} role
-   */
-  const handleAddAuthor = (author, role) => {
-    if (!author) return
-    const newAuthorEntry = { authorId: author.id, role }
-    // Check if author with this ID and role already exists
-    if (!currentAuthors.some(
+  // Cập nhật selectedAuthorsVisual khi currentAuthorsFormValue thay đổi
+  useEffect(() => {
+    const hydratedAuthors = currentAuthorsFormValue
+      .map((formAuthor) => {
+        const authorDetails = availableAuthors.find(a => a.id === formAuthor.authorId);
+        return authorDetails ? { ...authorDetails, role: formAuthor.role } : null;
+      })
+      .filter(Boolean);
+    setSelectedAuthorsVisual(hydratedAuthors);
+  }, [currentAuthorsFormValue, availableAuthors]);
+
+  // Cập nhật selectedTagsVisual khi currentTagIdsFormValue thay đổi
+  useEffect(() => {
+    const hydratedTags = currentTagIdsFormValue
+      .map((tagId) => {
+        const tagDetails = availableTags.find(t => t.id === tagId);
+        return tagDetails ? { id: tagDetails.id, name: tagDetails.name, tagGroupName: tagDetails.tagGroupName } : null;
+      })
+      .filter(Boolean);
+    setSelectedTagsVisual(hydratedTags);
+  }, [currentTagIdsFormValue, availableTags]);
+
+  const handleAddAuthorToList = () => {
+    const role = getValues('tempAuthorRole') || 'Author';
+    if (!tempSelectedAuthor || !role) return;
+
+    const newAuthorEntry = { authorId: tempSelectedAuthor.id, role: role };
+    if (!currentAuthorsFormValue.some(
       (a) => a.authorId === newAuthorEntry.authorId && a.role === newAuthorEntry.role
     )) {
-      const updatedAuthors = [...currentAuthors, newAuthorEntry]
-      setValue('authors', updatedAuthors)
-      setSelectedAuthors((prev) => [...prev, { ...author, role }])
+      setValue('authors', [...currentAuthorsFormValue, newAuthorEntry]);
+      setTempSelectedAuthor(null);
+    } else {
+      handleApiError(null, `${tempSelectedAuthor.name} với vai trò ${role} đã được thêm.`);
     }
-  }
+  };
 
-  /**
-   * @param {string} authorIdToRemove
-   * @param {'Author' | 'Artist'} roleToRemove
-   */
-  const handleRemoveAuthor = (authorIdToRemove, roleToRemove) => {
-    const updatedAuthors = currentAuthors.filter(
+  const handleRemoveAuthorVisual = (authorIdToRemove, roleToRemove) => {
+    const updatedAuthorsFormValue = currentAuthorsFormValue.filter(
       (a) => !(a.authorId === authorIdToRemove && a.role === roleToRemove)
-    )
-    setValue('authors', updatedAuthors)
-    setSelectedAuthors((prev) =>
-      prev.filter(
-        (a) => !(a.id === authorIdToRemove && a.role === roleToRemove)
-      )
-    )
-  }
+    );
+    setValue('authors', updatedAuthorsFormValue);
+  };
 
-  /**
-   * @param {SelectedRelationship} tag
-   */
-  const handleAddTag = (tag) => {
-    if (!tag || currentTagIds.includes(tag.id)) return
-    const updatedTags = [...currentTagIds, tag.id]
-    setValue('tagIds', updatedTags)
-    setSelectedTags((prev) => [...prev, tag])
-  }
-
-  /**
-   * @param {string} tagIdToRemove
-   */
-  const handleRemoveTag = (tagIdToRemove) => {
-    const updatedTags = currentTagIds.filter((id) => id !== tagIdToRemove)
-    setValue('tagIds', updatedTags)
-    setSelectedTags((prev) => prev.filter((t) => t.id !== tagIdToRemove))
-  }
+  // Custom Paper component cho Autocomplete Tags
+  const HorizontalTagPaper = (props) => {
+    return (
+      <Paper {...props} sx={{ ...props.sx, maxHeight: 300, overflow: 'auto' }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', p: 1, gap: 0.5 }}>
+          {props.children}
+        </Box>
+      </Paper>
+    );
+  };
 
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ mt: 1 }}>
@@ -226,7 +234,7 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
             name="year"
             label="Năm xuất bản"
             type="number"
-            inputProps={{ min: 1000, max: new Date().getFullYear(), step: 1 }}
+            inputProps={{ min: 1000, max: new Date().getFullYear() + 5, step: 1 }}
           />
         </Grid>
         <Grid item xs={4} sm={6} md={12}>
@@ -239,63 +247,46 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
           />
         </Grid>
 
-        {/* Authors Section */}
-        <Grid item xs={4} sm={6} md={12}>
-          <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-            Tác giả / Họa sĩ
-          </Typography>
-          <Grid container spacing={1} alignItems="center" columns={{ xs: 4, sm: 6, md: 12 }}>
-            <Grid item xs={4} sm={3} md={6}>
+        {/* Authors Section - Thay đổi Typography thành label */}
+        <Grid item xs={12}>
+          <Grid container spacing={1} alignItems="flex-end" columns={{ xs: 12, sm: 12, md: 12 }}>
+            <Grid item xs={12} sm={7} md={7}>
               <Autocomplete
                 options={availableAuthors}
                 getOptionLabel={(option) => option.name}
                 isOptionEqualToValue={(option, value) => option.id === value.id}
+                value={tempSelectedAuthor}
                 onChange={(event, newValue) => {
-                  if (newValue) {
-                    // This is a temp variable, role is added in handleAddAuthor
-                    // We need to keep this simple for Autocomplete, role added when adding
-                  }
+                  setTempSelectedAuthor(newValue);
                 }}
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Chọn tác giả/họa sĩ"
-                    error={!!errors.authors}
-                    helperText={errors.authors?.message}
+                    label="Tác giả / Họa sĩ"
+                    variant="outlined"
+                    margin="normal"
+                    error={!!errors.authors && currentAuthorsFormValue.length === 0}
+                    helperText={errors.authors && currentAuthorsFormValue.length === 0 ? "Vui lòng thêm ít nhất một tác giả/họa sĩ" : null}
                   />
                 )}
               />
             </Grid>
-            <Grid item xs={4} sm={1.5} md={3}>
+            <Grid item xs={12} sm={3} md={3}>
               <FormInput
                 control={control}
-                name="tempAuthorRole" // Temporary field for role selection
+                name="tempAuthorRole"
                 label="Vai trò"
                 type="select"
                 options={MANGA_STAFF_ROLE_OPTIONS}
                 defaultValue="Author"
-                size="small"
+                margin="normal"
               />
             </Grid>
-            <Grid item xs={4} sm={1.5} md={3}>
+            <Grid item xs={12} sm={2} md={2} sx={{ alignSelf: 'center', mt: { xs: 1, sm: '24px' } }}>
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => {
-                  const selectedAuthor = control._formValues.tempAuthorRole // Access direct value
-                    ? availableAuthors.find(a => a.id === control._formValues.tempAuthorId) // Assume tempAuthorId if direct input
-                    : null;
-                  const role = control._formValues.tempAuthorRole || 'Author'; // Default role
-                  const authorInput = document.querySelector('input[aria-expanded][role="combobox"]'); // Get autocomplete input
-
-                  if (authorInput && authorInput.value) {
-                    const selectedOption = availableAuthors.find(opt => opt.name === authorInput.value);
-                    if (selectedOption) {
-                      handleAddAuthor(selectedOption, role);
-                      authorInput.value = ''; // Clear autocomplete input
-                    }
-                  }
-                }}
+                onClick={handleAddAuthorToList}
                 startIcon={<AddIcon />}
                 fullWidth
               >
@@ -304,11 +295,11 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
             </Grid>
           </Grid>
           <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {selectedAuthors.map((author, index) => (
+            {selectedAuthorsVisual.map((author, index) => (
               <Chip
-                key={`${author.id}-${author.role}-${index}`} // Use a unique key
+                key={`${author.id}-${author.role}-${index}`}
                 label={`${author.name} (${author.role})`}
-                onDelete={() => handleRemoveAuthor(author.id, author.role)}
+                onDelete={() => handleRemoveAuthorVisual(author.id, author.role)}
                 deleteIcon={<DeleteIcon />}
                 color="primary"
                 variant="outlined"
@@ -317,38 +308,64 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
           </Box>
         </Grid>
 
-        {/* Tags Section */}
-        <Grid item xs={4} sm={6} md={12}>
-          <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-            Tags
-          </Typography>
+        {/* Tags Section - Thay đổi Typography thành label, cập nhật Autocomplete */}
+        <Grid item xs={12}>
           <Autocomplete
             multiple
-            options={availableTags}
+            disableCloseOnSelect
+            id="manga-tags-autocomplete"
+            options={availableTags.sort((a, b) => a.tagGroupName?.localeCompare(b.tagGroupName) || a.name.localeCompare(b.name))}
+            groupBy={(option) => option.tagGroupName || 'Khác'}
             getOptionLabel={(option) => option.name}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            value={selectedTags}
+            value={selectedTagsVisual}
             onChange={(event, newValue) => {
-              setSelectedTags(newValue);
+              setSelectedTagsVisual(newValue);
               setValue('tagIds', newValue.map(tag => tag.id));
             }}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            renderOption={(props, option, { selected }) => (
+              <Box component="li" {...props} sx={{ width: '100%', justifyContent: 'flex-start', px: 1, py: 0.5 }}>
+                <Checkbox
+                  icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                  checkedIcon={<CheckBoxIcon fontSize="small" />}
+                  style={{ marginRight: 8 }}
+                  checked={selected}
+                />
+                <Chip 
+                  label={option.name} 
+                  size="small" 
+                  variant="outlined" 
+                  sx={{ cursor: 'pointer', flexGrow: 1, justifyContent: 'flex-start' }} 
+                />
+              </Box>
+            )}
+            PaperComponent={HorizontalTagPaper}
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Chọn Tags"
+                variant="outlined"
+                label="Tags"
+                placeholder="Chọn tags"
+                margin="normal"
                 error={!!errors.tagIds}
-                helperText={errors.tagIds?.message}
+                helperText={errors.tagIds ? errors.tagIds.message : null}
               />
             )}
             renderTags={(value, getTagProps) =>
               value.map((option, index) => (
-                <Chip label={option.name} {...getTagProps({ index })} onDelete={() => handleRemoveTag(option.id)} />
+                <Chip
+                  key={option.id}
+                  label={option.name}
+                  {...getTagProps({ index })}
+                  color="secondary"
+                  variant="outlined"
+                />
               ))
             }
+            fullWidth
           />
         </Grid>
         
-        {/* Is Locked Switch */}
         {isEditMode && (
           <Grid item xs={4} sm={6} md={12}>
             <FormControlLabel

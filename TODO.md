@@ -1,650 +1,472 @@
+# TODO: Cải thiện giao diện Trang Tạo/Chỉnh sửa Manga
 
-# TODO: Bỏ qua thông báo lỗi 401 cho SaveReadingProgress
+Tài liệu này mô tả các bước cần thực hiện để cải thiện giao diện người dùng của trang tạo và chỉnh sửa Manga trong ứng dụng MangaReader_ManagerUI.
 
 ## Mục tiêu
 
-Hiện tại, khi người dùng chưa đăng nhập truy cập vào trang đọc truyện, API `/Chapter/SaveReadingProgress` sẽ trả về lỗi 401 (Unauthorized) vì không thể lưu tiến độ đọc. Hệ thống đang hiển thị một thông báo lỗi chung "Đã xảy ra lỗi khi tải nội dung. Vui lòng thử lại." cho trường hợp này.
+1.  **Đồng bộ Label:** Đảm bảo label của các trường "Tác giả / Họa sĩ" và "Tags" hiển thị nhất quán với các trường khác trong form (label nằm trong viền của input/dropdown).
+2.  **Thiết kế lại Dropdown Tags:**
+    *   Hiển thị danh sách các tag tùy chọn dưới dạng các khối chữ nhật (sử dụng `Chip` của MUI).
+    *   Cho phép người dùng chọn nhiều tags mà không làm ẩn dropdown ngay sau mỗi lần chọn.
+    *   Các tag đã chọn sẽ hiển thị dưới dạng Chip bên dưới ô input (hành vi mặc định của `Autocomplete multiple`).
 
-Yêu cầu là **loại bỏ thông báo lỗi này** khi gặp lỗi 401 từ endpoint `/Chapter/SaveReadingProgress` vì đây là trường hợp bình thường và sẽ được xử lý bằng cơ chế khác sau này. Các lỗi khác từ các endpoint khác hoặc các mã lỗi khác từ endpoint này vẫn phải hiển thị thông báo như bình thường.
+## Các thay đổi cần thực hiện
 
-## Các bước thực hiện
+Các thay đổi chủ yếu tập trung vào file `MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaForm.jsx`.
 
-### Bước 1: Chỉnh sửa file `MangaReader_WebUI\wwwroot\js\modules\htmx-handlers.js`
+### Bước 1: Đồng bộ hóa Label cho trường "Tác giả / Họa sĩ" và "Tags"
 
-File này chứa logic xử lý các sự kiện của HTMX, bao gồm cả việc xử lý lỗi khi một request HTMX không thành công. Chúng ta sẽ cập nhật hàm xử lý sự kiện `htmx:responseError` để kiểm tra và bỏ qua thông báo lỗi cụ thể này.
+#### 1.1. Vấn đề
 
-**Nội dung file `MangaReader_WebUI\wwwroot\js\modules\htmx-handlers.js` sau khi cập nhật:**
+Hiện tại, label "Tác giả / Họa sĩ" và "Tags" đang được hiển thị bằng component `Typography` phía trên các `Autocomplete` tương ứng, thay vì là label chuẩn của `TextField` bên trong `Autocomplete`. Điều này gây ra sự thiếu nhất quán so với các trường khác.
+
+#### 1.2. Giải pháp
+
+*   Bỏ các component `Typography` hiện tại cho "Tác giả / Họa sĩ" và "Tags".
+*   Thêm prop `label` trực tiếp vào `TextField` được render bởi `Autocomplete` tương ứng.
+
+#### 1.3. Cập nhật code trong `MangaForm.jsx`
 
 ```javascript
-// MangaReader_WebUI\wwwroot\js\modules\htmx-handlers.js
-/**
- * htmx-handlers.js - Quản lý tất cả chức năng liên quan đến HTMX
- * 
- * File này đóng vai trò quan trọng trong việc đảm bảo các chức năng JavaScript vẫn hoạt động 
- * sau khi HTMX thay đổi nội dung (swap). Nó chịu trách nhiệm khởi tạo lại các chức năng JavaScript
- * cần thiết cho nội dung mới mà không cần load lại toàn bộ trang.
- * 
- * Các nguyên tắc chính:
- * 1. Chỉ khởi tạo lại những gì cần thiết dựa trên nội dung đã được swap
- * 2. Dọn dẹp (dispose) các instance cũ trước khi tạo mới
- * 3. Sử dụng event delegation khi có thể
- */
-
-// Import các hàm từ các module khác (sẽ được sử dụng trong HTMX)
-import { initAuthUI } from '../auth.js';
-import { initCustomDropdowns } from './custom-dropdown.js';
-import { initMangaDetailsPage } from './manga-details.js';
-import { initTagsInSearchForm } from './manga-tags.js';
-import { initChapterDropdownNav, initImageLoading, initImageScaling, initPlaceholderButtons, initReadPage, initSidebarToggle } from './read-page.js';
-import SearchModule from './search.js';
-import { initSidebar, updateActiveSidebarLink } from './sidebar.js';
-import { initUIToggles } from './ui-toggles.js';
-import { adjustFooterPosition, adjustMangaTitles, createDefaultImage, fixAccordionIssues, initBackToTop, initResponsive, initTooltips } from './ui.js';
+// MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaForm.jsx
+import { Add as AddIcon, CheckBox as CheckBoxIcon, CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon, Delete as DeleteIcon } from '@mui/icons-material' // Thêm icon
+import { Autocomplete, Box, Button, Checkbox, Chip, FormControlLabel, Grid, Paper, Switch, TextField, Typography } from '@mui/material' // Thêm Checkbox, Paper
+import React, { useEffect, useState } from 'react'
+import authorApi from '../../../api/authorApi'
+import tagApi from '../../../api/tagApi'
+import FormInput from '../../../components/common/FormInput'
+import {
+    CONTENT_RATING_OPTIONS,
+    MANGA_STAFF_ROLE_OPTIONS,
+    MANGA_STATUS_OPTIONS,
+    ORIGINAL_LANGUAGE_OPTIONS,
+    PUBLICATION_DEMOGRAPHIC_OPTIONS,
+} from '../../../constants/appConstants'
+import useFormWithZod from '../../../hooks/useFormWithZod'
+import { createMangaSchema, updateMangaSchema } from '../../../schemas/mangaSchema'
+import { handleApiError } from '../../../utils/errorUtils'
 
 /**
- * Khởi tạo lại các chức năng cần thiết sau khi HTMX cập nhật nội dung
- *
- * @param {HTMLElement} targetElement - Phần tử được HTMX swap
+ * @typedef {import('../../../types/manga').Manga} Manga
+ * @typedef {import('../../../types/manga').Author} Author
+ * @typedef {import('../../../types/manga').Tag} Tag
+ * @typedef {import('../../../types/manga').MangaAuthorInput} MangaAuthorInput
+ * @typedef {import('../../../types/manga').SelectedRelationship} SelectedRelationship
  */
-function reinitializeAfterHtmxSwap(targetElement) {
-    console.log('[HTMX Swap] Reinitializing JS for swapped element:', targetElement);
-    // Cập nhật active sidebar link - luôn thực hiện khi có swap
-    updateActiveSidebarLink();
-
-    // Xử lý khi main-content được swap (toàn bộ trang hoặc phần lớn)
-    if (targetElement.id === 'main-content' || targetElement.closest('#main-content')) {
-        console.log('[HTMX Swap] Main content swapped, reinitializing page-specific modules...');
-        // Khi nội dung chính được swap, khởi tạo lại các thành phần trong đó
-        if (targetElement.querySelector('#searchForm')) {
-            SearchModule.initSearchPage?.();
-            initTagsInSearchForm();
-        }
-        if (targetElement.querySelector('.details-manga-header-background')) {
-            initMangaDetailsPage();
-        }
-        // Khởi tạo lại trang đọc chapter nếu có
-        if (targetElement.querySelector('.chapter-reader-container') || targetElement.querySelector('#readingSidebar')) {
-            console.log('[HTMX Swap] Chapter Read page detected, initializing read-page modules');
-            initReadPage();
-        }
-        // Khởi tạo lại pagination nếu có
-        if (targetElement.querySelector('.pagination')) {
-            SearchModule.initPageGoTo?.();
-        }
-        // Điều chỉnh tiêu đề manga nếu có
-        adjustMangaTitles(targetElement);
-    }
-    // Xử lý khi chỉ kết quả tìm kiếm và phân trang được swap
-    else if (targetElement.id === 'search-results-and-pagination') {
-        console.log('[HTMX Swap] Search results swapped, reinitializing pagination/tooltips...');
-        SearchModule.initPageGoTo?.();
-        initTooltips();
-    }
-    // Xử lý khi chỉ container kết quả được swap (chuyển đổi view mode)
-    else if (targetElement.id === 'search-results-container') {
-        console.log('[HTMX Swap] Search results container swapped (view mode change).');
-        initTooltips();
-    }
-    // Xử lý khi chỉ container ảnh chapter được swap
-    else if (targetElement.id === 'chapterImagesContainer') {
-        console.log('[HTMX Swap] Chapter images container swapped, initializing image loading...');
-        initImageLoading('#chapterImagesContainer');
-    }
-    // Xử lý khi chỉ sidebar đọc truyện được swap (nếu có)
-    else if (targetElement.id === 'readingSidebar') {
-        console.log('[HTMX Swap] Reading sidebar swapped, reinitializing relevant parts...');
-        initSidebarToggle();
-        initChapterDropdownNav();
-        initPlaceholderButtons();
-        initImageScaling();
-    }
-    // Xử lý khi các nút chuyển đổi UI (theme/source) bị swap (ít khả năng, nhưng cần)
-    // (Kiểm tra nếu bất kỳ phần tử con nào của #userDropdownMenu chứa một trong các switcher)
-    if (targetElement.querySelector('#userDropdownMenu') || targetElement.closest('#userDropdownMenu')) {
-         if (targetElement.querySelector('#customThemeSwitcherItem') || targetElement.querySelector('#customSourceSwitcherItem')) {
-             console.log('[HTMX Swap] UI Toggles detected in swapped content, reinitializing.');
-             initUIToggles(); // Gọi hàm khởi tạo chính cho cả hai nút
-         }
-    }
-
-    // Luôn khởi tạo lại các component Bootstrap trong phần tử đã swap
-    initializeBootstrapComponents(targetElement);
-    console.log('[HTMX Swap] Reinitialization complete for swapped element.');
-}
-
 
 /**
- * Khởi tạo lại các chức năng sau khi HTMX khôi phục nội dung từ lịch sử (Back/Forward)
- * @param {HTMLElement} targetElement - Thường là body hoặc main-content
+ * MangaForm component for creating or editing manga.
+ * @param {object} props
+ * @param {Manga} [props.initialData] - Initial data for editing.
+ * @param {function(CreateMangaRequest | UpdateMangaRequest): void} props.onSubmit - Function to handle form submission.
+ * @param {boolean} props.isEditMode - True if in edit mode, false for create mode.
  */
-function reinitializeAfterHtmxLoad(targetElement) {
-    console.log('[HTMX Load] Reinitializing JS after history navigation for element:', targetElement);
+function MangaForm({ initialData, onSubmit, isEditMode }) {
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+    // Lấy thêm `getValues` để truy cập giá trị form cho nút "Thêm" tác giả
+    getValues,
+  } = useFormWithZod({
+    schema: isEditMode ? updateMangaSchema : createMangaSchema,
+    defaultValues: initialData
+      ? {
+          title: initialData.attributes.title || '',
+          originalLanguage: initialData.attributes.originalLanguage || '',
+          publicationDemographic: initialData.attributes.publicationDemographic || null,
+          status: initialData.attributes.status || 'Ongoing',
+          year: initialData.attributes.year || null,
+          contentRating: initialData.attributes.contentRating || 'Safe',
+          isLocked: initialData.attributes.isLocked || false,
+          tagIds: initialData.relationships
+            ?.filter((rel) => rel.type === 'tag')
+            .map((rel) => rel.id) || [],
+          authors: initialData.relationships
+            ?.filter((rel) => rel.type === 'author' || rel.type === 'artist')
+            .map((rel) => ({
+              authorId: rel.id,
+              role: rel.type === 'author' ? 'Author' : 'Artist',
+            })) || [],
+          tempAuthor: null, // Thêm state tạm cho Autocomplete tác giả
+          tempAuthorRole: 'Author', // Giữ nguyên state tạm cho vai trò
+        }
+      : {
+          title: '',
+          originalLanguage: 'ja',
+          publicationDemographic: null,
+          status: 'Ongoing',
+          year: new Date().getFullYear(),
+          contentRating: 'Safe',
+          isLocked: false,
+          tagIds: [],
+          authors: [],
+          tempAuthor: null,
+          tempAuthorRole: 'Author',
+        },
+  })
 
-    // *** BƯỚC QUAN TRỌNG: Xóa loading state ngay lập tức ***
-    if (targetElement && targetElement.classList.contains('htmx-loading-target')) {
-        console.log('[HTMX Load] Force removing htmx-loading-target on restored element.');
-        targetElement.classList.remove('htmx-loading-target');
+  /** @type {[SelectedRelationship[], React.Dispatch<React.SetStateAction<SelectedRelationship[]>>]} */
+  const [selectedAuthorsVisual, setSelectedAuthorsVisual] = useState([])
+  /** @type {[SelectedRelationship[], React.Dispatch<React.SetStateAction<SelectedRelationship[]>>]} */
+  const [selectedTagsVisual, setSelectedTagsVisual] = useState([])
+
+  const [availableAuthors, setAvailableAuthors] = useState([])
+  const [availableTags, setAvailableTags] = useState([])
+
+  const currentAuthorsFormValue = watch('authors') || []
+  const currentTagIdsFormValue = watch('tagIds') || []
+  const isLocked = watch('isLocked')
+
+  // State cho Autocomplete chọn tác giả (không phải là một phần của form data chính thức)
+  const [tempSelectedAuthor, setTempSelectedAuthor] = useState(null);
+
+
+  useEffect(() => {
+    const fetchDropdownData = async () => {
+      try {
+        const authorsResponse = await authorApi.getAuthors({ limit: 1000 })
+        setAvailableAuthors(authorsResponse.data.map(a => ({ id: a.id, name: a.attributes.name })))
+
+        const tagsResponse = await tagApi.getTags({ limit: 1000 })
+        setAvailableTags(tagsResponse.data.map(t => ({ id: t.id, name: t.attributes.name, tagGroupId: t.attributes.tagGroupId, tagGroupName: t.attributes.tagGroupName })))
+      } catch (error) {
+        handleApiError(error, 'Không thể tải dữ liệu tác giả/tag.');
+      }
     }
-    const mainContent = document.getElementById('main-content');
-    if (mainContent && mainContent.classList.contains('htmx-loading-target')) {
-         mainContent.classList.remove('htmx-loading-target');
+    fetchDropdownData()
+  }, [])
+
+  useEffect(() => {
+    if (initialData && availableAuthors.length > 0 && availableTags.length > 0) {
+      const initialAuthorRelationships = initialData.relationships
+        ?.filter((rel) => rel.type === 'author' || rel.type === 'artist')
+        .map((rel) => ({
+          authorId: rel.id,
+          role: rel.type === 'author' ? 'Author' : 'Artist',
+        })) || [];
+
+      const hydratedAuthors = initialAuthorRelationships
+        .map((rel) => {
+          const author = availableAuthors.find((a) => a.id === rel.authorId)
+          return author ? { ...author, role: rel.role } : null
+        })
+        .filter(Boolean)
+
+      setSelectedAuthorsVisual(hydratedAuthors)
+      // setValue('authors', initialAuthorRelationships) // RHF đã có giá trị từ defaultValues
+
+      const initialTagIds = initialData.relationships
+        ?.filter((rel) => rel.type === 'tag')
+        .map((rel) => rel.id) || [];
+
+      const hydratedTags = initialTagIds
+        .map((tagId) => {
+          const tag = availableTags.find((t) => t.id === tagId)
+          return tag ? { id: tag.id, name: tag.name, tagGroupName: tag.attributes?.tagGroupName || 'N/A' } : null // Lấy thêm tagGroupName
+        })
+        .filter(Boolean)
+
+      setSelectedTagsVisual(hydratedTags)
+      // setValue('tagIds', initialTagIds) // RHF đã có giá trị từ defaultValues
     }
-    const searchResults = document.getElementById('search-results-and-pagination');
-     if (searchResults && searchResults.classList.contains('htmx-loading-target')) {
-          searchResults.classList.remove('htmx-loading-target');
-     }
-    // *** KẾT THÚC BƯỚC XÓA LOADING STATE ***
+  }, [initialData, availableAuthors, availableTags, setValue]) // `setValue` được giữ lại nếu bạn muốn cập nhật programmatically
+  
+  // Cập nhật selectedAuthorsVisual khi currentAuthorsFormValue thay đổi
+  useEffect(() => {
+    const hydratedAuthors = currentAuthorsFormValue
+      .map((formAuthor) => {
+        const authorDetails = availableAuthors.find(a => a.id === formAuthor.authorId);
+        return authorDetails ? { ...authorDetails, role: formAuthor.role } : null;
+      })
+      .filter(Boolean);
+    setSelectedAuthorsVisual(hydratedAuthors);
+  }, [currentAuthorsFormValue, availableAuthors]);
 
-    // --- 1. Khởi tạo lại các chức năng TOÀN CỤC ---
-    console.log('[HTMX Load] Reinitializing global functions...');
-    initSidebar();
-    initAuthUI();
-    initCustomDropdowns();
-    initUIToggles();
-    initBackToTop();
-    initResponsive();
-    fixAccordionIssues();
-    adjustFooterPosition();
-    initTooltips();
-    createDefaultImage();
+  // Cập nhật selectedTagsVisual khi currentTagIdsFormValue thay đổi
+  useEffect(() => {
+    const hydratedTags = currentTagIdsFormValue
+      .map((tagId) => {
+        const tagDetails = availableTags.find(t => t.id === tagId);
+        return tagDetails ? { id: tagDetails.id, name: tagDetails.name, tagGroupName: tagDetails.tagGroupName } : null;
+      })
+      .filter(Boolean);
+    setSelectedTagsVisual(hydratedTags);
+  }, [currentTagIdsFormValue, availableTags]);
 
-    // --- 2. Khởi tạo lại các chức năng TRANG CỤ THỂ (Có điều kiện) ---
-    if (targetElement.querySelector('#searchForm')) {
-        console.log('[HTMX Load] Reinitializing Search Page...');
-        SearchModule.initSearchPage?.();
-        initTagsInSearchForm();
-        SearchModule.initPageGoTo?.();
-    } else if (targetElement.querySelector('.details-manga-header-background')) {
-        console.log('[HTMX Load] Reinitializing Manga Details Page...');
-        initMangaDetailsPage();
-    } else if (targetElement.querySelector('.chapter-reader-container') || targetElement.querySelector('#readingSidebar')) {
-        console.log('[HTMX Load] Reinitializing Chapter Read Page...');
-        initReadPage();
+
+  const handleAddAuthorToList = () => {
+    const role = getValues('tempAuthorRole') || 'Author'; // Lấy vai trò từ form
+    if (!tempSelectedAuthor || !role) return;
+
+    const newAuthorEntry = { authorId: tempSelectedAuthor.id, role: role };
+    if (!currentAuthorsFormValue.some(
+      (a) => a.authorId === newAuthorEntry.authorId && a.role === newAuthorEntry.role
+    )) {
+      setValue('authors', [...currentAuthorsFormValue, newAuthorEntry]);
+      // Không cần cập nhật selectedAuthorsVisual ở đây nữa, useEffect sẽ xử lý
+      setTempSelectedAuthor(null); // Reset ô chọn tác giả
     } else {
-        console.log('[HTMX Load] Reinitializing Home Page or other...');
-        const latestGrid = document.getElementById('latest-manga-grid');
-        if (latestGrid && latestGrid.innerHTML.includes('spinner')) {
-            console.log('[HTMX Load] Retriggering hx-trigger="load" for #latest-manga-grid');
-            setTimeout(() => htmx.trigger(latestGrid, 'load'), 50);
-        }
+      handleApiError(null, `${tempSelectedAuthor.name} với vai trò ${role} đã được thêm.`);
     }
+  };
 
-    // --- 3. Khởi tạo lại các thành phần UI/Bootstrap chung ---
-    initializeBootstrapComponents(targetElement);
 
-    // --- 4. Điều chỉnh UI cuối cùng ---
-    adjustMangaTitles(targetElement);
+  const handleRemoveAuthorVisual = (authorIdToRemove, roleToRemove) => {
+    const updatedAuthorsFormValue = currentAuthorsFormValue.filter(
+      (a) => !(a.authorId === authorIdToRemove && a.role === roleToRemove)
+    );
+    setValue('authors', updatedAuthorsFormValue);
+    // Không cần cập nhật selectedAuthorsVisual ở đây nữa, useEffect sẽ xử lý
+  };
 
-    console.log('[HTMX Load] Reinitialization complete.');
-}
+  // Không cần handleAddTag và handleRemoveTag riêng biệt nữa nếu dùng Autocomplete `onChange` đúng cách
 
-/**
- * Helper function to initialize Bootstrap components within a target element.
- * This function now includes more robust error handling and logging.
- */
-function initializeBootstrapComponents(targetElement) {
-    if (!targetElement || typeof targetElement.querySelectorAll !== 'function') {
-        console.warn('[Bootstrap Init] Invalid targetElement provided:', targetElement);
-        return;
-    }
-    console.log('[Bootstrap Init] Initializing components within:', targetElement);
+  // Custom Paper component cho Autocomplete Tags
+  const HorizontalTagPaper = (props) => {
+    return (
+      <Paper {...props} sx={{ ...props.sx, maxHeight: 300, overflow: 'auto' }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', p: 1, gap: 0.5 }}>
+          {props.children}
+        </Box>
+      </Paper>
+    );
+  };
 
-    // Dropdowns
-    targetElement.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(el => {
-        // Skip custom dropdowns
-        if (el.closest('.custom-user-dropdown')) return;
+
+  return (
+    <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ mt: 1 }}>
+      <Grid container spacing={2} columns={{ xs: 4, sm: 6, md: 12 }}>
+        <Grid item xs={4} sm={6} md={12}>
+          <FormInput control={control} name="title" label="Tiêu đề Manga" />
+        </Grid>
+        <Grid item xs={4} sm={3} md={6}>
+          <FormInput
+            control={control}
+            name="originalLanguage"
+            label="Ngôn ngữ gốc"
+            type="select"
+            options={ORIGINAL_LANGUAGE_OPTIONS}
+          />
+        </Grid>
+        <Grid item xs={4} sm={3} md={6}>
+          <FormInput
+            control={control}
+            name="publicationDemographic"
+            label="Đối tượng xuất bản"
+            type="select"
+            options={PUBLICATION_DEMOGRAPHIC_OPTIONS}
+          />
+        </Grid>
+        <Grid item xs={4} sm={3} md={6}>
+          <FormInput
+            control={control}
+            name="status"
+            label="Trạng thái"
+            type="select"
+            options={MANGA_STATUS_OPTIONS}
+          />
+        </Grid>
+        <Grid item xs={4} sm={3} md={6}>
+          <FormInput
+            control={control}
+            name="year"
+            label="Năm xuất bản"
+            type="number"
+            inputProps={{ min: 1000, max: new Date().getFullYear() + 5, step: 1 }} // Cho phép năm tương lai gần
+          />
+        </Grid>
+        <Grid item xs={4} sm={6} md={12}>
+          <FormInput
+            control={control}
+            name="contentRating"
+            label="Đánh giá nội dung"
+            type="select"
+            options={CONTENT_RATING_OPTIONS}
+          />
+        </Grid>
+
+        {/* Authors Section - Thay đổi Typography thành label */}
+        <Grid item xs={12}>
+          {/* Bỏ Typography "Tác giả / Họa sĩ" */}
+          <Grid container spacing={1} alignItems="flex-end" columns={{ xs: 12, sm: 12, md: 12 }}>
+            <Grid item xs={12} sm={7} md={7}>
+              <Autocomplete
+                options={availableAuthors}
+                getOptionLabel={(option) => option.name}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                value={tempSelectedAuthor} // Sử dụng state tạm
+                onChange={(event, newValue) => {
+                  setTempSelectedAuthor(newValue); // Cập nhật state tạm
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Tác giả / Họa sĩ" // <- THAY ĐỔI Ở ĐÂY
+                    variant="outlined"
+                    margin="normal"
+                    error={!!errors.authors && currentAuthorsFormValue.length === 0} // Chỉ báo lỗi nếu chưa có tác giả nào được thêm
+                    helperText={errors.authors && currentAuthorsFormValue.length === 0 ? "Vui lòng thêm ít nhất một tác giả/họa sĩ" : null}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={3} md={3}>
+              <FormInput
+                control={control}
+                name="tempAuthorRole" // Giữ nguyên, dùng để lấy giá trị cho nút "Thêm"
+                label="Vai trò"
+                type="select"
+                options={MANGA_STAFF_ROLE_OPTIONS}
+                defaultValue="Author"
+                margin="normal"
+              />
+            </Grid>
+            <Grid item xs={12} sm={2} md={2} sx={{ alignSelf: 'center', mt: { xs: 1, sm: '24px' } }}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleAddAuthorToList}
+                startIcon={<AddIcon />}
+                fullWidth
+              >
+                Thêm
+              </Button>
+            </Grid>
+          </Grid>
+          <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {selectedAuthorsVisual.map((author, index) => (
+              <Chip
+                key={`${author.id}-${author.role}-${index}`}
+                label={`${author.name} (${author.role})`}
+                onDelete={() => handleRemoveAuthorVisual(author.id, author.role)}
+                deleteIcon={<DeleteIcon />}
+                color="primary"
+                variant="outlined"
+              />
+            ))}
+          </Box>
+        </Grid>
+
+        {/* Tags Section - Thay đổi Typography thành label, cập nhật Autocomplete */}
+        <Grid item xs={12}>
+          {/* Bỏ Typography "Tags" */}
+          <Autocomplete
+            multiple
+            disableCloseOnSelect // <- THÊM PROP NÀY
+            id="manga-tags-autocomplete"
+            options={availableTags.sort((a, b) => a.tagGroupName.localeCompare(b.tagGroupName) || a.name.localeCompare(b.name))} // Sắp xếp theo nhóm rồi theo tên
+            groupBy={(option) => option.tagGroupName} // Nhóm theo tagGroupName
+            getOptionLabel={(option) => option.name}
+            value={selectedTagsVisual} // Sử dụng state trực quan
+            onChange={(event, newValue) => {
+              // newValue là mảng các tag object đầy đủ {id, name, tagGroupName}
+              setSelectedTagsVisual(newValue); // Cập nhật state trực quan
+              setValue('tagIds', newValue.map(tag => tag.id)); // Cập nhật giá trị cho RHF
+            }}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            renderOption={(props, option, { selected }) => (
+              // props bao gồm key và các thuộc tính cần thiết cho <li>
+              // Thêm sx để đảm bảo Chip chiếm toàn bộ chiều rộng của li và cách đều
+              <Box component="li" {...props} sx={{ width: '100%', justifyContent: 'flex-start', px: 1, py: 0.5 }}>
+                <Checkbox
+                  icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                  checkedIcon={<CheckBoxIcon fontSize="small" />}
+                  style={{ marginRight: 8 }}
+                  checked={selected}
+                />
+                {/* Sử dụng Chip để hiển thị từng tag trong danh sách */}
+                <Chip 
+                  label={option.name} 
+                  size="small" 
+                  variant="outlined" 
+                  sx={{ cursor: 'pointer', flexGrow: 1, justifyContent: 'flex-start' }} 
+                /> 
+              </Box>
+            )}
+            PaperComponent={HorizontalTagPaper} // Sử dụng PaperComponent tùy chỉnh
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                variant="outlined"
+                label="Tags" // <- THAY ĐỔI Ở ĐÂY
+                placeholder="Chọn tags"
+                margin="normal"
+                error={!!errors.tagIds}
+                helperText={errors.tagIds ? errors.tagIds.message : null}
+              />
+            )}
+            // renderTags được giữ nguyên để hiển thị các chip đã chọn bên ngoài dropdown
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => (
+                <Chip
+                  key={option.id}
+                  label={option.name}
+                  {...getTagProps({ index })}
+                  color="secondary" // Có thể đổi màu cho dễ phân biệt
+                  variant="outlined"
+                />
+              ))
+            }
+            fullWidth
+          />
+        </Grid>
         
-        const elId = el.id || el.tagName; // Use ID if available for logging
-        console.log(`[Bootstrap Init - Dropdown] Processing element: ${elId}`);
-        try {
-            var instance = bootstrap.Dropdown.getInstance(el);
-            if (instance) {
-                console.log(`[Bootstrap Init - Dropdown] Disposing existing instance for ${elId}`);
-                instance.dispose();
-            } else {
-                 console.log(`[Bootstrap Init - Dropdown] No existing instance found for ${elId}`);
-            }
-            console.log(`[Bootstrap Init - Dropdown] Creating new instance for ${elId}`);
-            new bootstrap.Dropdown(el);
-        } catch (e) {
-            console.error(`[Bootstrap Init - Dropdown] Error re-initializing ${elId}:`, e);
-        }
-    });
-    // Collapse
-    targetElement.querySelectorAll('[data-bs-toggle="collapse"]').forEach(el => {
-         try {
-            var instance = bootstrap.Collapse.getInstance(el);
-            if (instance) instance.dispose();
-            new bootstrap.Collapse(el);
-         } catch (e) { console.error("Error re-init Collapse:", e); }
-    });
-    // Tabs
-     targetElement.querySelectorAll('[data-bs-toggle="tab"]').forEach(el => {
-         try {
-            var instance = bootstrap.Tab.getInstance(el);
-            if (instance) instance.dispose();
-            new bootstrap.Tab(el);
-         } catch (e) { console.error("Error re-init Tab:", e); }
-     });
-    // Tooltips (được gọi riêng)
-    // initTooltips(); // Gọi lại nếu cần quét toàn bộ document
+        {isEditMode && (
+          <Grid item xs={4} sm={6} md={12}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isLocked}
+                  onChange={(e) => setValue('isLocked', e.target.checked)}
+                  name="isLocked"
+                  color="primary"
+                />
+              }
+              label="Khóa Manga (Không cho phép đọc)"
+              sx={{ mt: 2 }}
+            />
+          </Grid>
+        )}
+
+        <Grid item xs={4} sm={6} md={12}>
+          <Button type="submit" variant="contained" color="primary" sx={{ mt: 3, mb: 2 }}>
+            {isEditMode ? 'Cập nhật Manga' : 'Tạo Manga'}
+          </Button>
+        </Grid>
+      </Grid>
+    </Box>
+  )
 }
 
-/**
- * Khởi tạo các sự kiện xử lý HTMX
- */
-function initHtmxHandlers() {
-    console.log("Initializing generic HTMX handlers with loading state...");
-
-    // Lưu trữ target element đang loading để xử lý lỗi
-    let loadingTargetElement = null;
-
-    // Trước khi gửi request
-    htmx.on('htmx:beforeRequest', function (event) {
-        // Xác định phần tử target
-        const requestConfig = event.detail.requestConfig;
-        let targetElement = null;
-
-        // Ưu tiên lấy target từ requestConfig.target
-        if (requestConfig.target) {
-            // Kiểm tra xem requestConfig.target là chuỗi selector hay đối tượng DOM
-            if (typeof requestConfig.target === 'string') {
-                try {
-                    // Cố gắng querySelector với chuỗi target
-                    targetElement = document.querySelector(requestConfig.target);
-                    if (!targetElement) {
-                         console.warn(`[HTMX BeforeRequest] Target element not found for selector: ${requestConfig.target}`);
-                    }
-                } catch (e) {
-                     // Nếu querySelector lỗi (selector không hợp lệ), ghi log và fallback
-                     console.error(`[HTMX BeforeRequest] Invalid selector provided for target: '${requestConfig.target}'`, e);
-                     targetElement = event.detail.elt; // Fallback về phần tử kích hoạt
-                     console.log('[HTMX BeforeRequest] Fallback target to triggering element due to invalid selector:', targetElement);
-                }
-            } else if (requestConfig.target instanceof Element) {
-                // Nếu requestConfig.target đã là một đối tượng DOM
-                targetElement = requestConfig.target;
-                console.log('[HTMX BeforeRequest] Target is already a DOM element:', targetElement);
-            } else {
-                 // Trường hợp target không phải chuỗi cũng không phải Element
-                 console.warn('[HTMX BeforeRequest] requestConfig.target is neither a string nor an Element:', requestConfig.target);
-                 targetElement = event.detail.elt; // Fallback về phần tử kích hoạt
-                 console.log('[HTMX BeforeRequest] Fallback target to triggering element:', targetElement);
-            }
-        } else {
-            // Nếu không có target rõ ràng, sử dụng phần tử kích hoạt
-            targetElement = event.detail.elt;
-            console.log('[HTMX BeforeRequest] No explicit target found, using triggering element:', targetElement);
-        }
-
-        // Chỉ thêm class loading nếu targetElement là một Element hợp lệ
-        if (targetElement instanceof Element) {
-            console.log(`[HTMX BeforeRequest] Adding htmx-loading-target to:`, targetElement);
-            targetElement.classList.add('htmx-loading-target');
-            loadingTargetElement = targetElement; // Lưu lại target đang load
-        } else {
-            console.warn('[HTMX BeforeRequest] Could not determine a valid target element for loading state. Target:', targetElement);
-            loadingTargetElement = null;
-        }
-
-        // Xử lý spinner toàn cục (nếu vẫn muốn giữ lại cho main-content)
-        if (targetElement && targetElement.id === 'main-content') {
-             const mainSpinner = document.getElementById('content-loading-spinner');
-             if (mainSpinner) mainSpinner.style.display = 'block';
-        }
-    });
-
-     // Sau khi swap xong nội dung
-     htmx.on('htmx:afterSwap', function (event) {
-        const swappedElement = event.detail.target; // Phần tử đã được swap
-
-        if (swappedElement && swappedElement instanceof Element) {
-            console.log(`[HTMX AfterSwap] Removing htmx-loading-target from swapped:`, swappedElement);
-            // Xóa class loading state khỏi phần tử MỚI được swap vào
-            swappedElement.classList.remove('htmx-loading-target');
-        } else {
-             console.warn('[HTMX AfterSwap] Swapped target is not a valid Element:', swappedElement);
-        }
-
-        // Khởi tạo lại JS cho nội dung mới (Quan trọng - Giữ lại dòng này)
-        reinitializeAfterHtmxSwap(swappedElement);
-
-        loadingTargetElement = null; // Reset target đang load
-    });
-
-    // Sau khi request hoàn tất (thành công hoặc lỗi) - Dọn dẹp nếu swap không xảy ra
-    htmx.on('htmx:afterRequest', function(event) {
-        // Ẩn spinner toàn cục (nếu có)
-        const mainSpinner = document.getElementById('content-loading-spinner');
-        if (mainSpinner) mainSpinner.style.display = 'none';
-
-        // *** LUÔN kiểm tra và xóa loading state khỏi target đã lưu ***
-        if (loadingTargetElement && loadingTargetElement instanceof Element && loadingTargetElement.classList.contains('htmx-loading-target')) {
-            console.warn(`[HTMX AfterRequest] Cleaning up potentially stuck loading state from:`, loadingTargetElement, `(Request Success: ${event.detail.successful})`);
-            loadingTargetElement.classList.remove('htmx-loading-target');
-        }
-        // *** KẾT THÚC KIỂM TRA VÀ XÓA ***
-
-        loadingTargetElement = null; // Reset target đang load
-    });
-
-    // Xử lý lỗi response (trước khi swap)
-    htmx.on('htmx:responseError', function(event) {
-        console.error("HTMX response error:", event.detail.xhr);
-        const xhr = event.detail.xhr;
-        const requestPath = event.detail.requestConfig?.path || '';
-
-        // Nếu có target đang loading, xóa trạng thái loading
-        if (loadingTargetElement && loadingTargetElement instanceof Element) {
-            console.warn('[HTMX ResponseError] Removing loading state due to response error from:', loadingTargetElement);
-            loadingTargetElement.classList.remove('htmx-loading-target');
-            loadingTargetElement = null; // Reset
-        }
-
-        // <<< START: THAY ĐỔI LOGIC HIỂN THỊ TOAST LỖI >>>
-        // Kiểm tra điều kiện để bỏ qua thông báo lỗi 401 cho SaveReadingProgress
-        if (requestPath.includes('/Chapter/SaveReadingProgress') && xhr.status === 401) {
-            console.warn('[HTMX ResponseError] Ignored 401 error for /Chapter/SaveReadingProgress. User likely not logged in.');
-            // Không hiển thị toast cho trường hợp này
-        } else {
-            // Hiển thị toast lỗi cho các trường hợp khác (nếu có)
-            if (window.showToast) {
-                let errorMessage = 'Đã xảy ra lỗi khi tải nội dung. Vui lòng thử lại.';
-                // Cố gắng lấy thông tin lỗi chi tiết hơn từ server nếu có
-                if (xhr.responseText) {
-                    try {
-                        const errorData = JSON.parse(xhr.responseText);
-                        if (errorData && errorData.errors && errorData.errors.length > 0) {
-                            errorMessage = errorData.errors.map(e => e.detail || e.title).join('\n');
-                        } else if (errorData && errorData.title) { // Xử lý trường hợp lỗi đơn lẻ như ApiError
-                            errorMessage = errorData.detail || errorData.title;
-                        }
-                    } catch (e) {
-                        // Bỏ qua nếu không parse được JSON, giữ errorMessage mặc định
-                        console.warn("[HTMX ResponseError] Could not parse JSON from error responseText for toast.");
-                    }
-                }
-                window.showToast('Lỗi', errorMessage, 'error');
-            }
-        }
-        // <<< END: THAY ĐỔI LOGIC HIỂN THỊ TOAST LỖI >>>
-    });
-
-     // Xử lý lỗi swap (sau khi nhận response nhưng trước khi swap)
-     htmx.on('htmx:swapError', function(event) {
-        console.error("HTMX swap error:", event.detail.error);
-
-        // Nếu có target đang loading, xóa trạng thái loading
-        if (loadingTargetElement && loadingTargetElement instanceof Element) {
-            console.warn('[HTMX SwapError] Removing loading state due to swap error from:', loadingTargetElement);
-            loadingTargetElement.classList.remove('htmx-loading-target');
-            loadingTargetElement = null; // Reset
-        }
-
-        // Hiển thị toast lỗi (nếu có)
-         if (window.showToast) {
-             window.showToast('Lỗi', 'Đã xảy ra lỗi khi cập nhật giao diện.', 'error');
-         }
-     });
-    
-    // *** LẮNG NGHE SỰ KIỆN htmx:load CHO HISTORY NAVIGATION ***
-    htmx.on('htmx:load', function(event) {
-        // event.detail.elt thường là body hoặc container chính được khôi phục
-        const restoredElement = event.detail.elt;
-        if (restoredElement) {
-            console.log('[HTMX Load] Content restored via history navigation into:', restoredElement);
-            // Gọi hàm khởi tạo lại cho nội dung được khôi phục
-            reinitializeAfterHtmxLoad(restoredElement);
-
-            // Xóa loading state nếu còn sót lại (ít khả năng xảy ra với htmx:load)
-            if (restoredElement.classList.contains('htmx-loading-target')) {
-                restoredElement.classList.remove('htmx-loading-target');
-            }
-        } else {
-            console.warn('[HTMX Load] No element found in event detail.');
-        }
-        loadingTargetElement = null; // Reset target đang load
-    });
-    // *** KẾT THÚC LẮNG NGHE htmx:load ***
-
-    // Bắt sự kiện popstate (nếu cần cập nhật UI khác)
-    window.addEventListener('popstate', function() {
-        updateActiveSidebarLink();
-    });
-
-    console.log("Generic HTMX Handlers Initialized.");
-}
-
-// Export các hàm cần thiết
-export { initHtmxHandlers, reinitializeAfterHtmxLoad, reinitializeAfterHtmxSwap };
+export default MangaForm
 ```
 
-**Giải thích thay đổi:**
+### Bước 2: Thiết kế lại Dropdown Tags
 
-Trong hàm xử lý sự kiện `htmx:responseError`:
-1.  Lấy thông tin về request `xhr` và đường dẫn `requestPath` từ `event.detail`.
-2.  Thêm điều kiện kiểm tra:
-    ```javascript
-    if (requestPath.includes('/Chapter/SaveReadingProgress') && xhr.status === 401)
-    ```
-    *   `requestPath.includes('/Chapter/SaveReadingProgress')`: Kiểm tra xem đường dẫn của request có chứa chuỗi `/Chapter/SaveReadingProgress` hay không. Sử dụng `includes` thay vì so sánh bằng (`===`) để linh hoạt hơn với các prefix URL có thể có.
-    *   `xhr.status === 401`: Kiểm tra xem mã trạng thái của lỗi có phải là 401 (Unauthorized) không.
-3.  Nếu cả hai điều kiện trên đều đúng:
-    *   Một thông báo cảnh báo được ghi ra console (`console.warn`) để thông báo rằng lỗi 401 này đã được bỏ qua.
-    *   Lệnh gọi `window.showToast` được bỏ qua, do đó không có thông báo lỗi nào được hiển thị cho người dùng.
-4.  Nếu một trong hai điều kiện trên không đúng (hoặc cả hai đều không đúng):
-    *   Logic hiển thị toast lỗi chung vẫn được thực thi như cũ.
-    *   Thêm vào đó, cố gắng parse `xhr.responseText` để lấy thông điệp lỗi chi tiết hơn từ server nếu có, giúp người dùng hiểu rõ hơn về các lỗi khác.
+#### 2.1. Vấn đề
+Dropdown chọn Tags hiện tại dùng `Autocomplete` cơ bản. Cần tùy chỉnh để:
+*   Các tag trong danh sách lựa chọn (dropdown) hiển thị dưới dạng khối chữ nhật, có thể kèm checkbox.
+*   Danh sách các tag options trong dropdown có thể hiển thị theo chiều ngang nếu không gian cho phép, và scroll được.
+*   Người dùng có thể chọn nhiều tags mà dropdown không tự động đóng lại sau mỗi lựa chọn.
 
----
+#### 2.2. Giải pháp
+*   Sử dụng prop `disableCloseOnSelect` cho `Autocomplete` của Tags.
+*   Tùy chỉnh `renderOption` để hiển thị mỗi tag với `Checkbox` và `Chip` (hoặc `Box` được style).
+*   Tạo một `PaperComponent` tùy chỉnh cho `Autocomplete` để cho phép các options hiển thị theo chiều ngang và có thể cuộn.
+*   Sắp xếp và nhóm các tags theo `tagGroupName` để dễ quản lý hơn.
 
-## Bước 2: Kiểm tra
+#### 2.3. Cập nhật code trong `MangaForm.jsx`
 
-Sau khi áp dụng thay đổi, bạn cần kiểm tra để đảm bảo chức năng hoạt động đúng như mong đợi:
-
-1.  **Trường hợp lỗi 401 từ `/Chapter/SaveReadingProgress` (Người dùng chưa đăng nhập):**
-    *   Mở trình duyệt ở chế độ ẩn danh hoặc đăng xuất khỏi tài khoản.
-    *   Truy cập vào một trang đọc truyện bất kỳ.
-    *   Mở Developer Console (thường là F12) và chuyển sang tab "Console".
-    *   **Kết quả mong đợi:**
-        *   **Không có** thông báo toast lỗi "Đã xảy ra lỗi khi tải nội dung. Vui lòng thử lại." xuất hiện trên giao diện.
-        *   Trong tab "Console", bạn sẽ thấy một dòng log tương tự như: `[HTMX ResponseError] Ignored 401 error for /Chapter/SaveReadingProgress. User likely not logged in.`
-        *   Trong tab "Network", bạn vẫn sẽ thấy request đến `/Chapter/SaveReadingProgress` thất bại với mã lỗi 401.
-
-2.  **Trường hợp lỗi khác (Ví dụ: Lỗi mạng hoặc lỗi server khác):**
-    *   Mô phỏng một lỗi mạng (ví dụ: ngắt kết nối mạng tạm thời) hoặc một lỗi server khác (nếu có thể).
-    *   Thực hiện một thao tác HTMX bất kỳ (ví dụ: chuyển trang trong danh sách tìm kiếm, tải lại một phần của trang chi tiết truyện).
-    *   **Kết quả mong đợi:**
-        *   Thông báo toast lỗi "Đã xảy ra lỗi khi tải nội dung. Vui lòng thử lại." (hoặc thông báo lỗi chi tiết hơn từ server nếu có) **vẫn phải xuất hiện** như bình thường.
-
-Việc kiểm tra kỹ lưỡng cả hai trường hợp sẽ đảm bảo rằng bạn chỉ bỏ qua đúng lỗi mong muốn và không ảnh hưởng đến việc xử lý các lỗi hợp lệ khác.
-```
-
-**Mục tiêu:** Tương tự như `FollowedMangaService`, khi lấy lịch sử đọc, nếu không tìm thấy thông tin của manga hoặc chapter, bỏ qua mục đó và tiếp tục.
-
-**Cách thực hiện:**
-
-1.  Mở file `MangaReader_WebUI\Services\MangaServices\ReadingHistoryService.cs`.
-2.  Trong vòng lặp `foreach (var item in backendHistory)`:
-    *   Sau khi gọi `_mangaInfoService.GetMangaInfoAsync(item.MangaId)`, kiểm tra `mangaInfo == null`. Nếu `true`, log warning và `continue`.
-    *   Sau khi gọi `_chapterApiService.FetchChapterInfoAsync(item.ChapterId)` (hoặc logic lấy thông tin chapter tương ứng), kiểm tra kết quả. Nếu không lấy được thông tin chapter, log warning và `continue`.
-
-**File cập nhật:** `MangaReader_WebUI\Services\MangaServices\ReadingHistoryService.cs`
-
-```csharp
-// MangaReader_WebUI\Services\MangaServices\ReadingHistoryService.cs
-using MangaReader.WebUI.Services.APIServices.Interfaces;
-using MangaReader.WebUI.Services.AuthServices;
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
-using MangaReader.WebUI.Services.MangaServices.Models;
-using System.Net.Http.Headers;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-
-namespace MangaReader.WebUI.Services.MangaServices
-{
-    // Model để deserialize response từ backend /reading-history
-    // Đã có sẵn
-    // public class BackendHistoryItem
-    // {
-    //     [JsonPropertyName("mangaId")]
-    //     public string MangaId { get; set; }
-
-    //     [JsonPropertyName("chapterId")]
-    //     public string ChapterId { get; set; }
-
-    //     [JsonPropertyName("lastReadAt")]
-    //     public DateTime LastReadAt { get; set; }
-    // }
-
-    public class ReadingHistoryService : IReadingHistoryService
-    {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IUserService _userService;
-        private readonly IMangaInfoService _mangaInfoService;
-        private readonly IConfiguration _configuration;
-        private readonly ILogger<ReadingHistoryService> _logger;
-        private readonly TimeSpan _rateLimitDelay; 
-        private readonly ILastReadMangaViewModelMapper _lastReadMapper;
-        private readonly IChapterToSimpleInfoMapper _chapterSimpleInfoMapper; // Giữ lại để map chapter
-        private readonly IMangaDataExtractor _mangaDataExtractor; // Giữ lại nếu _chapterSimpleInfoMapper cần
-        private readonly IChapterApiService _chapterApiService; // Để lấy chi tiết chapter
-
-        public ReadingHistoryService(
-            IHttpClientFactory httpClientFactory,
-            IUserService userService,
-            IMangaInfoService mangaInfoService,
-            IConfiguration configuration,
-            ILogger<ReadingHistoryService> logger,
-            ILastReadMangaViewModelMapper lastReadMapper,
-            IChapterToSimpleInfoMapper chapterSimpleInfoMapper, // Giữ lại
-            IMangaDataExtractor mangaDataExtractor, // Giữ lại
-            IChapterApiService chapterApiService) // Thêm
-        {
-            _httpClientFactory = httpClientFactory;
-            _userService = userService;
-            _mangaInfoService = mangaInfoService;
-            _configuration = configuration;
-            _logger = logger;
-            _rateLimitDelay = TimeSpan.FromMilliseconds(configuration.GetValue<int>("ApiRateLimitDelayMs", 550));
-            _lastReadMapper = lastReadMapper;
-            _chapterSimpleInfoMapper = chapterSimpleInfoMapper; // Giữ lại
-            _mangaDataExtractor = mangaDataExtractor; // Giữ lại
-            _chapterApiService = chapterApiService; // Gán
-        }
-
-        public async Task<List<LastReadMangaViewModel>> GetReadingHistoryAsync()
-        {
-            var historyViewModels = new List<LastReadMangaViewModel>();
-
-            if (!_userService.IsAuthenticated())
-            {
-                _logger.LogWarning("Người dùng chưa đăng nhập, không thể lấy lịch sử đọc.");
-                return historyViewModels;
-            }
-
-            var token = _userService.GetToken();
-            if (string.IsNullOrEmpty(token))
-            {
-                _logger.LogError("Không thể lấy token người dùng đã đăng nhập.");
-                return historyViewModels;
-            }
-
-            try
-            {
-                var client = _httpClientFactory.CreateClient("BackendApiClient");
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-                _logger.LogInformation("Đang gọi API backend /api/users/reading-history");
-                var response = await client.GetAsync("/api/users/reading-history");
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError($"Lỗi khi gọi API backend lấy lịch sử đọc. Status: {response.StatusCode}, Content: {errorContent}");
-                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                    {
-                        _userService.RemoveToken(); 
-                    }
-                    return historyViewModels; 
-                }
-
-                var content = await response.Content.ReadAsStringAsync();
-                var backendHistory = JsonSerializer.Deserialize<List<BackendHistoryItem>>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                if (backendHistory == null || !backendHistory.Any())
-                {
-                    _logger.LogInformation("Không có lịch sử đọc nào từ backend.");
-                    return historyViewModels;
-                }
-
-                _logger.LogInformation($"Nhận được {backendHistory.Count} mục lịch sử từ backend. Bắt đầu lấy chi tiết...");
-
-                foreach (var item in backendHistory)
-                {
-                    await Task.Delay(_rateLimitDelay);
-
-                    var mangaInfo = await _mangaInfoService.GetMangaInfoAsync(item.MangaId);
-                    if (mangaInfo == null)
-                    {
-                        _logger.LogWarning($"Không thể lấy thông tin cho MangaId: {item.MangaId} trong lịch sử đọc. Bỏ qua mục này.");
-                        continue; 
-                    }
-
-                    ChapterInfo chapterInfo = null;
-                    try 
-                    {
-                        var chapterResponse = await _chapterApiService.FetchChapterInfoAsync(item.ChapterId);
-                        if (chapterResponse?.Result != "ok" || chapterResponse.Data == null)
-                        {
-                            _logger.LogWarning($"Không tìm thấy chapter với ID: {item.ChapterId} trong lịch sử đọc hoặc API lỗi. Bỏ qua mục này.");
-                            continue; 
-                        }
-                        
-                        // Sử dụng _chapterSimpleInfoMapper để lấy thông tin đơn giản
-                        // Hoặc trực tiếp map từ chapterResponse.Data.Attributes nếu cần
-                        var simpleChapter = _chapterSimpleInfoMapper.MapToSimpleChapterInfo(chapterResponse.Data);
-                        chapterInfo = new ChapterInfo
-                        {
-                            Id = item.ChapterId,
-                            Title = simpleChapter.DisplayTitle, // DisplayTitle đã được format
-                            PublishedAt = simpleChapter.PublishedAt
-                        };
-                    }
-                    catch (Exception ex) 
-                    {
-                        _logger.LogError(ex, $"Lỗi khi lấy thông tin chapter {item.ChapterId} trong lịch sử đọc. Bỏ qua mục này.");
-                        continue; 
-                    }
-                    
-                    if (chapterInfo == null) // Kiểm tra lại sau try-catch
-                    {
-                        _logger.LogWarning($"Thông tin Chapter cho ChapterId: {item.ChapterId} vẫn null sau khi thử lấy. Bỏ qua mục lịch sử này.");
-                        continue; 
-                    }
-
-                    var historyViewModel = _lastReadMapper.MapToLastReadMangaViewModel(mangaInfo, chapterInfo, item.LastReadAt);
-                    historyViewModels.Add(historyViewModel);
-                    
-                    _logger.LogDebug($"Đã xử lý xong mục lịch sử cho manga: {mangaInfo.MangaTitle}, chapter: {chapterInfo.Title}");
-                }
-
-                _logger.LogInformation($"Hoàn tất xử lý {historyViewModels.Count} mục lịch sử đọc.");
-                return historyViewModels;
-
-            }
-            catch (JsonException jsonEx)
-            {
-                 _logger.LogError(jsonEx, "Lỗi khi deserialize lịch sử đọc từ backend.");
-                 return historyViewModels; 
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Lỗi ngoại lệ khi lấy và xử lý lịch sử đọc.");
-                return historyViewModels; 
-            }
-        }
-    }
-}
-```
+Xem lại khối code ở **Bước 1.3** phía trên. Các thay đổi liên quan đến Tags đã được tích hợp:
+*   Import `CheckBoxIcon`, `CheckBoxOutlineBlankIcon`, `Checkbox`, `Paper`.
+*   `Autocomplete` cho Tags:
+    *   Đã thêm `disableCloseOnSelect`.
+    *   Đã thêm `groupBy={(option) => option.tagGroupName}` để nhóm các tag.
+    *   `options` được sắp xếp: `availableTags.sort((a, b) => a.tagGroupName.localeCompare(b.tagGroupName) || a.name.localeCompare(b.name))`.
+    *   `renderOption` được tùy chỉnh để hiển thị `Checkbox` và `Chip` cho mỗi tag.
+    *   `PaperComponent={HorizontalTagPaper}` được sử dụng với `HorizontalTagPaper` là một component tùy chỉnh để style cho dropdown.
+*   `selectedTagsVisual` được sử dụng cho prop `value` của `Autocomplete` tags.
+*   Logic `onChange` của `Autocomplete` tags được cập nhật để làm việc với `selectedTagsVisual` (mảng object) và `setValue` cho `tagIds` (mảng string ID).

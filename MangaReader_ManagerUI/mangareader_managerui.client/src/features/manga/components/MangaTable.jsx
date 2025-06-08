@@ -8,6 +8,7 @@ import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import DataTableMUI from '../../../components/common/DataTableMUI'
 import { CLOUDINARY_BASE_URL, MANGA_STATUS_OPTIONS, CONTENT_RATING_OPTIONS, PUBLICATION_DEMOGRAPHIC_OPTIONS } from '../../../constants/appConstants'
 import { formatDate } from '../../../utils/dateUtils'
+import { translateLanguageCode } from '../../../utils/translationUtils'
 
 /**
  * @typedef {import('../../../types/manga').Manga} Manga
@@ -97,7 +98,13 @@ function MangaTable({
         </Box>
       )
     },
-    { id: 'originalLanguage', label: 'Ngôn ngữ gốc', minWidth: 100, sortable: true },
+    { 
+      id: 'originalLanguage', 
+      label: 'Ngôn ngữ gốc', 
+      minWidth: 100, 
+      sortable: true,
+      format: (value) => translateLanguageCode(value)
+    },
     {
       id: 'status',
       label: 'Trạng thái',

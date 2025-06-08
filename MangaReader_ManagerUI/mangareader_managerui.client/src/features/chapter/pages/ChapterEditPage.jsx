@@ -5,6 +5,8 @@ import ChapterForm from '../components/ChapterForm'
 import ChapterPageManager from '../components/ChapterPageManager'
 import { showSuccessToast } from '../../../components/common/Notification'
 import chapterApi from '../../../api/chapterApi'
+import useChapterStore from '../../../stores/chapterStore'
+import { RELATIONSHIP_TYPES } from '../../../constants/appConstants'
 import { handleApiError } from '../../../utils/errorUtils'
 
 /**
@@ -21,6 +23,8 @@ function ChapterEditPage() {
   const [chapter, setChapter] = useState(null)
   const [loading, setLoading] = useState(true)
   const [tabValue, setTabValue] = useState(0) // State for tabs: 0 for Details, 1 for Pages
+
+  const fetchChaptersByTranslatedMangaIdStore = useChapterStore((state) => state.fetchChaptersByTranslatedMangaId)
 
   // Determine which tab to show based on URL
   useEffect(() => {
@@ -57,16 +61,21 @@ function ChapterEditPage() {
   /**
    * @param {UpdateChapterRequest} data
    */
-  const handleSubmit = async (data) => {
+  const handleSubmitDetails = async (data) => {
     try {
       await chapterApi.updateChapter(id, data)
       showSuccessToast('Cập nhật chương thành công!')
       // Re-fetch the parent list if needed (e.g., if sorting/filtering is based on these fields)
       // For now, we just update the specific chapter data in state
       setChapter((prev) => prev ? { ...prev, attributes: { ...prev.attributes, ...data } } : null);
-      // Fetch the parent list to update pagesCount in the list table if needed.
-      // Requires translatedMangaId, which is not directly available here after navigation.
-      // This is a trade-off for simplicity. A more complex state might store it.
+      
+      // Sau khi cập nhật chi tiết chapter, fetch lại danh sách chapters của translated manga cha
+      // để đảm bảo thông tin (như title, volume, chapterNumber) được cập nhật trên ChapterListPage.
+      const translatedMangaRel = chapter?.relationships?.find(rel => rel.type === RELATIONSHIP_TYPES.TRANSLATED_MANGA);
+      const parentTranslatedMangaId = translatedMangaRel?.id || location.state?.translatedMangaId;
+      if (parentTranslatedMangaId) {
+        fetchChaptersByTranslatedMangaIdStore(parentTranslatedMangaId);
+      }
     } catch (error) {
       console.error('Failed to update chapter:', error)
       handleApiError(error, 'Không thể cập nhật chương.')
@@ -80,6 +89,19 @@ function ChapterEditPage() {
     } else if (newValue === 1) {
       navigate(`/chapters/${id}/pages`, { state: { translatedMangaId: location.state?.translatedMangaId } });
     }
+  }
+
+  const handlePagesUpdated = () => {
+    // Tìm translatedMangaId từ chapter object hoặc từ location.state
+    const translatedMangaRel = chapter?.relationships?.find(rel => rel.type === RELATIONSHIP_TYPES.TRANSLATED_MANGA);
+    const parentTranslatedMangaId = translatedMangaRel?.id || location.state?.translatedMangaId;
+
+    if (parentTranslatedMangaId) {
+      fetchChaptersByTranslatedMangaIdStore(parentTranslatedMangaId, false); // Fetch lại danh sách chapter của translated manga cha
+                                                                        // false để không reset pagination, vì ta chỉ muốn cập nhật pagesCount
+    }
+    // Cũng có thể fetch lại chapter hiện tại để cập nhật pagesCount ngay lập tức trên trang này
+    chapterApi.getChapterById(id).then(response => setChapter(response.data)).catch(err => console.error(err));
   }
 
   if (loading) {
@@ -104,7 +126,8 @@ function ChapterEditPage() {
   return (
     <Box className="chapter-edit-page" sx={{ p: 3 }}>
       <Typography variant="h4" component="h1" gutterBottom className="page-header">
-        Chỉnh sửa Chương: {chapter.attributes.chapterNumber} - {chapter.attributes.title || 'Không có tiêu đề'}
+        Chỉnh sửa Chương: {chapter.attributes.chapterNumber} - {chapter.attributes.title || 'Không có tiêu đề'} 
+        (Trang: {chapter.attributes.pagesCount})
       </Typography>
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
@@ -116,12 +139,12 @@ function ChapterEditPage() {
 
       {tabValue === 0 && (
         <Box sx={{ mt: 2 }}>
-          <ChapterForm initialData={chapter} onSubmit={handleSubmit} isEditMode={true} />
+          <ChapterForm initialData={chapter} onSubmit={handleSubmitDetails} isEditMode={true} />
         </Box>
       )}
       {tabValue === 1 && (
         <Box sx={{ mt: 2 }}>
-          <ChapterPageManager chapterId={id} />
+          <ChapterPageManager chapterId={id} onPagesUpdated={handlePagesUpdated} />
         </Box>
       )}
     </Box>
