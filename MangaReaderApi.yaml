@@ -1077,21 +1077,11 @@
                 "properties": {
                   "pageOperationsJson": {
                     "type": "string"
-                  },
-                  "files": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "format": "binary"
-                    }
                   }
                 }
               },
               "encoding": {
                 "pageOperationsJson": {
-                  "style": "form"
-                },
-                "files": {
                   "style": "form"
                 }
               }
@@ -1660,10 +1650,13 @@
             }
           },
           {
-            "name": "DemographicFilter",
+            "name": "PublicationDemographicsFilter",
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/PublicationDemographic"
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/PublicationDemographic"
+              }
             }
           },
           {
@@ -1704,6 +1697,42 @@
             }
           },
           {
+            "name": "IncludedTags",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "IncludedTagsMode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ExcludedTags",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "ExcludedTagsMode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "OrderBy",
             "in": "query",
             "schema": {
@@ -1715,6 +1744,16 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "Includes",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           }
         ],
@@ -3588,6 +3627,13 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagAttributesDtoResourceObject"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -3731,6 +3777,9 @@
           },
           "type": {
             "type": "string",
+            "nullable": true
+          },
+          "attributes": {
             "nullable": true
           }
         },

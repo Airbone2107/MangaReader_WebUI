@@ -36,9 +36,12 @@ function reinitializeAfterHtmxSwap(targetElement) {
     if (targetElement.id === 'main-content' || targetElement.closest('#main-content')) {
         console.log('[HTMX Swap] Main content swapped, reinitializing page-specific modules...');
         // Khi nội dung chính được swap, khởi tạo lại các thành phần trong đó
-        if (targetElement.querySelector('#searchForm')) {
+        if (targetElement.querySelector('#searchForm') || targetElement.id === 'searchForm') {
             SearchModule.initSearchPage?.();
-            initTagsInSearchForm();
+            if (window.initSearchTagsDropdown) {
+                console.log('[HTMX Swap] Initializing Search Tags Dropdown for search form.');
+                window.initSearchTagsDropdown();
+            }
         }
         if (targetElement.querySelector('.details-manga-header-background')) {
             initMangaDetailsPage();
@@ -133,7 +136,10 @@ function reinitializeAfterHtmxLoad(targetElement) {
     if (targetElement.querySelector('#searchForm')) {
         console.log('[HTMX Load] Reinitializing Search Page...');
         SearchModule.initSearchPage?.();
-        initTagsInSearchForm();
+        if (window.initSearchTagsDropdown) {
+            console.log('[HTMX Load] Initializing Search Tags Dropdown for search form.');
+            window.initSearchTagsDropdown();
+        }
         SearchModule.initPageGoTo?.();
     } else if (targetElement.querySelector('.details-manga-header-background')) {
         console.log('[HTMX Load] Reinitializing Manga Details Page...');

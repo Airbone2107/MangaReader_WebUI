@@ -9,8 +9,14 @@ let excludedTags = new Map(); // Sử dụng Map để lưu trữ các thẻ lo�
 
 /**
  * Khởi tạo chức năng thẻ trong form tìm kiếm
+ * DEPRECATED: Đã được thay thế bằng search-tags-dropdown.js
  */
 function initTagsInSearchForm() {
+    console.log('Manga tags module đã được thay thế bởi search-tags-dropdown.js');
+    // Hàm này giờ không làm gì cả, chức năng đã được chuyển sang search-tags-dropdown.js
+    return;
+    
+    /* --- CODE CŨ ĐÃ BỊ VÔ HIỆU HÓA ---
     console.log('Đang khởi tạo module quản lý thẻ manga...');
     
     // Các phần tử DOM chính
@@ -169,6 +175,7 @@ function initTagsInSearchForm() {
             }
         }
     });
+    */
 }
 
 /**

@@ -1,157 +1,137 @@
+Chào bạn,
+
+Dưới đây là nội dung file `UpdateAPI.md` tổng hợp các thay đổi API để thông báo cho Client, cùng với mã nguồn đầy đủ của các file đã được cập nhật trong project sau khi áp dụng các thay đổi từ `Update1.md`, `Update2.md`, và `Update3.md`.
+
+```markdown
+<!-- UpdateAPI.md -->
 # Thông Báo Cập Nhật API MangaReader
 
-Chào đội ngũ Frontend,
+Chào quý vị Client,
 
-Tài liệu này thông báo về các cập nhật quan trọng đối với MangaReader API mà các bạn cần lưu ý để tích hợp. Các thay đổi này nhằm cải thiện khả năng quản lý trang truyện và cung cấp thêm các tính năng hữu ích.
+Chúng tôi xin thông báo về một số cập nhật quan trọng đối với API MangaReader. Những thay đổi này nhằm cải thiện khả năng lọc dữ liệu, cấu trúc response và cung cấp thêm thông tin chi tiết cho các tài nguyên. Vui lòng xem kỹ các thay đổi dưới đây để có những điều chỉnh phù hợp cho ứng dụng của bạn.
 
-## 1. Thay Đổi Quan Trọng: Logic Tạo `PublicId` Cho Ảnh Trang (`ChapterPage`)
+## 1. Thay đổi Tham số Lọc cho API `GET /mangas`
 
-*   **Thay đổi:** `PublicId` của ảnh trang (`ChapterPage`) trên Cloudinary giờ đây sẽ được tạo dựa trên `ChapterId` và `PageId` của trang đó, thay vì `ChapterId` và `PageNumber` như trước.
-*   **Định dạng mới:** `chapters/{ChapterId}/pages/{PageId}` (không bao gồm đuôi file).
-*   **Ảnh hưởng:** Nếu Frontend đang tự xây dựng URL ảnh Cloudinary dựa trên `PublicId` và `PageNumber`, logic này cần được cập nhật để sử dụng `PageId`.
-*   **Ví dụ:**
-    *   **Cũ (ví dụ):** `chapters/guid-chapter-id/pages/1.jpg`
-    *   **Mới:** `chapters/guid-chapter-id/pages/guid-page-id` (Client sẽ tự thêm phần mở rộng `.jpg`, `.webp`... khi hiển thị nếu cần, hoặc Cloudinary tự xử lý định dạng dựa trên URL)
+API lấy danh sách manga (`GET /mangas`) đã được cập nhật với các thay đổi sau về tham số lọc:
 
-    Khi nhận `ChapterPageAttributesDto`, trường `publicId` sẽ có định dạng mới này.
+### 1.1. Lọc theo Đối Tượng Độc Giả (Publication Demographic)
 
-## 2. API Mới
+*   Tham số cũ `demographicFilter` (chấp nhận một giá trị `PublicationDemographic` duy nhất) đã được **loại bỏ**.
+*   Tham số mới **`publicationDemographicsFilter[]`** được giới thiệu, cho phép bạn lọc theo **một hoặc nhiều** giá trị `PublicationDemographic`.
+    *   **Cách sử dụng:** Truyền nhiều giá trị bằng cách lặp lại tham số trong query string.
+    *   **Ví dụ:** `GET /mangas?publicationDemographicsFilter=Shounen&publicationDemographicsFilter=Seinen`
+        *   Lưu ý: Tên tham số trong code là `PublicationDemographicsFilter`, khi gọi API client sẽ truyền dưới dạng `publicationDemographicsFilter[]` hoặc lặp lại tham số `publicationDemographicsFilter` tùy theo thư viện HTTP client. Model binder của ASP.NET Core sẽ xử lý việc này. Trong tài liệu `api_conventions.md` đã ghi là `publicationDemographicsFilter[]`.
 
-Chúng tôi đã thêm các API mới để quản lý trang truyện một cách linh hoạt hơn:
+### 1.2. Lọc Tag Nâng Cao
 
-### 2.1. Upload Hàng Loạt Trang Ảnh (Batch Upload)
+Các tham số mới đã được thêm vào để hỗ trợ lọc manga dựa trên tags một cách linh hoạt hơn:
 
-*   **Endpoint:** `POST /Chapters/{chapterId}/pages/batch`
-*   **Mục đích:** Cho phép người dùng upload nhiều file ảnh cùng lúc để tạo các trang mới cho một chương truyện.
-*   **Request Body:** `multipart/form-data`
-    *   `files`: (`IFormFile[]`, Bắt buộc) Một mảng các file ảnh.
-    *   `pageNumbers`: (`int[]`, Bắt buộc) Một mảng các số trang tương ứng với từng file trong `files`. Thứ tự và số lượng phần tử phải khớp với `files`. Số trang phải > 0 và chưa tồn tại trong chương.
-*   **Ví dụ Curl (Minh họa):**
-    ```bash
-    curl -X POST "https://localhost:7262/Chapters/{chapterId}/pages/batch" \
-         -H "Content-Type: multipart/form-data" \
-         -F "files=@/path/to/image1.jpg" \
-         -F "files=@/path/to/image2.png" \
-         -F "pageNumbers=1" \
-         -F "pageNumbers=2"
-    ```
-*   **Response (201 Created):** `ApiResponse<List<ChapterPageAttributesDto>>` chứa danh sách các trang vừa được tạo, mỗi trang có `pageNumber` và `publicId` mới.
-    ```json
+*   **`includedTags[]`** (mảng các GUID): Lọc các manga PHẢI chứa các tag được chỉ định.
+    *   Ví dụ: `GET /mangas?includedTags[]=tagId1&includedTags[]=tagId2`
+*   **`includedTagsMode`** (chuỗi: `"AND"` | `"OR"`): Xác định logic kết hợp cho `includedTags[]`.
+    *   `"AND"` (mặc định): Manga phải chứa **TẤT CẢ** các tag trong `includedTags[]`.
+    *   `"OR"`: Manga phải chứa **ÍT NHẤT MỘT** tag trong `includedTags[]`.
+*   **`excludedTags[]`** (mảng các GUID): Lọc các manga **KHÔNG ĐƯỢC** chứa các tag được chỉ định.
+    *   Ví dụ: `GET /mangas?excludedTags[]=tagId3&excludedTags[]=tagId4`
+*   **`excludedTagsMode`** (chuỗi: `"AND"` | `"OR"`): Xác định logic kết hợp cho `excludedTags[]`.
+    *   `"OR"` (mặc định): Manga không được chứa **BẤT KỲ** tag nào trong `excludedTags[]`.
+    *   `"AND"`: Manga không được chứa **TẤT CẢ** các tag trong `excludedTags[]` (nghĩa là, nó được phép chứa một số tag trong danh sách này, miễn là không phải tất cả).
+
+**Ví dụ kết hợp:**
+Lấy các manga chứa (tag "Action" **VÀ** tag "Adventure") **VÀ** (không chứa tag "Romance"):
+`GET /mangas?includedTags[]=action-guid&includedTags[]=adventure-guid&includedTagsMode=AND&excludedTags[]=romance-guid&excludedTagsMode=OR`
+
+## 2. Thay đổi Cấu trúc Response và Tham số `includes` cho API Manga
+
+### 2.1. Cấu trúc `RelationshipObject` Mở rộng
+
+Đối tượng `RelationshipObject` trong các response (cả chi tiết và danh sách) giờ đây có thể chứa thêm trường `attributes`. Trường này sẽ chứa các thuộc tính chi tiết của entity liên quan nếu client yêu cầu thông qua tham số `includes[]`.
+
+```json
+// Ví dụ một RelationshipObject có attributes
+{
+  "id": "author-guid-123",
+  "type": "author",
+  "attributes": { // Sẽ xuất hiện nếu client yêu cầu includes[]=author
+    "name": "Oda Eiichiro",
+    "biography": "Tác giả của One Piece...",
+    // ... các thuộc tính khác của AuthorAttributesDto
+  }
+}
+```
+
+### 2.2. Thông tin Tags của Manga
+
+*   **Luôn được nhúng vào `attributes`**: Đối với cả API lấy danh sách manga (`GET /mangas`) và API lấy chi tiết manga (`GET /mangas/{id}`), thông tin chi tiết của các tags liên quan đến manga sẽ **luôn được trả về** và được nhúng trực tiếp vào trường `data.attributes.tags`.
+*   Mỗi tag trong danh sách `data.attributes.tags` sẽ là một `ResourceObject<TagAttributesDto>` đầy đủ, bao gồm `id`, `type: "tag"`, `attributes` (chứa `name`, `tagGroupName`, `createdAt`, `updatedAt` của tag), và `relationships` (chứa liên kết đến `tag_group` của tag đó).
+*   **Tags không còn trong `relationships`**: Do tags đã được nhúng vào `attributes`, chúng sẽ không còn xuất hiện trong mảng `data.relationships` của đối tượng Manga nữa.
+
+**Ví dụ cấu trúc `data.attributes` của Manga:**
+```json
+"attributes": {
+  "title": "Komi Can't Communicate",
+  // ... các thuộc tính khác của Manga ...
+  "tags": [
     {
-      "result": "ok",
-      "response": "entity", // Hoặc "collection" tùy theo cách BaseApiController xử lý List<T>
-      "data": [
+      "id": "tag-guid-comedy",
+      "type": "tag",
+      "attributes": {
+        "name": "Comedy",
+        "tagGroupId": "tag-group-genre-guid",
+        "tagGroupName": "Genre",
+        "createdAt": "2023-01-01T00:00:00Z",
+        "updatedAt": "2023-01-01T00:00:00Z"
+      },
+      "relationships": [
         {
-          "pageNumber": 1,
-          "publicId": "chapters/guid-chapter-id/pages/guid-moi-cua-trang-1"
-        },
-        {
-          "pageNumber": 2,
-          "publicId": "chapters/guid-chapter-id/pages/guid-moi-cua-trang-2"
+          "id": "tag-group-genre-guid",
+          "type": "tag_group"
         }
       ]
-    }
-    ```
-*   **Lưu ý:**
-    *   Server sẽ tự tạo `PageId` cho mỗi trang mới.
-    *   `PublicId` sẽ được tạo theo định dạng `chapters/{chapterId}/pages/{newPageId}`.
+    },
+    // ... các tags khác ...
+  ]
+}
+```
 
-### 2.2. Đồng Bộ Hóa Toàn Bộ Trang Ảnh (Sync Pages)
+### 2.3. Tham số `includes[]` cho API Manga
 
-*   **Endpoint:** `PUT /Chapters/{chapterId}/pages`
-*   **Mục đích:** Cho phép cập nhật toàn diện danh sách các trang của một chương, bao gồm:
-    *   **Xóa** các trang không có trong yêu cầu.
-    *   **Cập nhật** các trang hiện có (thay đổi `pageNumber` hoặc thay thế ảnh).
-    *   **Thêm mới** các trang.
-*   **Request Body:** `multipart/form-data`
-    *   `pageOperationsJson`: (String, Bắt buộc) Một chuỗi JSON chứa mảng các đối tượng `PageOperationDto`.
-        *   **Cấu trúc `PageOperationDto`:**
-            ```json
-            {
-              "pageId": "guid-cua-trang-neu-la-update", // (GUID, Tùy chọn) ID của trang hiện tại. Để null hoặc bỏ qua nếu là trang mới.
-              "pageNumber": 1, // (Số nguyên, Bắt buộc) Số trang mong muốn (thứ tự mới). Phải > 0 và duy nhất trong chapter.
-              "fileIdentifier": "file_key_for_page_1" // (Chuỗi, Tùy chọn) Tên key của file trong form-data nếu trang này là mới hoặc cần thay thế ảnh.
-                                                    // Client sẽ dùng key này khi gửi IFormFileCollection.
-            }
-            ```
-    *   `files`: (`IFormFileCollection`, Tùy chọn) Các file ảnh mới hoặc cần thay thế. **Tên (key) của mỗi file trong `IFormFileCollection` phải khớp với giá trị `fileIdentifier`** trong `PageOperationDto` tương ứng.
-*   **Ví dụ JSON cho `pageOperationsJson`:**
-    ```json
-    [
-      { // Trang 1: Cập nhật trang đã có, thay ảnh
-        "pageId": "existing-page-id-1",
-        "pageNumber": 1,
-        "fileIdentifier": "image_for_page_1"
-      },
-      { // Trang 2: Thêm trang mới
-        "pageId": null, // Hoặc bỏ qua trường này
-        "pageNumber": 2,
-        "fileIdentifier": "image_for_page_2"
-      },
-      { // Trang 3: Cập nhật trang đã có, chỉ đổi số trang, không đổi ảnh
-        "pageId": "existing-page-id-3",
-        "pageNumber": 3,
-        "fileIdentifier": null // Hoặc bỏ qua
-      }
-    ]
-    ```
-*   **Ví dụ Curl (Minh họa):**
-    ```bash
-    curl -X PUT "https://localhost:7262/Chapters/{chapterId}/pages" \
-         -H "Content-Type: multipart/form-data" \
-         -F "pageOperationsJson=[{\"pageId\":\"existing-id-1\",\"pageNumber\":1,\"fileIdentifier\":\"new_image_1\"}, {\"pageNumber\":2,\"fileIdentifier\":\"new_image_2\"}]" \
-         -F "new_image_1=@/path/to/updated_image1.jpg" \
-         -F "new_image_2=@/path/to/new_image2.png"
-    ```
-*   **Response (200 OK):** `ApiResponse<List<ChapterPageAttributesDto>>` chứa danh sách các trang của chapter sau khi đã đồng bộ, đã sắp xếp theo `pageNumber`.
-    ```json
-    {
-      "result": "ok",
-      "response": "entity",
-      "data": [
-        {
-          "pageNumber": 1,
-          "publicId": "chapters/guid-chapter-id/pages/existing-id-1" // Ảnh đã được thay thế
-        },
-        {
-          "pageNumber": 2,
-          "publicId": "chapters/guid-chapter-id/pages/guid-moi-cua-trang-2" // Trang mới
-        }
-        // ... các trang khác sau khi đồng bộ
-      ]
-    }
-    ```
-*   **Lưu ý quan trọng cho Frontend khi dùng API Sync:**
-    *   **`pageId`**:
-        *   Đối với trang hiện có muốn giữ lại hoặc cập nhật, Frontend **PHẢI** gửi `pageId` hiện tại của trang đó.
-        *   Đối với trang mới muốn thêm, Frontend có thể gửi `pageId` là `null` (hoặc bỏ qua trường `pageId` trong JSON). Backend sẽ tự tạo `PageId` mới.
-        *   **Khuyến nghị:** Để đơn giản cho việc quản lý file, Client có thể tự tạo một GUID mới ở phía Client cho các trang mới và gửi `pageId` đó lên. Server sẽ sử dụng `PageId` này nếu nó chưa tồn tại. Điều này giúp Client dễ dàng liên kết `FileIdentifier` với `PageOperationDto` trước khi gửi request.
-    *   **`fileIdentifier`**:
-        *   Nếu một `PageOperationDto` có `fileIdentifier`, Frontend PHẢI gửi một file trong `IFormFileCollection` với **tên (key) trùng với `fileIdentifier` đó**.
-        *   Nếu không có `fileIdentifier` (hoặc là null/empty) cho một `PageOperationDto` của một trang hiện có (`pageId` được cung cấp), ảnh của trang đó sẽ không bị thay đổi (chỉ `pageNumber` có thể thay đổi).
-        *   Nếu `pageId` là `null` (trang mới), thì `fileIdentifier` (và file tương ứng) là bắt buộc.
-    *   Các trang không được liệt kê trong `pageOperationsJson` sẽ bị xóa khỏi chapter.
+#### API `GET /mangas` (Danh sách Manga):
 
-## 3. Hành Động Đề Xuất Cho Frontend
+*   **`includes[]=cover_art`**:
+    *   Nếu được yêu cầu, `relationships` của mỗi Manga trong danh sách sẽ chứa một đối tượng `RelationshipObject` cho ảnh bìa chính (mới nhất).
+    *   `id` của relationship này sẽ là **`PublicId`** của ảnh bìa (ví dụ: `mangas_v2/.../covers/...`).
+    *   `type` sẽ là `"cover_art"`.
+    *   Trường `attributes` của relationship này sẽ là `null` (không trả về chi tiết của CoverArt trong danh sách manga).
+    *   **Ví dụ:** `{ "id": "mangas_v2/manga-guid/covers/volume1_abc123", "type": "cover_art" }`
+*   **`includes[]=author`**:
+    *   Nếu được yêu cầu, `relationships` của mỗi Manga sẽ chứa các `RelationshipObject` cho tác giả (những `MangaAuthor` có `Role` là `Author`).
+    *   `id` là GUID của Author.
+    *   `type` là `"author"`.
+    *   `attributes` sẽ chứa đầy đủ `AuthorAttributesDto` của tác giả đó.
+*   **`includes[]=artist`**:
+    *   Tương tự như `author`, nhưng cho họa sĩ (`Role` là `Artist`), `type` sẽ là `"artist"`.
 
-1.  **Cập nhật logic hiển thị ảnh `ChapterPage`:** Nếu client đang tự xây dựng URL ảnh Cloudinary, hãy đảm bảo sử dụng `PageId` (từ trường `publicId` đã được điều chỉnh) thay vì `PageNumber`.
-2.  **Tích hợp API Upload Hàng Loạt Trang Ảnh:** Cung cấp giao diện cho người dùng chọn nhiều file và nhập số trang tương ứng.
-3.  **Tích hợp API Đồng Bộ Hóa Toàn Bộ Trang Ảnh:**
-    *   Đây là API mạnh mẽ cho phép quản lý toàn bộ trang của một chapter. Giao diện người dùng cần cho phép:
-        *   Sắp xếp lại thứ tự các trang.
-        *   Xóa các trang hiện có.
-        *   Thêm các trang mới (upload ảnh).
-        *   Thay thế ảnh của các trang hiện có.
-    *   Khi chuẩn bị request:
-        *   Tạo danh sách `PageOperationDto`.
-        *   Đối với mỗi trang mới hoặc trang cần thay ảnh, quyết định một `fileIdentifier` duy nhất (ví dụ: `new_page_1`, `replace_page_abc`).
-        *   Thêm các file ảnh vào `IFormFileCollection` với tên (key) chính là các `fileIdentifier` đã quyết định.
-    *   Khi `PageId` cho một trang mới là `null` (để server tự sinh), client cần có cách theo dõi file nào tương ứng với DTO nào để gửi `FileIdentifier` đúng. Việc client tự tạo GUID cho `PageId` của trang mới có thể đơn giản hóa việc này.
+#### API `GET /mangas/{id}` (Chi tiết Manga):
 
-Vui lòng xem lại tài liệu `MangaReaderAPI.md` đã được cập nhật để có mô tả đầy đủ và chi tiết hơn về các API này cũng như các API khác.
+*   **`includes[]=author`**:
+    *   Tương tự như API danh sách, `relationships` của Manga sẽ chứa `RelationshipObject` cho tác giả, với `attributes` là `AuthorAttributesDto`.
+*   **`includes[]=artist`**:
+    *   Tương tự như API danh sách, `relationships` của Manga sẽ chứa `RelationshipObject` cho họa sĩ, với `attributes` là `AuthorAttributesDto`.
+*   **Cover Art trong chi tiết Manga:**
+    *   `relationships` của Manga sẽ luôn chứa một `RelationshipObject` cho ảnh bìa chính (mới nhất) nếu có.
+    *   `id` của relationship này là **GUID** của `CoverArt` entity.
+    *   `type` là `"cover_art"`.
+    *   Trường `attributes` của relationship này là `null` (để lấy chi tiết cover art, client nên gọi API `GET /coverarts/{coverId}`).
 
-Nếu có bất kỳ câu hỏi nào, đừng ngần ngại liên hệ với đội ngũ Backend.
+## 3. Khuyến nghị
+
+*   Vui lòng xem lại và cập nhật logic xử lý response phía client của bạn để phù hợp với cấu trúc `tags` mới trong `data.attributes` của Manga.
+*   Điều chỉnh cách bạn gửi yêu cầu lọc theo `publicationDemographic` và tận dụng các tham số lọc tag nâng cao mới.
+*   Kiểm tra cách bạn sử dụng tham số `includes[]` và xử lý trường `attributes` mới trong `RelationshipObject`.
+*   Tham khảo tài liệu API (`docs/api_conventions.md`) đã được cập nhật để biết thêm chi tiết về các endpoint và cấu trúc dữ liệu.
+
+Chúng tôi tin rằng những cập nhật này sẽ giúp ứng dụng của bạn tương tác với API một cách hiệu quả và mạnh mẽ hơn.
 
 Trân trọng,
-Đội ngũ Backend.
-```
+Đội ngũ phát triển MangaReader API.
