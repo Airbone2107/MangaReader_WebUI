@@ -30,7 +30,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> CreateChapterPageEntry(Guid chapterId, [FromBody] CreateChapterPageEntryRequestDto createDto)
         {
-            _logger.LogInformation("API: Request to create page entry for ChapterId: {ChapterId}", chapterId);
+            _logger.LogInformation("API Proxy: Request to create page entry for ChapterId: {ChapterId}", chapterId);
             if (!ModelState.IsValid) 
             {
                  var errors = ModelState.Values.SelectMany(v => v.Errors)
@@ -51,7 +51,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
             }
             catch (ApiException ex)
             {
-                _logger.LogWarning("API: Chapter with ID {ChapterId} not found for page entry creation. Status: {StatusCode}", chapterId, ex.StatusCode);
+                _logger.LogWarning("API Proxy: Chapter with ID {ChapterId} not found for page entry creation. Status: {StatusCode}", chapterId, ex.StatusCode);
                 if (ex.ApiErrorResponse != null)
                 {
                     return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
@@ -60,13 +60,13 @@ namespace MangaReader_ManagerUI.Server.Controllers
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "API Error creating chapter page entry. Status: {StatusCode}", ex.StatusCode);
+                _logger.LogError(ex, "HTTP Request Error during CreateChapterPageEntry. Status: {StatusCode}", ex.StatusCode);
                 return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "HTTP Error", ex.Message)));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating chapter page entry for chapter {id}", chapterId);
+                _logger.LogError(ex, "Internal server error during CreateChapterPageEntry for chapter {id}", chapterId);
                 return StatusCode(500, new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }
@@ -79,7 +79,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UploadChapterPageImage(Guid pageId, [FromForm] IFormFile file)
         {
-             _logger.LogInformation("API: Request to upload image for PageId: {PageId}", pageId);
+             _logger.LogInformation("API Proxy: Request to upload image for PageId: {PageId}", pageId);
             if (file == null || file.Length == 0)
             {
                 return BadRequest(new ApiErrorResponse(new ApiError(400, "Validation Error", "No file uploaded.")));
@@ -97,7 +97,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
             }
             catch (ApiException ex)
             {
-                _logger.LogWarning("API: Page with ID {PageId} not found for image upload. Status: {StatusCode}", pageId, ex.StatusCode);
+                _logger.LogWarning("API Proxy: Page with ID {PageId} not found for image upload. Status: {StatusCode}", pageId, ex.StatusCode);
                 if (ex.ApiErrorResponse != null)
                 {
                     return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
@@ -106,24 +106,25 @@ namespace MangaReader_ManagerUI.Server.Controllers
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "API Error uploading chapter page image. Status: {StatusCode}", ex.StatusCode);
+                _logger.LogError(ex, "HTTP Request Error during UploadChapterPageImage. Status: {StatusCode}", ex.StatusCode);
                 return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "HTTP Error", ex.Message)));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error uploading image for page {id}", pageId);
+                _logger.LogError(ex, "Internal server error during UploadChapterPageImage for page {id}", pageId);
                 return StatusCode(500, new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }
 
         // GET: api/chapters/{chapterId}/pages
         [HttpGet("/api/chapters/{chapterId}/pages")] // Custom route
+        [Route("/api/chapters/{chapterId}/pages", Name = "GetChapterPages")] // Named route for CreatedAtRoute
         [ProducesResponseType(typeof(ApiCollectionResponse<ResourceObject<ChapterPageAttributesDto>>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetChapterPages(Guid chapterId, [FromQuery] int? offset, [FromQuery] int? limit)
         {
-             _logger.LogInformation("API: Requesting pages for ChapterId: {ChapterId}", chapterId);
+             _logger.LogInformation("API Proxy: Requesting pages for ChapterId: {ChapterId}", chapterId);
             try
             {
                 var result = await _chapterPageClient.GetChapterPagesAsync(chapterId, offset, limit, HttpContext.RequestAborted);
@@ -135,7 +136,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
             }
             catch (ApiException ex)
             {
-                _logger.LogWarning("API: Chapter with ID {ChapterId} not found when fetching pages. Status: {StatusCode}", chapterId, ex.StatusCode);
+                _logger.LogWarning("API Proxy: Chapter with ID {ChapterId} not found when fetching pages. Status: {StatusCode}", chapterId, ex.StatusCode);
                 if (ex.ApiErrorResponse != null)
                 {
                     return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
@@ -144,13 +145,13 @@ namespace MangaReader_ManagerUI.Server.Controllers
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "API Error fetching chapter pages. Status: {StatusCode}", ex.StatusCode);
+                _logger.LogError(ex, "HTTP Request Error during GetChapterPages. Status: {StatusCode}", ex.StatusCode);
                 return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "HTTP Error", ex.Message)));
             }
             catch (Exception ex)
             {
-                 _logger.LogError(ex, "Error fetching pages for chapter {id}", chapterId);
+                 _logger.LogError(ex, "Internal server error during GetChapterPages for chapter {id}", chapterId);
                 return StatusCode(500, new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }
@@ -162,7 +163,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateChapterPageDetails(Guid pageId, [FromBody] UpdateChapterPageDetailsRequestDto updateDto)
         {
-            _logger.LogInformation("API: Request to update page details for PageId: {PageId}", pageId);
+            _logger.LogInformation("API Proxy: Request to update page details for PageId: {PageId}", pageId);
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors)
@@ -177,7 +178,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
             }
             catch (ApiException ex)
             {
-                _logger.LogWarning("API: Page with ID {PageId} not found for details update. Status: {StatusCode}", pageId, ex.StatusCode);
+                _logger.LogWarning("API Proxy: Page with ID {PageId} not found for details update. Status: {StatusCode}", pageId, ex.StatusCode);
                 if (ex.ApiErrorResponse != null)
                 {
                     return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
@@ -186,13 +187,13 @@ namespace MangaReader_ManagerUI.Server.Controllers
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "API Error updating page details. Status: {StatusCode}", ex.StatusCode);
+                _logger.LogError(ex, "HTTP Request Error during UpdateChapterPageDetails. Status: {StatusCode}", ex.StatusCode);
                 return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "HTTP Error", ex.Message)));
             }
             catch (Exception ex)
             {
-                 _logger.LogError(ex, "Error updating page details for page {id}", pageId);
+                 _logger.LogError(ex, "Internal server error during UpdateChapterPageDetails for page {id}", pageId);
                 return StatusCode(500, new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }
@@ -203,7 +204,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteChapterPage(Guid pageId)
         {
-            _logger.LogInformation("API: Request to delete page: {PageId}", pageId);
+            _logger.LogInformation("API Proxy: Request to delete page: {PageId}", pageId);
             try
             {
                 await _chapterPageClient.DeleteChapterPageAsync(pageId, HttpContext.RequestAborted);
@@ -211,7 +212,7 @@ namespace MangaReader_ManagerUI.Server.Controllers
             }
             catch (ApiException ex)
             {
-                _logger.LogWarning("API: Page with ID {PageId} not found for deletion. Status: {StatusCode}", pageId, ex.StatusCode);
+                _logger.LogWarning("API Proxy: Page with ID {PageId} not found for deletion. Status: {StatusCode}", pageId, ex.StatusCode);
                 if (ex.ApiErrorResponse != null)
                 {
                     return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
@@ -220,13 +221,13 @@ namespace MangaReader_ManagerUI.Server.Controllers
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "API Error deleting page. Status: {StatusCode}", ex.StatusCode);
+                _logger.LogError(ex, "HTTP Request Error during DeleteChapterPage. Status: {StatusCode}", ex.StatusCode);
                 return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
+                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "HTTP Error", ex.Message)));
             }
             catch (Exception ex)
             {
-                 _logger.LogError(ex, "Error deleting page {id}", pageId);
+                 _logger.LogError(ex, "Internal server error during DeleteChapterPage for page {id}", pageId);
                 return StatusCode(500, new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
             }
         }

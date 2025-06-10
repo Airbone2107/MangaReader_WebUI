@@ -50,5 +50,25 @@ namespace MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Servic
             _wrapperLogger.LogInformation("MangaReaderLibChapterClientService (Wrapper): Updating chapter {ChapterId}", chapterId);
             await _innerClient.UpdateChapterAsync(chapterId, request, cancellationToken);
         }
+
+        public async Task<ApiResponse<List<ChapterPageAttributesDto>>?> BatchUploadChapterPagesAsync(
+            Guid chapterId, 
+            IEnumerable<(Stream stream, string fileName, string contentType)> files, 
+            IEnumerable<int> pageNumbers, 
+            CancellationToken cancellationToken = default)
+        {
+            _wrapperLogger.LogInformation("MangaReaderLibChapterClientService (Wrapper): Batch uploading pages for chapter {ChapterId}", chapterId);
+            return await _innerClient.BatchUploadChapterPagesAsync(chapterId, files, pageNumbers, cancellationToken);
+        }
+
+        public async Task<ApiResponse<List<ChapterPageAttributesDto>>?> SyncChapterPagesAsync(
+            Guid chapterId, 
+            string pageOperationsJson, 
+            IDictionary<string, (Stream stream, string fileName, string contentType)>? files, 
+            CancellationToken cancellationToken = default)
+        {
+            _wrapperLogger.LogInformation("MangaReaderLibChapterClientService (Wrapper): Syncing pages for chapter {ChapterId}", chapterId);
+            return await _innerClient.SyncChapterPagesAsync(chapterId, pageOperationsJson, files, cancellationToken);
+        }
     }
 } 

@@ -57,4 +57,109 @@
     color: $dark-gray;
     padding: $spacing-lg;
   }
+}
+
+// Styles mới cho danh sách kéo thả
+.droppable-pages-container {
+  display: flex;
+  flex-wrap: nowrap; // Để scroll ngang
+  gap: $spacing-md;
+  padding: $spacing-sm;
+  border: 1px dashed $dark-gray;
+  border-radius: $border-radius-md;
+  min-height: 250px;
+  background-color: rgba($primary-color, 0.03); // Nền nhẹ cho vùng kéo thả
+  overflow-x: auto; // Cho scroll ngang
+  align-items: flex-start; // Căn các item lên trên
+}
+
+.draggable-page-item-paper {
+  width: 160px;
+  min-width: 160px; // Quan trọng cho scroll ngang
+  height: 230px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-xs;
+  position: relative; // Cho nút xóa và chip "Mới"
+  background-color: $surface-color;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  box-shadow: $shadow-sm;
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &.is-dragging {
+    box-shadow: $shadow-lg;
+    transform: rotate(1deg) scale(1.03);
+    z-index: 10;
+  }
+
+  .page-item-media {
+    width: calc(100% - 8px); // Có padding nhỏ
+    height: 140px; // Chiều cao cố định cho ảnh
+    object-fit: contain; // Để ảnh không bị méo
+    margin-bottom: $spacing-xs;
+    border: 1px solid $border-color;
+    border-radius: $border-radius-sm;
+    background-color: $light-gray; // Nền cho ảnh nếu ảnh trong suốt
+  }
+
+  .page-item-name {
+    width: 100%;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: $font-size-sm;
+    margin-bottom: $spacing-xxs;
+  }
+  
+  .page-item-number {
+    font-size: $font-size-sm * 0.9;
+    color: $dark-gray;
+  }
+
+  .page-item-delete-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    color: $error-color;
+    background-color: rgba(0, 0, 0, 0.3);
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.5);
+      color: $error-color;
+    }
+    padding: $spacing-xxs / 2;
+    .MuiSvgIcon-root {
+      font-size: $font-size-md * 0.9;
+    }
+  }
+  
+  .page-item-new-chip {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    height: 18px;
+    font-size: 0.65rem;
+    .MuiChip-label {
+      padding-left: 6px;
+      padding-right: 6px;
+    }
+  }
+
+  .drag-handle-icon-container {
+    width: 100%; 
+    display: flex; 
+    justify-content: center; 
+    color: $dark-gray;
+    cursor: grab;
+    padding-bottom: $spacing-xxs / 2;
+    touch-action: none; // Quan trọng cho thiết bị cảm ứng
+    &:active {
+      cursor: grabbing;
+    }
+  }
 } 

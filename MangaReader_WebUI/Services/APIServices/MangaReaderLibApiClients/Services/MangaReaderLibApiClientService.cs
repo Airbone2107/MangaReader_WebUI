@@ -67,6 +67,12 @@ namespace MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Servic
             await _innerClient.PutAsync(requestUri, content, cancellationToken);
         }
 
+        public async Task<TResponse?> PutAsync<TResponse>(string requestUri, HttpContent content, CancellationToken cancellationToken = default) where TResponse : class
+        {
+            _wrapperLogger.LogInformation("MangaReaderLibApiClientService (Wrapper): PUT (HttpContent) {RequestUri}", requestUri);
+            return await _innerClient.PutAsync<TResponse>(requestUri, content, cancellationToken);
+        }
+
         public async Task DeleteAsync(string requestUri, CancellationToken cancellationToken = default)
         {
             _wrapperLogger.LogInformation("MangaReaderLibApiClientService (Wrapper): DELETE {RequestUri}", requestUri);

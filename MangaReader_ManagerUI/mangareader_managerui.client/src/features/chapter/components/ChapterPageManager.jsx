@@ -1,271 +1,389 @@
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Add as AddIcon, Delete as DeleteIcon, UploadFile as UploadFileIcon } from '@mui/icons-material'
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Box,
-    Button,
-    Card,
-    CardActions,
-    CardContent,
-    CardMedia,
-    CircularProgress,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    Grid,
-    IconButton,
-    TextField,
-    Tooltip,
-    Typography,
-} from '@mui/material'
-import React, { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import ConfirmDialog from '../../../components/common/ConfirmDialog'
-import { CLOUDINARY_BASE_URL } from '../../../constants/appConstants'
-import { createChapterPageEntrySchema, uploadChapterPageImageSchema } from '../../../schemas/chapterSchema'
-import useChapterPageStore from '../../../stores/chapterPageStore'
-import { handleApiError } from '../../../utils/errorUtils'
+    Box, Button, Typography, Paper, IconButton, CircularProgress, Tooltip, CardMedia, Chip
+} from '@mui/material';
+import { 
+    AddPhotoAlternate as AddPhotoAlternateIcon, 
+    DeleteOutline as DeleteOutlineIcon, 
+    Save as SaveIcon, 
+    CloudUpload as CloudUploadIcon,
+    DragIndicator as DragIndicatorIcon
+} from '@mui/icons-material';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { v4 as uuidv4 } from 'uuid';
+import { CLOUDINARY_BASE_URL } from '../../../constants/appConstants';
+import { showSuccessToast, showErrorToast } from '../../../components/common/Notification';
+import chapterPageApi from '../../../api/chapterPageApi';
+import useUiStore from '../../../stores/uiStore'; // Để quản lý loading global (nếu cần)
+import useChapterStore from '../../../stores/chapterStore'; // Để fetch lại chapter list (pagesCount)
+
 
 /**
- * @typedef {import('../../../types/manga').ChapterPage} ChapterPage
- * @typedef {import('../../../types/manga').CreateChapterPageEntryRequest} CreateChapterPageEntryRequest
+ * @typedef {object} PageItem
+ * @property {string} id - ID duy nhất cho mục trong danh sách (client-side, draggableId).
+ * @property {string|null} pageId - ID của trang từ server (nếu đã tồn tại).
+ * @property {string|null} publicId - publicId từ server (nếu đã tồn tại).
+ * @property {File|null} file - Đối tượng File nếu là ảnh mới từ client.
+ * @property {string} previewUrl - URL để hiển thị preview ảnh.
+ * @property {boolean} isNew - Đánh dấu là ảnh mới hay đã có trên server.
+ * @property {string|null} fileIdentifier - Dùng cho API sync, liên kết với file trong FormData.
+ * @property {number} pageNumber - Số trang, sẽ được cập nhật sau khi kéo thả và trước khi lưu.
+ * @property {string} name - Tên file hoặc tên hiển thị.
  */
 
-/**
- * ChapterPageManager component for managing pages of a specific chapter.
- * @param {object} props
- * @param {string} props.chapterId - The ID of the chapter.
- * @param {() => void} [props.onPagesUpdated] - Optional callback when pages are updated (added/deleted).
- */
 function ChapterPageManager({ chapterId, onPagesUpdated }) {
-  const {
-    chapterPages,
-    fetchChapterPagesByChapterId,
-    createPageEntry,
-    uploadPageImage,
-    deleteChapterPage,
-  } = useChapterPageStore()
+  /** @type {[PageItem[], React.Dispatch<React.SetStateAction<PageItem[]>>]} */
+  const [pages, setPages] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const setLoadingGlobal = useUiStore((state) => state.setLoading);
+  const fetchChaptersByTranslatedMangaIdStore = useChapterStore((state) => state.fetchChaptersByTranslatedMangaId);
+  const currentChapterDetails = useChapterStore((state) => state.chapters.find(c => c.id === chapterId));
 
-  const [loadingPages, setLoadingPages] = useState(true)
-  const [openCreatePageDialog, setOpenCreatePageDialog] = useState(false)
-  const [openUploadImageDialog, setOpenUploadImageDialog] = useState(false)
-  const [pageEntryToUploadImage, setPageEntryToUploadImage] = useState(null) // Stores pageId and pageNumber
-  const [openConfirmDelete, setOpenConfirmDelete] = useState(false)
-  const [pageToDelete, setPageToDelete] = useState(null)
 
-  const {
-    register: registerCreate,
-    handleSubmit: handleSubmitCreate,
-    formState: { errors: errorsCreate },
-    reset: resetCreate,
-  } = useForm({
-    resolver: zodResolver(createChapterPageEntrySchema),
-  })
-
-  const {
-    register: registerUpload,
-    handleSubmit: handleSubmitUpload,
-    formState: { errors: errorsUpload },
-    reset: resetUpload,
-  } = useForm({
-    resolver: zodResolver(uploadChapterPageImageSchema),
-  })
+  const loadChapterPages = useCallback(async () => {
+    if (!chapterId) return;
+    setIsLoading(true);
+    setLoadingGlobal(true);
+    try {
+      const response = await chapterPageApi.getChapterPages(chapterId, { limit: 1000 }); // Lấy tối đa 1000 trang
+      if (response && response.data) {
+        const fetchedPages = response.data
+          .sort((a, b) => a.attributes.pageNumber - b.attributes.pageNumber)
+          .map((p) => ({
+            id: p.id, 
+            pageId: p.id,
+            publicId: p.attributes.publicId,
+            file: null,
+            previewUrl: `${CLOUDINARY_BASE_URL}${p.attributes.publicId}`,
+            isNew: false,
+            fileIdentifier: null,
+            pageNumber: p.attributes.pageNumber,
+            name: `Trang ${p.attributes.pageNumber} (Server)`,
+          }));
+        setPages(fetchedPages);
+      } else {
+        setPages([]);
+      }
+    } catch (error) {
+      showErrorToast('Không thể tải danh sách trang của chương.');
+      console.error("Failed to load chapter pages:", error);
+    } finally {
+      setIsLoading(false);
+      setLoadingGlobal(false);
+    }
+  }, [chapterId, setLoadingGlobal]);
 
   useEffect(() => {
-    if (chapterId) {
-      setLoadingPages(true)
-      fetchChapterPagesByChapterId(chapterId, true)
-        .finally(() => setLoadingPages(false))
-    }
-  }, [chapterId, fetchChapterPagesByChapterId])
+    loadChapterPages();
+  }, [loadChapterPages]);
 
-  const handleCreatePageEntry = async (data) => {
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    const items = Array.from(pages);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    const updatedPages = items.map((page, index) => ({
+      ...page,
+      pageNumber: index + 1,
+    }));
+    setPages(updatedPages);
+  };
+
+  const handleFileChange = (event) => {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+
+    const newImageItems = files.map(file => {
+      const tempId = uuidv4();
+      return {
+        id: tempId,
+        pageId: null, // Sẽ được gán PageId mới (UUID) trước khi gửi đi
+        publicId: null,
+        file: file,
+        previewUrl: URL.createObjectURL(file),
+        isNew: true,
+        fileIdentifier: `new_image_${tempId}`,
+        pageNumber: 0, // Sẽ được cập nhật
+        name: file.name,
+      };
+    });
+
+    setPages(prevPages => {
+      const updated = [...prevPages, ...newImageItems];
+      return updated.map((page, index) => ({ ...page, pageNumber: index + 1 }));
+    });
+    // Reset input file để có thể chọn lại file giống tên
+    event.target.value = null; 
+  };
+
+  const handleDeletePage = (idToDelete) => {
+    setPages(prevPages => {
+      const pageToDelete = prevPages.find(p => p.id === idToDelete);
+      if (pageToDelete && pageToDelete.previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(pageToDelete.previewUrl); // Giải phóng Object URL cho ảnh mới
+      }
+      const updated = prevPages.filter(page => page.id !== idToDelete);
+      return updated.map((page, index) => ({ ...page, pageNumber: index + 1 }));
+    });
+  };
+
+  const handleSaveChanges = async () => {
+    if (!chapterId) {
+      showErrorToast("Chapter ID không hợp lệ.");
+      return;
+    }
+    setIsSaving(true);
+    setLoadingGlobal(true);
+
+    const pageOperations = [];
+    const filesToUpload = new Map();
+
+    pages.forEach((page, index) => {
+      const pageIdForOperation = page.isNew ? uuidv4() : page.pageId;
+      
+      const operation = {
+        pageId: pageIdForOperation, 
+        pageNumber: index + 1,
+        fileIdentifier: null,
+      };
+
+      if (page.isNew && page.file) {
+        // Đảm bảo fileIdentifier là duy nhất và được dùng để liên kết file trong FormData
+        operation.fileIdentifier = page.fileIdentifier || `new_image_${page.id}`;
+        filesToUpload.set(operation.fileIdentifier, page.file);
+      }
+      pageOperations.push(operation);
+    });
+
+    const formData = new FormData();
+    formData.append('pageOperationsJson', JSON.stringify(pageOperations));
+
+    filesToUpload.forEach((file, identifier) => {
+      formData.append(identifier, file, file.name);
+    });
+
     try {
-      const pageId = await createPageEntry(chapterId, data)
-      if (pageId) {
-        setPageEntryToUploadImage({ id: pageId, pageNumber: data.pageNumber })
-        setOpenUploadImageDialog(true)
+      const response = await chapterPageApi.syncChapterPages(chapterId, formData);
+      if (response && response.data) {
+        showSuccessToast('Đã lưu thứ tự và cập nhật trang thành công!');
+        
+        const serverResponseData = response.data; 
+
+        const syncedPages = serverResponseData
+         .sort((a, b) => a.pageNumber - b.pageNumber) 
+         .map(p_server_attr => { 
+            const publicIdParts = p_server_attr.publicId.split('/');
+            const extractedPageId = publicIdParts[publicIdParts.length - 1]; 
+            const clientDraggableId = extractedPageId || uuidv4(); 
+
+            return {
+                id: clientDraggableId, 
+                pageId: extractedPageId, 
+                publicId: p_server_attr.publicId,
+                file: null,
+                previewUrl: `${CLOUDINARY_BASE_URL}${p_server_attr.publicId}`,
+                isNew: false,
+                fileIdentifier: null,
+                pageNumber: p_server_attr.pageNumber,
+                name: `Trang ${p_server_attr.pageNumber} (Server)`,
+            };
+         });
+
+        setPages(syncedPages); 
+
+        if (onPagesUpdated) onPagesUpdated();
+        const parentTmId = currentChapterDetails?.relationships?.find(r => r.type === 'translated_manga')?.id;
+        if (parentTmId) {
+            fetchChaptersByTranslatedMangaIdStore(parentTmId, false);
+        }
+
+      } else {
+        showErrorToast('Lưu không thành công. Phản hồi từ server không hợp lệ.');
       }
-      setOpenCreatePageDialog(false)
-      resetCreate()
-      if (onPagesUpdated) onPagesUpdated()
     } catch (error) {
-      console.error('Failed to create page entry:', error)
-      // Error handled by store/apiClient
+      console.error("Failed to save chapter pages:", error);
+      showErrorToast(error.message || 'Lỗi khi lưu trang. Vui lòng thử lại.');
+    } finally {
+      setIsSaving(false);
+      setLoadingGlobal(false);
     }
-  }
+  };
+  
+  useEffect(() => {
+    // Dọn dẹp Object URLs khi component unmount hoặc pages thay đổi
+    return () => {
+      pages.forEach(page => {
+        if (page.isNew && page.previewUrl && page.previewUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(page.previewUrl);
+        }
+      });
+    };
+  }, [pages]);
 
-  const handleUploadImageRequest = (pageId, pageNumber) => {
-    setPageEntryToUploadImage({ id: pageId, pageNumber: pageNumber })
-    setOpenUploadImageDialog(true)
-  }
 
-  const handleUploadImage = async (data) => {
-    if (pageEntryToUploadImage && data.file && data.file[0]) {
-      try {
-        await uploadPageImage(pageEntryToUploadImage.id, data.file[0], chapterId)
-        setOpenUploadImageDialog(false)
-        resetUpload()
-      } catch (error) {
-        console.error('Failed to upload page image:', error)
-        // Error handled by store
-      }
-    }
-  }
-
-  const handleDeleteRequest = (page) => {
-    setPageToDelete(page)
-    setOpenConfirmDelete(true)
-  }
-
-  const handleConfirmDelete = async () => {
-    if (pageToDelete) {
-      try {
-        await deleteChapterPage(pageToDelete.id, chapterId)
-        if (onPagesUpdated) onPagesUpdated()
-      } catch (error) {
-        console.error('Failed to delete chapter page:', error)
-        handleApiError(error, 'Không thể xóa trang chương.')
-      } finally {
-        setOpenConfirmDelete(false)
-        setPageToDelete(null)
-      }
-    }
-  }
-
-  const handleCloseConfirmDelete = () => {
-    setOpenConfirmDelete(false)
-    setPageToDelete(null)
+  if (isLoading) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}><CircularProgress /></Box>;
   }
 
   return (
-    <Box className="chapter-page-manager" sx={{ mt: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+    <Box sx={{ p: { xs: 1, sm: 2} }}>
+      <Typography variant="h6" gutterBottom>
+        Quản lý trang ảnh ({pages.length} trang)
+      </Typography>
+      <Typography variant="body2" color="text.secondary" gutterBottom>
+        Kéo thả để sắp xếp lại thứ tự các trang. Số trang sẽ được tự động cập nhật khi bạn lưu.
+      </Typography>
+
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 2, flexWrap: 'wrap', gap: 1 }}>
+        <Button
+          variant="outlined"
+          component="label"
+          startIcon={<AddPhotoAlternateIcon />}
+          disabled={isSaving}
+        >
+          Thêm ảnh mới
+          <input type="file" hidden multiple accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} />
+        </Button>
         <Button
           variant="contained"
-          color="success"
-          startIcon={<AddIcon />}
-          onClick={() => setOpenCreatePageDialog(true)}
+          color="primary"
+          startIcon={<SaveIcon />}
+          onClick={handleSaveChanges}
+          disabled={isSaving || pages.length === 0}
         >
-          Thêm Trang mới
+          {isSaving ? <CircularProgress size={24} color="inherit" /> : 'Lưu & Đồng bộ hóa'}
         </Button>
       </Box>
-
-      {loadingPages ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
-          <CircularProgress />
-        </Box>
-      ) : chapterPages.length === 0 ? (
-        <Typography variant="h6" className="no-pages-message" sx={{ textAlign: 'center', py: 5 }}>
-          Chưa có trang nào cho chương này.
-        </Typography>
-      ) : (
-        <Grid container spacing={2} className="chapter-page-grid" columns={{ xs: 4, sm: 6, md: 12, lg: 12 }}>
-          {chapterPages
-            .sort((a, b) => a.attributes.pageNumber - b.attributes.pageNumber) // Sort by pageNumber
-            .map((pageItem) => (
-              <Grid item key={pageItem.id} sx={{ gridColumn: { xs: 'span 4', sm: 'span 3', md: 'span 3', lg: 'span 3' } }}>
-                <Card className="chapter-page-card">
-                  <CardMedia
-                    component="img"
-                    image={pageItem.attributes.publicId ? `${CLOUDINARY_BASE_URL}${pageItem.attributes.publicId}` : 'https://via.placeholder.com/150x200?text=No+Image'}
-                    alt={`Page ${pageItem.attributes.pageNumber}`}
-                    sx={{ width: '100%', height: 250, objectFit: 'contain', backgroundColor: '#eee', borderBottom: '1px solid #ddd' }}
-                  />
-                  <CardContent>
-                    <Typography variant="subtitle1" gutterBottom>
-                      Trang số: {pageItem.attributes.pageNumber}
-                    </Typography>
-                  </CardContent>
-                  <CardActions className="card-actions">
-                    <Tooltip title="Tải ảnh lên">
-                      <IconButton
-                        color="primary"
-                        onClick={() => handleUploadImageRequest(pageItem.id, pageItem.attributes.pageNumber)}
-                      >
-                        <UploadFileIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Xóa trang">
-                      <IconButton
-                        color="secondary"
-                        onClick={() => handleDeleteRequest(pageItem)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
-        </Grid>
+      
+      {pages.length === 0 && (
+        <Paper elevation={0} sx={{ p: 3, textAlign: 'center', mt: 3, backgroundColor: 'action.hover' }}>
+          <CloudUploadIcon sx={{ fontSize: 48, color: 'text.disabled', mb:1 }}/>
+          <Typography variant="subtitle1" color="text.secondary">
+            Chưa có ảnh nào cho chương này.
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{mb:2}}>
+            Hãy nhấn "Thêm ảnh mới" để bắt đầu tải lên.
+          </Typography>
+        </Paper>
       )}
 
-      {/* Create Page Entry Dialog */}
-      <Dialog open={openCreatePageDialog} onClose={() => setOpenCreatePageDialog(false)}>
-        <DialogTitle>Thêm Trang mới</DialogTitle>
-        <Box component="form" onSubmit={handleSubmitCreate(handleCreatePageEntry)} noValidate>
-          <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="Số trang"
-              type="number"
-              fullWidth
-              variant="outlined"
-              {...registerCreate('pageNumber', { valueAsNumber: true })}
-              error={!!errorsCreate.pageNumber}
-              helperText={errorsCreate.pageNumber?.message}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenCreatePageDialog(false)} variant="outlined">
-              Hủy
-            </Button>
-            <Button type="submit" variant="contained" color="primary">
-              Tạo
-            </Button>
-          </DialogActions>
-        </Box>
-      </Dialog>
-
-      {/* Upload Image Dialog */}
-      <Dialog open={openUploadImageDialog} onClose={() => setOpenUploadImageDialog(false)}>
-        <DialogTitle>Tải ảnh cho Trang {pageEntryToUploadImage?.pageNumber}</DialogTitle>
-        <Box component="form" onSubmit={handleSubmitUpload(handleUploadImage)} noValidate>
-          <DialogContent>
-            <TextField
-              margin="dense"
-              label="Chọn File ảnh"
-              type="file"
-              fullWidth
-              variant="outlined"
-              {...registerUpload('file')}
-              error={!!errorsUpload.file}
-              helperText={errorsUpload.file?.message}
-              inputProps={{ accept: 'image/jpeg,image/png,image/webp' }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenUploadImageDialog(false)} variant="outlined">
-              Hủy
-            </Button>
-            <Button type="submit" variant="contained" color="primary">
-              Tải lên
-            </Button>
-          </DialogActions>
-        </Box>
-      </Dialog>
-
-      <ConfirmDialog
-        open={openConfirmDelete}
-        onClose={handleCloseConfirmDelete}
-        onConfirm={handleConfirmDelete}
-        title="Xác nhận xóa Trang chương"
-        message={`Bạn có chắc chắn muốn xóa trang ${pageToDelete?.attributes?.pageNumber} này? Thao tác này không thể hoàn tác và sẽ xóa ảnh liên quan.`}
-      />
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="pagesDroppable" direction="horizontal">
+          {(provided, snapshotDroppable) => (
+            <Box
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              sx={{
+                display: 'flex',
+                flexWrap: 'nowrap', // Không cho xuống dòng, để scroll ngang
+                gap: 2,
+                p: 2,
+                overflowX: 'auto', // Cho phép scroll ngang
+                overflowY: 'hidden',
+                border: pages.length > 0 ? (snapshotDroppable.isDraggingOver ? '2px dashed primary.main' : '1px dashed grey') : 'none',
+                borderRadius: 1,
+                minHeight: pages.length > 0 ? 250 : 'auto',
+                backgroundColor: snapshotDroppable.isDraggingOver ? 'rgba(0,0,255,0.05)' :'action.disabledBackground',
+                alignItems: 'flex-start', // Căn các item lên trên
+              }}
+            >
+              {pages.map((page, index) => (
+                <Draggable key={page.id} draggableId={page.id} index={index}>
+                  {(providedDraggable, snapshotDraggable) => (
+                    <Paper
+                      ref={providedDraggable.innerRef}
+                      {...providedDraggable.draggableProps}
+                      // {...providedDraggable.dragHandleProps} // Không dùng dragHandleProps ở đây để toàn bộ card là tay cầm
+                      elevation={snapshotDraggable.isDragging ? 8 : 2}
+                      sx={{
+                        width: 160,
+                        minWidth: 160, // Quan trọng cho scroll ngang
+                        height: 230,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        p: 1,
+                        position: 'relative',
+                        backgroundColor: 'background.paper',
+                        transition: 'box-shadow 0.2s ease, transform 0.2s ease',
+                        boxShadow: snapshotDraggable.isDragging ? '0px 6px 18px rgba(0,0,0,0.3)' : '0px 2px 6px rgba(0,0,0,0.1)',
+                        transform: snapshotDraggable.isDragging ? 'rotate(1deg) scale(1.03)' : 'rotate(0deg) scale(1)',
+                        cursor: 'grab',
+                        '&:active': {
+                            cursor: 'grabbing',
+                        }
+                      }}
+                    >
+                      <Box 
+                        {...providedDraggable.dragHandleProps} // Tay cầm kéo thả ở đây
+                        sx={{ 
+                            width: '100%', 
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            color: 'text.disabled',
+                            cursor: 'grab',
+                            pb: 0.5,
+                            touchAction: 'none', // Important for touch devices
+                         }}
+                        onMouseDown={(e) => e.stopPropagation()} // Ngăn không cho các event khác bị trigger
+                      >
+                        <DragIndicatorIcon fontSize="small"/>
+                      </Box>
+                      <CardMedia
+                        component="img"
+                        image={page.previewUrl}
+                        alt={`Trang ${index + 1}`}
+                        sx={{
+                          width: 'calc(100% - 8px)', // Để có padding nhỏ
+                          height: 140, // Giảm chiều cao để có chỗ cho text và các elements khác
+                          objectFit: 'contain',
+                          mb: 1,
+                          border: '1px solid #ddd',
+                          borderRadius: '4px',
+                          backgroundColor: '#f0f0f0'
+                        }}
+                      />
+                      <Typography variant="caption" noWrap sx={{ width: '100%', textAlign: 'center', px:0.5, fontWeight: '500' }}>
+                        Trang {page.pageNumber}
+                      </Typography>
+                      <Typography variant="caption" noWrap sx={{ width: '100%', textAlign: 'center', px:0.5, color:'text.secondary', fontSize: '0.7rem' }}>
+                         ({page.isNew ? 'Mới' : 'Đã có'}) {page.name.length > 15 ? page.name.substring(0,12) + '...' : page.name}
+                      </Typography>
+                      
+                      <Tooltip title="Xóa trang này">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => { e.stopPropagation(); handleDeletePage(page.id);}}
+                          disabled={isSaving}
+                          sx={{
+                            position: 'absolute',
+                            top: 4,
+                            right: 4,
+                            color: 'error.light',
+                            backgroundColor: 'rgba(0,0,0,0.3)',
+                            '&:hover': {
+                              backgroundColor: 'rgba(0,0,0,0.5)',
+                              color: 'error.main'
+                            },
+                            p: 0.3
+                          }}
+                        >
+                          <DeleteOutlineIcon fontSize="inherit" />
+                        </IconButton>
+                      </Tooltip>
+                    </Paper>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </Box>
+          )}
+        </Droppable>
+      </DragDropContext>
     </Box>
-  )
+  );
 }
 
-export default ChapterPageManager 
+export default ChapterPageManager; 

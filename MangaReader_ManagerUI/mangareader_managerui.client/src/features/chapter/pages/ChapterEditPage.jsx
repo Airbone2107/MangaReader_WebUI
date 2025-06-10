@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Box, Typography, CircularProgress, Tabs, Tab } from '@mui/material'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import ChapterForm from '../components/ChapterForm'
@@ -55,26 +55,29 @@ function ChapterEditPage() {
         setLoading(false)
       }
     }
-    loadChapter()
+    if (id) { // Chỉ load nếu có ID
+        loadChapter()
+    } else {
+        setLoading(false);
+        handleApiError(null, 'ID chương không hợp lệ.');
+        navigate('/mangas');
+    }
   }, [id, navigate, location.state?.translatedMangaId])
 
   /**
    * @param {UpdateChapterRequest} data
    */
   const handleSubmitDetails = async (data) => {
+    if (!id) return;
     try {
       await chapterApi.updateChapter(id, data)
       showSuccessToast('Cập nhật chương thành công!')
-      // Re-fetch the parent list if needed (e.g., if sorting/filtering is based on these fields)
-      // For now, we just update the specific chapter data in state
       setChapter((prev) => prev ? { ...prev, attributes: { ...prev.attributes, ...data } } : null);
       
-      // Sau khi cập nhật chi tiết chapter, fetch lại danh sách chapters của translated manga cha
-      // để đảm bảo thông tin (như title, volume, chapterNumber) được cập nhật trên ChapterListPage.
       const translatedMangaRel = chapter?.relationships?.find(rel => rel.type === RELATIONSHIP_TYPES.TRANSLATED_MANGA);
       const parentTranslatedMangaId = translatedMangaRel?.id || location.state?.translatedMangaId;
       if (parentTranslatedMangaId) {
-        fetchChaptersByTranslatedMangaIdStore(parentTranslatedMangaId);
+        fetchChaptersByTranslatedMangaIdStore(parentTranslatedMangaId, false); // Không reset pagination
       }
     } catch (error) {
       console.error('Failed to update chapter:', error)
@@ -84,67 +87,67 @@ function ChapterEditPage() {
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue)
+    const parentTranslatedMangaId = chapter?.relationships?.find(rel => rel.type === RELATIONSHIP_TYPES.TRANSLATED_MANGA)?.id || location.state?.translatedMangaId;
     if (newValue === 0) {
-      navigate(`/chapters/edit/${id}`, { state: { translatedMangaId: location.state?.translatedMangaId } });
+      navigate(`/chapters/edit/${id}`, { state: { translatedMangaId: parentTranslatedMangaId } });
     } else if (newValue === 1) {
-      navigate(`/chapters/${id}/pages`, { state: { translatedMangaId: location.state?.translatedMangaId } });
+      navigate(`/chapters/${id}/pages`, { state: { translatedMangaId: parentTranslatedMangaId } });
     }
   }
 
-  const handlePagesUpdated = () => {
-    // Tìm translatedMangaId từ chapter object hoặc từ location.state
-    const translatedMangaRel = chapter?.relationships?.find(rel => rel.type === RELATIONSHIP_TYPES.TRANSLATED_MANGA);
-    const parentTranslatedMangaId = translatedMangaRel?.id || location.state?.translatedMangaId;
-
-    if (parentTranslatedMangaId) {
-      fetchChaptersByTranslatedMangaIdStore(parentTranslatedMangaId, false); // Fetch lại danh sách chapter của translated manga cha
-                                                                        // false để không reset pagination, vì ta chỉ muốn cập nhật pagesCount
+  const handlePagesUpdatedInManager = useCallback(async () => {
+    if (!id) return;
+    // Tải lại thông tin chapter để cập nhật pagesCount
+    try {
+      const response = await chapterApi.getChapterById(id);
+      if (response && response.data) {
+        setChapter(response.data); // Cập nhật state của chapter hiện tại
+      }
+    } catch (error) {
+      console.error('Failed to reload chapter details after pages update:', error);
     }
-    // Cũng có thể fetch lại chapter hiện tại để cập nhật pagesCount ngay lập tức trên trang này
-    chapterApi.getChapterById(id).then(response => setChapter(response.data)).catch(err => console.error(err));
-  }
+    // Callback onPagesUpdated từ props của ChapterEditPage (nếu có) cũng có thể được gọi ở đây
+    // hoặc đã được gọi bên trong handleSaveChanges của ChapterPageManager
+  }, [id]);
 
   if (loading) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100%',
-        }}
-      >
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)', p:3 }}>
         <CircularProgress />
       </Box>
     )
   }
 
   if (!chapter) {
-    return <Typography variant="h5">Không tìm thấy Chương.</Typography>
+    return (
+        <Box sx={{p:3}}>
+            <Typography variant="h5">Không tìm thấy Chương hoặc có lỗi khi tải.</Typography>
+        </Box>
+    );
   }
 
   return (
-    <Box className="chapter-edit-page" sx={{ p: 3 }}>
+    <Box className="chapter-edit-page" sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
       <Typography variant="h4" component="h1" gutterBottom className="page-header">
-        Chỉnh sửa Chương: {chapter.attributes.chapterNumber} - {chapter.attributes.title || 'Không có tiêu đề'} 
+        Chỉnh sửa Chương: {chapter.attributes.chapterNumber || '?'} - {chapter.attributes.title || 'Không có tiêu đề'} 
         (Trang: {chapter.attributes.pagesCount})
       </Typography>
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="Chapter tabs">
           <Tab label="Chi tiết Chương" />
-          <Tab label="Trang Chương" />
+          <Tab label="Quản lý Trang Ảnh" />
         </Tabs>
       </Box>
 
       {tabValue === 0 && (
         <Box sx={{ mt: 2 }}>
-          <ChapterForm initialData={chapter} onSubmit={handleSubmitDetails} isEditMode={true} />
+          <ChapterForm initialData={chapter} onSubmit={handleSubmitDetails} isEditMode={true} translatedMangaId={chapter.relationships?.find(r => r.type === 'translated_manga')?.id || ''} />
         </Box>
       )}
-      {tabValue === 1 && (
+      {tabValue === 1 && id && ( // Chỉ render ChapterPageManager khi có chapterId
         <Box sx={{ mt: 2 }}>
-          <ChapterPageManager chapterId={id} onPagesUpdated={handlePagesUpdated} />
+          <ChapterPageManager chapterId={id} onPagesUpdated={handlePagesUpdatedInManager} />
         </Box>
       )}
     </Box>
