@@ -2,6 +2,7 @@ using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.DTOs.CoverArts;
 using MangaReaderLib.DTOs.Mangas;
 using MangaReaderLib.DTOs.TranslatedMangas;
+using MangaReaderLib.Enums;
 
 namespace MangaReaderLib.Services.Interfaces
 {
@@ -19,20 +20,25 @@ namespace MangaReaderLib.Services.Interfaces
             string? titleFilter = null, 
             string? statusFilter = null, 
             string? contentRatingFilter = null, 
-            string? demographicFilter = null, 
+            List<PublicationDemographic>? publicationDemographicsFilter = null,
             string? originalLanguageFilter = null,
             int? yearFilter = null,
-            List<Guid>? tagIdsFilter = null,
             List<Guid>? authorIdsFilter = null,
+            List<Guid>? includedTags = null,
+            string? includedTagsMode = null,
+            List<Guid>? excludedTags = null,
+            string? excludedTagsMode = null,
             string? orderBy = null, 
-            bool? ascending = null, 
+            bool? ascending = null,
+            List<string>? includes = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Lấy thông tin chi tiết của một manga dựa trên ID
         /// </summary>
         Task<ApiResponse<ResourceObject<MangaAttributesDto>>?> GetMangaByIdAsync(
-            Guid mangaId, 
+            Guid mangaId,
+            List<string>? includes = null,
             CancellationToken cancellationToken = default);
         
         /// <summary>

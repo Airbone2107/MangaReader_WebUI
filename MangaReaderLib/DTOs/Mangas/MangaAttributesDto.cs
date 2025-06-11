@@ -1,4 +1,6 @@
 using MangaReaderLib.Enums;
+using MangaReaderLib.DTOs.Common;
+using MangaReaderLib.DTOs.Tags;
 
 namespace MangaReaderLib.DTOs.Mangas
 {
@@ -13,5 +15,7 @@ namespace MangaReaderLib.DTOs.Mangas
         public bool IsLocked { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        
+        public List<ResourceObject<TagInMangaAttributesDto>>? Tags { get; set; }
     }
 } 

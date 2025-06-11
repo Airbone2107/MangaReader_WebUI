@@ -5,6 +5,7 @@ using MangaReaderLib.DTOs.TranslatedMangas;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Text;
+using MangaReaderLib.Enums;
 
 namespace MangaReaderLib.Services.Implementations
 {
@@ -62,47 +63,99 @@ namespace MangaReaderLib.Services.Implementations
             }
         }
 
+        private void AddListQueryParam<TValue>(Dictionary<string, List<string>> queryParams, string key, List<TValue>? values)
+        {
+            if (values != null && values.Any())
+            {
+                if (!queryParams.ContainsKey(key))
+                {
+                    queryParams[key] = new List<string>();
+                }
+                queryParams[key].AddRange(values.Select(v => v?.ToString() ?? string.Empty).Where(s => !string.IsNullOrEmpty(s)));
+            }
+        }
 
         public async Task<ApiCollectionResponse<ResourceObject<MangaAttributesDto>>?> GetMangasAsync(
-            int? offset = null, int? limit = null, string? titleFilter = null, 
-            string? statusFilter = null, string? contentRatingFilter = null, string? demographicFilter = null,
+            int? offset = null, int? limit = null, string? titleFilter = null,
+            string? statusFilter = null, string? contentRatingFilter = null,
+            List<PublicationDemographic>? publicationDemographicsFilter = null,
             string? originalLanguageFilter = null, int? yearFilter = null,
-            List<Guid>? tagIdsFilter = null, List<Guid>? authorIdsFilter = null,
-            string? orderBy = null, bool? ascending = null, CancellationToken cancellationToken = default)
+            List<Guid>? authorIdsFilter = null,
+            List<Guid>? includedTags = null,
+            string? includedTagsMode = null,
+            List<Guid>? excludedTags = null,
+            string? excludedTagsMode = null,
+            string? orderBy = null, bool? ascending = null,
+            List<string>? includes = null,
+            CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Getting mangas with filters: Title={TitleFilter}, Status={StatusFilter}, ContentRating={ContentRatingFilter}", 
-                titleFilter, statusFilter, contentRatingFilter);
-                
+            _logger.LogInformation("Getting mangas with various filters.");
+
             var queryParams = new Dictionary<string, List<string>>();
             AddQueryParam(queryParams, "offset", offset?.ToString());
             AddQueryParam(queryParams, "limit", limit?.ToString());
             AddQueryParam(queryParams, "titleFilter", titleFilter);
             AddQueryParam(queryParams, "statusFilter", statusFilter);
             AddQueryParam(queryParams, "contentRatingFilter", contentRatingFilter);
-            AddQueryParam(queryParams, "demographicFilter", demographicFilter);
+
+            // Xử lý PublicationDemographicsFilter (List<Enum>)
+            if (publicationDemographicsFilter != null && publicationDemographicsFilter.Any())
+            {
+                 AddListQueryParam(queryParams, "publicationDemographicsFilter", publicationDemographicsFilter.Select(e => e.ToString()).ToList());
+            }
+            
             AddQueryParam(queryParams, "originalLanguageFilter", originalLanguageFilter);
             AddQueryParam(queryParams, "yearFilter", yearFilter?.ToString());
-            
-            if (tagIdsFilter != null && tagIdsFilter.Any())
-            {
-                queryParams["tagIdsFilter"] = tagIdsFilter.Select(id => id.ToString()).ToList();
-            }
+
             if (authorIdsFilter != null && authorIdsFilter.Any())
             {
-                queryParams["authorIdsFilter"] = authorIdsFilter.Select(id => id.ToString()).ToList();
+                AddListQueryParam(queryParams, "authorIdsFilter", authorIdsFilter.Select(id => id.ToString()).ToList());
+            }
+
+            // THÊM FILTERS TAG NÂNG CAO
+            if (includedTags != null && includedTags.Any())
+            {
+                AddListQueryParam(queryParams, "includedTags", includedTags.Select(id => id.ToString()).ToList());
+                if (!string.IsNullOrEmpty(includedTagsMode))
+                {
+                    AddQueryParam(queryParams, "includedTagsMode", includedTagsMode);
+                }
+            }
+            if (excludedTags != null && excludedTags.Any())
+            {
+                 AddListQueryParam(queryParams, "excludedTags", excludedTags.Select(id => id.ToString()).ToList());
+                if (!string.IsNullOrEmpty(excludedTagsMode))
+                {
+                    AddQueryParam(queryParams, "excludedTagsMode", excludedTagsMode);
+                }
             }
 
             AddQueryParam(queryParams, "orderBy", orderBy);
             AddQueryParam(queryParams, "ascending", ascending?.ToString().ToLower());
-            
+
+            // THÊM THAM SỐ INCLUDES
+            if (includes != null && includes.Any())
+            {
+                AddListQueryParam(queryParams, "includes", includes);
+            }
+
             string requestUri = BuildQueryString("Mangas", queryParams);
             return await _apiClient.GetAsync<ApiCollectionResponse<ResourceObject<MangaAttributesDto>>>(requestUri, cancellationToken);
         }
 
-        public async Task<ApiResponse<ResourceObject<MangaAttributesDto>>?> GetMangaByIdAsync(Guid mangaId, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<ResourceObject<MangaAttributesDto>>?> GetMangaByIdAsync(
+            Guid mangaId, 
+            List<string>? includes = null,
+            CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Getting manga by ID: {MangaId}", mangaId);
-            return await _apiClient.GetAsync<ApiResponse<ResourceObject<MangaAttributesDto>>>($"Mangas/{mangaId}", cancellationToken);
+            var queryParams = new Dictionary<string, List<string>>();
+            if (includes != null && includes.Any())
+            {
+                AddListQueryParam(queryParams, "includes", includes);
+            }
+            string requestUri = BuildQueryString($"Mangas/{mangaId}", queryParams);
+            return await _apiClient.GetAsync<ApiResponse<ResourceObject<MangaAttributesDto>>>(requestUri, cancellationToken);
         }
 
         public async Task<ApiResponse<ResourceObject<MangaAttributesDto>>?> CreateMangaAsync(CreateMangaRequestDto request, CancellationToken cancellationToken = default)

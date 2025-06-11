@@ -12,9 +12,16 @@ export interface ApiErrorResponse {
   errors: ApiErrorDetail[];
 }
 
+// DTO cho attributes của author/artist trong relationship (khi include)
+export interface AuthorInRelationshipAttributes {
+  name: string;
+  biography: string | null;
+}
+
 export interface RelationshipObject {
   id: string;
   type: string; // 'author', 'artist', 'tag', 'cover_art', etc.
+  attributes?: Record<string, any> | AuthorInRelationshipAttributes | null;
 }
 
 export interface ResourceObject<TAttributes> {

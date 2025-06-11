@@ -1,3 +1,97 @@
+Được rồi, đây là file `TODO.md` hướng dẫn chi tiết cách sửa lỗi bạn đang gặp phải.
+
+```markdown
+<!-- TODO.md -->
+# TODO: Sửa lỗi `TypeError` trong `MangaTable.jsx`
+
+Hướng dẫn này mô tả các bước cần thực hiện để sửa lỗi `MangaTable.jsx:172 Uncaught TypeError: Cannot read properties of undefined (reading 'tags')`.
+
+## 1. Mô tả vấn đề
+
+Sau khi cập nhật theo file `TODO2.md`, ứng dụng gặp lỗi sau khi hiển thị bảng danh sách manga:
+
+```
+MangaTable.jsx:172 Uncaught TypeError: Cannot read properties of undefined (reading 'tags')
+    at Object.format (MangaTable.jsx:172:45)
+    at DataTableMUI.jsx:91:56
+    at Array.map (<anonymous>)
+    at DataTableMUI.jsx:90:26
+    at Array.map (<anonymous>)
+    at DataTableMUI (DataTableMUI.jsx:83:18)
+```
+
+Lỗi xảy ra tại dòng 172 của file `MangaTable.jsx`, cụ thể là trong hàm `format` của cột `tags`.
+
+## 2. Phân tích nguyên nhân
+
+Lỗi này xảy ra do cách truy cập thuộc tính `tags` không chính xác bên trong hàm `format` của cột `tags`.
+
+Trong hàm `formatMangaDataForTable` của file `MangaTable.jsx`, các thuộc tính của `manga.attributes` (bao gồm cả `tags`) đã được trải phẳng (spread) trực tiếp vào đối tượng `row` được truyền cho component `DataTableMUI`.
+
+```javascript
+// MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaTable.jsx
+// ...
+  const formatMangaDataForTable = (mangasData) => {
+    if (!mangasData) return [];
+    return mangasData.map(manga => {
+      return {
+        ...manga.attributes, // << title, originalLanguage, ..., tags đều nằm trực tiếp ở đây
+        id: manga.id, 
+        relationships: manga.relationships, 
+        coverArtPublicId: manga.coverArtPublicId,
+      };
+    });
+  };
+// ...
+```
+
+Khi đó, trong hàm `format` của cột `tags`, đối tượng `row` sẽ có cấu trúc là `{ id: '...', title: '...', tags: [...], ... }`.
+Tuy nhiên, code hiện tại đang cố gắng truy cập `row.attributes.tags`:
+
+```javascript
+// MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaTable.jsx
+// ...
+    {
+      id: 'tags', // `id` này khiến cho `value` trong `format(value, row)` chính là `row.tags`
+      label: 'Tags',
+      minWidth: 170,
+      sortable: false,
+      format: (value, row) => { // `value` ở đây chính là `row.tags` (do id cột là 'tags')
+        /** @type {ResourceObject<TagInMangaAttributesDto>[]} */
+        const tagResources = row.attributes.tags || []; // LỖI: row.attributes không tồn tại ở đây, tags nằm trực tiếp trong `row` (hoặc `value`)
+        const tagNames = tagResources.map(tagResource => tagResource.attributes.name);
+
+        if (tagNames.length === 0) return <Typography variant="caption" color="textSecondary">N/A</Typography>;
+
+        return (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+            {tagNames.slice(0, 3).map((tagName) => (
+              <Chip key={tagName} label={tagName} size="small" variant="outlined" />
+            ))}
+            {tagNames.length > 3 && (
+              <Chip label={`+${tagNames.length - 3}`} size="small" />
+            )}
+          </Box>
+        )
+      },
+    },
+// ...
+```
+Vì `row.attributes` là `undefined`, nên việc truy cập `row.attributes.tags` sẽ gây ra lỗi "Cannot read properties of undefined (reading 'tags')".
+
+## 3. Hướng dẫn sửa lỗi
+
+Để khắc phục lỗi, chúng ta cần cập nhật lại cách truy cập mảng `tags` trong hàm `format` của cột `tags` tại file `MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaTable.jsx`.
+
+**File cần sửa:**
+`MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaTable.jsx`
+
+**Nội dung file sau khi sửa:**
+
+Thay thế toàn bộ nội dung file `MangaTable.jsx` bằng đoạn code sau:
+
+```javascript
+// MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaTable.jsx
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
@@ -167,9 +261,15 @@ function MangaTable({
       label: 'Tags',
       minWidth: 170,
       sortable: false,
-      format: (value, row) => {
+      format: (value, row) => { // `value` ở đây chính là `row.tags`
         /** @type {ResourceObject<TagInMangaAttributesDto>[]} */
+        // SỬA ĐỔI Ở ĐÂY:
+        // Thay vì: const tagResources = row.attributes.tags || [];
+        // Sử dụng:
         const tagResources = value || []; // `value` (tức là row.tags) đã là mảng các ResourceObject
+        // HOẶC CÓ THỂ LÀ:
+        // const tagResources = row.tags || [];
+
         const tagNames = tagResources.map(tagResource => tagResource.attributes.name);
 
         if (tagNames.length === 0) return <Typography variant="caption" color="textSecondary">N/A</Typography>;
@@ -230,10 +330,10 @@ function MangaTable({
     if (!mangasData) return [];
     return mangasData.map(manga => {
       return {
-        ...manga.attributes,
+        ...manga.attributes, // Bao gồm title, originalLanguage, status, year, contentRating, publicationDemographic, tags
         id: manga.id, // Ensure ID is present for keying and actions
         relationships: manga.relationships, // Pass relationships for tags or other info
-        coverArtPublicId: manga.coverArtPublicId, // <-- ĐẢM BẢO TRƯỜNG NÀY ĐƯỢC CHUYỂN QUA TỪ STORE
+        coverArtPublicId: manga.coverArtPublicId, 
       };
     });
   };
@@ -264,4 +364,31 @@ function MangaTable({
   )
 }
 
-export default MangaTable 
+export default MangaTable
+```
+
+**Giải thích thay đổi:**
+
+Trong hàm `format` của cột `tags` (khoảng dòng 172):
+-   **Code cũ (gây lỗi):**
+    ```javascript
+    const tagResources = row.attributes.tags || [];
+    ```
+-   **Code mới (đã sửa):**
+    ```javascript
+    const tagResources = value || [];
+    ```
+    Hoặc:
+    ```javascript
+    const tagResources = row.tags || [];
+    ```
+    Lý do: Vì `id` của cột này là `'tags'`, nên tham số `value` được truyền vào hàm `format` chính là `row.tags` (do `row` đã được trải phẳng `manga.attributes`). Do đó, chúng ta có thể sử dụng trực tiếp `value` hoặc `row.tags` để lấy mảng `tags`.
+
+## 4. Kiểm tra lại
+
+Sau khi áp dụng thay đổi trên, hãy chạy lại ứng dụng và kiểm tra xem lỗi đã được khắc phục hay chưa. Danh sách manga và các tag của chúng phải được hiển thị chính xác.
+
+---
+
+Kết thúc TODO.
+```

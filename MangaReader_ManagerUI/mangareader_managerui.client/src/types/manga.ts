@@ -1,16 +1,23 @@
-import { RelationshipObject } from './api'
+import { RelationshipObject, ResourceObject } from './api'
+
+// DTO mới cho Tag khi được nhúng trong Manga Attributes
+export interface TagInMangaAttributesDto {
+  name: string;
+  tagGroupName: string;
+}
 
 // Attributes DTOs
 export interface MangaAttributes {
   title: string
   originalLanguage: string
-  publicationDemographic: 'Shounen' | 'Shoujo' | 'Josei' | 'Seinen' | 'None'
+  publicationDemographic: 'Shounen' | 'Shoujo' | 'Josei' | 'Seinen' | 'None' | null
   status: 'Ongoing' | 'Completed' | 'Hiatus' | 'Cancelled'
-  year?: number
+  year?: number | null
   contentRating: 'Safe' | 'Suggestive' | 'Erotica' | 'Pornographic'
   isLocked: boolean
   createdAt: string
   updatedAt: string
+  tags: ResourceObject<TagInMangaAttributesDto>[]
 }
 
 export interface AuthorAttributes {
@@ -22,8 +29,7 @@ export interface AuthorAttributes {
 
 export interface TagAttributes {
   name: string
-  tagGroupId: string // GUID of the tag group
-  tagGroupName: string // Name of the tag group
+  tagGroupName: string
   createdAt: string
   updatedAt: string
 }
@@ -124,13 +130,36 @@ export interface CoverArt {
   relationships?: RelationshipObject[]
 }
 
-// Request DTOs
+// Request DTOs and Params
+export type PublicationDemographicType = 'Shounen' | 'Shoujo' | 'Josei' | 'Seinen' | 'None';
+export type MangaStatusType = 'Ongoing' | 'Completed' | 'Hiatus' | 'Cancelled';
+export type ContentRatingType = 'Safe' | 'Suggestive' | 'Erotica' | 'Pornographic';
+
+export interface GetMangasParams {
+  offset?: number;
+  limit?: number;
+  titleFilter?: string;
+  statusFilter?: MangaStatusType | '';
+  contentRatingFilter?: ContentRatingType | '';
+  publicationDemographicsFilter?: PublicationDemographicType[];
+  originalLanguageFilter?: string;
+  yearFilter?: number | null;
+  authorIdsFilter?: string[];
+  includedTags?: string[];
+  includedTagsMode?: 'AND' | 'OR';
+  excludedTags?: string[];
+  excludedTagsMode?: 'AND' | 'OR';
+  orderBy?: string;
+  ascending?: boolean;
+  includes?: ('cover_art' | 'author' | 'artist')[];
+}
+
 export interface CreateMangaRequest {
   title: string
   originalLanguage: string
-  publicationDemographic?: 'Shounen' | 'Shoujo' | 'Josei' | 'Seinen' | 'None'
+  publicationDemographic?: 'Shounen' | 'Shoujo' | 'Josei' | 'Seinen' | 'None' | null
   status: 'Ongoing' | 'Completed' | 'Hiatus' | 'Cancelled'
-  year?: number
+  year?: number | null
   contentRating: 'Safe' | 'Suggestive' | 'Erotica' | 'Pornographic'
   tagIds?: string[] // Array of GUID strings
   authors?: MangaAuthorInput[]
@@ -139,9 +168,9 @@ export interface CreateMangaRequest {
 export interface UpdateMangaRequest {
   title: string
   originalLanguage: string
-  publicationDemographic?: 'Shounen' | 'Shoujo' | 'Josei' | 'Seinen' | 'None'
+  publicationDemographic?: 'Shounen' | 'Shoujo' | 'Josei' | 'Seinen' | 'None' | null
   status: 'Ongoing' | 'Completed' | 'Hiatus' | 'Cancelled'
-  year?: number
+  year?: number | null
   contentRating: 'Safe' | 'Suggestive' | 'Erotica' | 'Pornographic'
   isLocked: boolean
   tagIds?: string[]
@@ -196,20 +225,20 @@ export interface UpdateTranslatedMangaRequest {
 
 export interface CreateChapterRequest {
   translatedMangaId: string
-  uploadedByUserId: number // Assuming number for User ID for now
+  uploadedByUserId: number 
   volume?: string
   chapterNumber?: string
   title?: string
-  publishAt: string
-  readableAt: string
+  publishAt: string 
+  readableAt: string 
 }
 
 export interface UpdateChapterRequest {
   volume?: string
   chapterNumber?: string
   title?: string
-  publishAt: string
-  readableAt: string
+  publishAt: string 
+  readableAt: string 
 }
 
 export interface CreateChapterPageEntryRequest {
@@ -221,14 +250,13 @@ export interface UpdateChapterPageDetailsRequest {
 }
 
 export interface UploadCoverArtRequest {
-  file: File; // For frontend forms
+  file: File; 
   volume?: string;
   description?: string;
 }
 
-// For use in forms where relationships are selected
 export interface SelectedRelationship {
   id: string;
-  name: string; // The display name of the related entity
-  role?: 'Author' | 'Artist'; // Added for author selection in MangaForm
+  name: string; 
+  role?: 'Author' | 'Artist'; 
 } 

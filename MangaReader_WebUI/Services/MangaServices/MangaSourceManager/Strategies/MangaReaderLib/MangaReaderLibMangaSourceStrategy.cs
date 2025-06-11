@@ -5,6 +5,7 @@ using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Interfaces
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
 using MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies.Interfaces;
 using MangaReaderLib.DTOs.CoverArts; // Thêm using này nếu chưa có
+using MangaReaderLib.Enums;
 
 namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies.MangaReaderLib
 {
@@ -36,16 +37,28 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
         public async Task<MangaList?> FetchMangaAsync(int? limit = null, int? offset = null, SortManga? sortManga = null)
         {
             _logger.LogInformation("[MRLib Strategy->FetchMangaAsync] Fetching Manga with TitleFilter: {TitleFilter}", sortManga?.Title);
+            
+            // Chuyển đổi demographic từ string sang List<PublicationDemographic>
+            List<PublicationDemographic>? publicationDemographics = null;
+            if (sortManga?.Demographic?.FirstOrDefault() != null)
+            {
+                string demographic = sortManga.Demographic.FirstOrDefault()!;
+                if (Enum.TryParse<PublicationDemographic>(demographic, true, out var pubDemographic))
+                {
+                    publicationDemographics = new List<PublicationDemographic> { pubDemographic };
+                }
+            }
+
             var libResult = await _mangaClient.GetMangasAsync(
                 offset: offset,
                 limit: limit,
                 titleFilter: sortManga?.Title,
                 statusFilter: sortManga?.Status?.FirstOrDefault(),
                 contentRatingFilter: sortManga?.ContentRating?.FirstOrDefault()?.ToLowerInvariant(),
-                demographicFilter: sortManga?.Demographic?.FirstOrDefault(),
+                publicationDemographicsFilter: publicationDemographics,
                 originalLanguageFilter: sortManga?.OriginalLanguage?.FirstOrDefault(),
                 yearFilter: sortManga?.Year,
-                tagIdsFilter: sortManga?.IncludedTags?.Where(s => !string.IsNullOrEmpty(s) && Guid.TryParse(s, out _)).Select(Guid.Parse).ToList(),
+                includedTags: sortManga?.IncludedTags?.Where(s => !string.IsNullOrEmpty(s) && Guid.TryParse(s, out _)).Select(Guid.Parse).ToList(),
                 orderBy: sortManga?.SortBy,
                 ascending: sortManga?.SortBy switch { "title" => true, "createdAt" => false, "updatedAt" => false, _ => false }
             );

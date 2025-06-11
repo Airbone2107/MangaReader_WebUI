@@ -1,13 +1,13 @@
 import { create } from 'zustand'
 import { persistStore } from '../utils/zustandPersist'
 import mangaApi from '../api/mangaApi'
-import coverArtApi from '../api/coverArtApi'
 import { showSuccessToast } from '../components/common/Notification'
 import { DEFAULT_PAGE_LIMIT, RELATIONSHIP_TYPES } from '../constants/appConstants'
 
 /**
  * @typedef {import('../types/manga').Manga} Manga
  * @typedef {import('../types/api').ApiCollectionResponse<Manga>} MangaCollectionResponse
+ * @typedef {import('../types/api').AuthorInRelationshipAttributes} AuthorInRelationshipAttributes
  */
 
 const useMangaStore = create(persistStore((set, get) => ({
@@ -20,15 +20,18 @@ const useMangaStore = create(persistStore((set, get) => ({
     titleFilter: '',
     statusFilter: '',
     contentRatingFilter: '',
-    demographicFilter: '',
+    publicationDemographicsFilter: [],
     originalLanguageFilter: '',
     yearFilter: null,
-    tagIdsFilter: [],
+    includedTags: [],
+    includedTagsMode: 'AND',
+    excludedTags: [],
+    excludedTagsMode: 'OR',
     authorIdsFilter: [],
   },
   sort: {
     orderBy: 'updatedAt',
-    ascending: false, // Default to descending for updatedAt
+    ascending: false,
   },
 
   /**
@@ -39,70 +42,62 @@ const useMangaStore = create(persistStore((set, get) => ({
     const { page, rowsPerPage, filters, sort } = get()
     const offset = resetPagination ? 0 : page * rowsPerPage
 
+    /** @type {import('../types/manga').GetMangasParams} */
     const queryParams = {
       offset: offset,
       limit: rowsPerPage,
       titleFilter: filters.titleFilter || undefined,
       statusFilter: filters.statusFilter || undefined,
       contentRatingFilter: filters.contentRatingFilter || undefined,
-      demographicFilter: filters.demographicFilter || undefined,
+      publicationDemographicsFilter: filters.publicationDemographicsFilter?.length > 0 ? filters.publicationDemographicsFilter : undefined,
       originalLanguageFilter: filters.originalLanguageFilter || undefined,
       yearFilter: filters.yearFilter || undefined,
+      includedTags: filters.includedTags?.length > 0 ? filters.includedTags : undefined,
+      includedTagsMode: filters.includedTags?.length > 0 ? filters.includedTagsMode : undefined,
+      excludedTags: filters.excludedTags?.length > 0 ? filters.excludedTags : undefined,
+      excludedTagsMode: filters.excludedTags?.length > 0 ? filters.excludedTagsMode : undefined,
+      authorIdsFilter: filters.authorIdsFilter?.length > 0 ? filters.authorIdsFilter : undefined,
       orderBy: sort.orderBy,
       ascending: sort.ascending,
+      includes: ['cover_art', 'author'],
     }
-
-    // Handle array filters explicitly for Axios (Axios params will stringify arrays correctly)
-    if (filters.tagIdsFilter && filters.tagIdsFilter.length > 0) {
-      queryParams['tagIdsFilter[]'] = filters.tagIdsFilter;
-    }
-    if (filters.authorIdsFilter && filters.authorIdsFilter.length > 0) {
-      queryParams['authorIdsFilter[]'] = filters.authorIdsFilter;
-    }
+    
+    // Xóa các trường undefined để query string sạch hơn
+    Object.keys(queryParams).forEach(key => queryParams[key] === undefined && delete queryParams[key]);
 
     try {
       /** @type {MangaCollectionResponse} */
       const response = await mangaApi.getMangas(queryParams)
       
-      // Bắt đầu logic mới để fetch publicId cho ảnh bìa
-      const mangasWithCovers = await Promise.all(
-        response.data.map(async (manga) => {
-          const coverArtRelationship = manga.relationships?.find(
-            (rel) => rel.type === RELATIONSHIP_TYPES.COVER_ART
-          )
+      const mangasWithProcessedInfo = response.data.map(manga => {
+        let coverArtPublicId = null;
+        const coverArtRel = manga.relationships?.find(rel => rel.type === RELATIONSHIP_TYPES.COVER_ART);
+        if (coverArtRel && typeof coverArtRel.id === 'string') {
+          // Theo ClientAPI_Update.md mục 2.2, nếu includes[]=cover_art, thì `id` chính là publicId
+          coverArtPublicId = coverArtRel.id;
+        }
 
-          if (coverArtRelationship) {
-            try {
-              // Lấy CoverArtId từ mối quan hệ
-              const coverArtId = coverArtRelationship.id
-              // Thực hiện request GET /CoverArts/{id} để lấy đối tượng CoverArt đầy đủ
-              const coverArtResponse = await coverArtApi.getCoverArtById(coverArtId)
-              // Trích xuất publicId và thêm vào đối tượng manga
-              if (coverArtResponse && coverArtResponse.data?.attributes?.publicId) {
-                return { ...manga, coverArtPublicId: coverArtResponse.data.attributes.publicId }
-              }
-            } catch (coverError) {
-              console.warn(
-                `Failed to fetch cover art publicId for manga ${manga.id}. CoverArtId: ${coverArtRelationship.id}`,
-                coverError
-              )
-              // Nếu có lỗi khi lấy publicId, vẫn trả về manga gốc nhưng không có coverArtPublicId
-              return manga 
-            }
-          }
-          return manga // Trả về manga gốc nếu không có mối quan hệ cover_art hoặc có lỗi
-        })
-      )
-      // Kết thúc logic mới
+        // Xử lý thông tin tác giả/họa sĩ từ includes (ví dụ, lấy tên tác giả đầu tiên)
+        const authorRelationship = manga.relationships?.find(
+          rel => (rel.type === RELATIONSHIP_TYPES.AUTHOR || rel.type === RELATIONSHIP_TYPES.ARTIST) && rel.attributes
+        );
+        /** @type {AuthorInRelationshipAttributes | undefined} */
+        const mainAuthorAttributes = authorRelationship?.attributes;
+
+        return { 
+          ...manga, 
+          coverArtPublicId,
+        };
+      });
 
       set({
-        mangas: mangasWithCovers, // Cập nhật state với danh sách manga đã có publicId
+        mangas: mangasWithProcessedInfo,
         totalMangas: response.total,
         page: resetPagination ? 0 : response.offset / response.limit,
       })
     } catch (error) {
       console.error('Failed to fetch mangas:', error)
-      set({ mangas: [], totalMangas: 0 }) // Clear data on error
+      set({ mangas: [], totalMangas: 0 })
     }
   },
 
@@ -113,7 +108,7 @@ const useMangaStore = create(persistStore((set, get) => ({
    */
   setPage: (event, newPage) => {
     set({ page: newPage });
-    get().fetchMangas(false); // Không reset pagination, chỉ fetch với page mới
+    get().fetchMangas(false); 
   },
 
   /**
@@ -122,7 +117,7 @@ const useMangaStore = create(persistStore((set, get) => ({
    */
   setRowsPerPage: (event) => {
     set({ rowsPerPage: parseInt(event.target.value, 10), page: 0 });
-    get().fetchMangas(true); // Reset page về 0 và fetch
+    get().fetchMangas(true); 
   },
 
   /**
@@ -132,7 +127,7 @@ const useMangaStore = create(persistStore((set, get) => ({
    */
   setSort: (orderBy, order) => {
     set({ sort: { orderBy, ascending: order === 'asc' }, page: 0 });
-    get().fetchMangas(true); // Reset page về 0 và fetch
+    get().fetchMangas(true); 
   },
 
   /**
@@ -154,8 +149,9 @@ const useMangaStore = create(persistStore((set, get) => ({
   applyFilters: (newFilters) => {
     set((state) => ({
       filters: { ...state.filters, ...newFilters },
-      page: 0, // Reset page on filter change
+      page: 0, 
     }));
+    // fetchMangas sẽ được gọi riêng sau khi applyFilters trong component
   },
 
   /**
@@ -167,14 +163,18 @@ const useMangaStore = create(persistStore((set, get) => ({
         titleFilter: '',
         statusFilter: '',
         contentRatingFilter: '',
-        demographicFilter: '',
+        publicationDemographicsFilter: [],
         originalLanguageFilter: '',
         yearFilter: null,
-        tagIdsFilter: [],
+        includedTags: [],
+        includedTagsMode: 'AND',
+        excludedTags: [],
+        excludedTagsMode: 'OR',
         authorIdsFilter: [],
       },
       page: 0,
-    }, () => get().fetchMangas(true)); // Pass true to reset pagination implicitly before fetch
+    });
+    get().fetchMangas(true);
   },
 
   /**
@@ -185,12 +185,11 @@ const useMangaStore = create(persistStore((set, get) => ({
     try {
       await mangaApi.deleteManga(id)
       showSuccessToast('Xóa manga thành công!')
-      get().fetchMangas() // Refresh list after deletion
+      get().fetchMangas() 
     } catch (error) {
       console.error('Failed to delete manga:', error)
-      // Error is handled by apiClient interceptor
     }
   },
-}), 'manga')) // Tên duy nhất cho persistence
+}), 'manga'))
 
 export default useMangaStore 

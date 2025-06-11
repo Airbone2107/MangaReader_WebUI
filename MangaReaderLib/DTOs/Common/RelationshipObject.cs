@@ -11,5 +11,10 @@ namespace MangaReaderLib.DTOs.Common
         [JsonPropertyName("type")]
         [JsonPropertyOrder(2)]
         public string Type { get; set; } = string.Empty;
+
+        [JsonPropertyName("attributes")] 
+        [JsonPropertyOrder(3)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public object? Attributes { get; set; } 
     }
 } 

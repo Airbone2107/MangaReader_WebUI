@@ -1675,17 +1675,6 @@
             }
           },
           {
-            "name": "TagIdsFilter",
-            "in": "query",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "format": "uuid"
-              }
-            }
-          },
-          {
             "name": "AuthorIdsFilter",
             "in": "query",
             "schema": {
@@ -3631,7 +3620,7 @@
           "tags": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TagAttributesDtoResourceObject"
+              "$ref": "#/components/schemas/TagInMangaAttributesDtoResourceObject"
             },
             "nullable": true
           }
@@ -3791,10 +3780,6 @@
           "name": {
             "type": "string",
             "nullable": true
-          },
-          "tagGroupId": {
-            "type": "string",
-            "format": "uuid"
           },
           "tagGroupName": {
             "type": "string",
@@ -3973,6 +3958,44 @@
           },
           "data": {
             "$ref": "#/components/schemas/TagGroupAttributesDtoResourceObject"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TagInMangaAttributesDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "tagGroupName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TagInMangaAttributesDtoResourceObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/TagInMangaAttributesDto"
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelationshipObject"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
