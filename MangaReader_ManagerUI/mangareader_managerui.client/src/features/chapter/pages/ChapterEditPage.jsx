@@ -132,26 +132,24 @@ function ChapterEditPage() {
         Chỉnh sửa Chương: {chapter.attributes.chapterNumber || '?'} - {chapter.attributes.title || 'Không có tiêu đề'} 
         (Trang: {chapter.attributes.pagesCount})
       </Typography>
-
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="Chapter tabs">
           <Tab label="Chi tiết Chương" />
           <Tab label="Quản lý Trang Ảnh" />
         </Tabs>
       </Box>
-
       {tabValue === 0 && (
         <Box sx={{ mt: 2 }}>
           <ChapterForm initialData={chapter} onSubmit={handleSubmitDetails} isEditMode={true} translatedMangaId={chapter.relationships?.find(r => r.type === 'translated_manga')?.id || ''} />
         </Box>
       )}
       {tabValue === 1 && id && ( // Chỉ render ChapterPageManager khi có chapterId
-        <Box sx={{ mt: 2 }}>
+        (<Box sx={{ mt: 2 }}>
           <ChapterPageManager chapterId={id} onPagesUpdated={handlePagesUpdatedInManager} />
-        </Box>
+        </Box>)
       )}
     </Box>
-  )
+  );
 }
 
 export default ChapterEditPage 

@@ -70,16 +70,36 @@ function ChapterForm({ translatedMangaId, initialData, onSubmit, isEditMode }) {
     <Paper sx={{ p: 3, mt: 3 }}>
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
         <Grid container spacing={2} columns={{ xs: 4, sm: 6, md: 12 }}>
-          <Grid item xs={4} sm={3} md={6}>
+          <Grid
+            size={{
+              xs: 4,
+              sm: 3,
+              md: 6
+            }}>
             <FormInput control={control} name="volume" label="Volume (Tùy chọn)" />
           </Grid>
-          <Grid item xs={4} sm={3} md={6}>
+          <Grid
+            size={{
+              xs: 4,
+              sm: 3,
+              md: 6
+            }}>
             <FormInput control={control} name="chapterNumber" label="Số chương (Tùy chọn)" />
           </Grid>
-          <Grid item xs={4} sm={6} md={12}>
+          <Grid
+            size={{
+              xs: 4,
+              sm: 6,
+              md: 12
+            }}>
             <FormInput control={control} name="title" label="Tiêu đề chương (Tùy chọn)" />
           </Grid>
-          <Grid item xs={4} sm={3} md={6}>
+          <Grid
+            size={{
+              xs: 4,
+              sm: 3,
+              md: 6
+            }}>
             <FormInput
               control={control}
               name="publishAt"
@@ -88,7 +108,12 @@ function ChapterForm({ translatedMangaId, initialData, onSubmit, isEditMode }) {
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid item xs={4} sm={3} md={6}>
+          <Grid
+            size={{
+              xs: 4,
+              sm: 3,
+              md: 6
+            }}>
             <FormInput
               control={control}
               name="readableAt"
@@ -97,7 +122,12 @@ function ChapterForm({ translatedMangaId, initialData, onSubmit, isEditMode }) {
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid item xs={4} sm={6} md={12}>
+          <Grid
+            size={{
+              xs: 4,
+              sm: 6,
+              md: 12
+            }}>
             <Button type="submit" variant="contained" color="primary" sx={{ mt: 2 }}>
               {isEditMode ? 'Cập nhật Chương' : 'Tạo Chương'}
             </Button>
@@ -105,7 +135,7 @@ function ChapterForm({ translatedMangaId, initialData, onSubmit, isEditMode }) {
         </Grid>
       </Box>
     </Paper>
-  )
+  );
 }
 
 export default ChapterForm 

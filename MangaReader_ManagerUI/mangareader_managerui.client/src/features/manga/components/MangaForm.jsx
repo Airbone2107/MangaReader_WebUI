@@ -198,10 +198,20 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ mt: 1 }}>
       <Grid container spacing={2} columns={{ xs: 4, sm: 6, md: 12 }}>
-        <Grid item xs={4} sm={6} md={12}>
+        <Grid
+          size={{
+            xs: 4,
+            sm: 6,
+            md: 12
+          }}>
           <FormInput control={control} name="title" label="Tiêu đề Manga" />
         </Grid>
-        <Grid item xs={4} sm={3} md={6}>
+        <Grid
+          size={{
+            xs: 4,
+            sm: 3,
+            md: 6
+          }}>
           <FormInput
             control={control}
             name="originalLanguage"
@@ -210,7 +220,12 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
             options={ORIGINAL_LANGUAGE_OPTIONS}
           />
         </Grid>
-        <Grid item xs={4} sm={3} md={6}>
+        <Grid
+          size={{
+            xs: 4,
+            sm: 3,
+            md: 6
+          }}>
           <FormInput
             control={control}
             name="publicationDemographic"
@@ -219,7 +234,12 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
             options={PUBLICATION_DEMOGRAPHIC_OPTIONS}
           />
         </Grid>
-        <Grid item xs={4} sm={3} md={6}>
+        <Grid
+          size={{
+            xs: 4,
+            sm: 3,
+            md: 6
+          }}>
           <FormInput
             control={control}
             name="status"
@@ -228,7 +248,12 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
             options={MANGA_STATUS_OPTIONS}
           />
         </Grid>
-        <Grid item xs={4} sm={3} md={6}>
+        <Grid
+          size={{
+            xs: 4,
+            sm: 3,
+            md: 6
+          }}>
           <FormInput
             control={control}
             name="year"
@@ -237,7 +262,12 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
             inputProps={{ min: 1000, max: new Date().getFullYear() + 5, step: 1 }}
           />
         </Grid>
-        <Grid item xs={4} sm={6} md={12}>
+        <Grid
+          size={{
+            xs: 4,
+            sm: 6,
+            md: 12
+          }}>
           <FormInput
             control={control}
             name="contentRating"
@@ -248,9 +278,14 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
         </Grid>
 
         {/* Authors Section - Thay đổi Typography thành label */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Grid container spacing={1} alignItems="flex-end" columns={{ xs: 12, sm: 12, md: 12 }}>
-            <Grid item xs={12} sm={7} md={7}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 7,
+                md: 7
+              }}>
               <Autocomplete
                 options={availableAuthors}
                 getOptionLabel={(option) => option.name}
@@ -271,7 +306,12 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
                 )}
               />
             </Grid>
-            <Grid item xs={12} sm={3} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 3,
+                md: 3
+              }}>
               <FormInput
                 control={control}
                 name="tempAuthorRole"
@@ -282,7 +322,13 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
                 margin="normal"
               />
             </Grid>
-            <Grid item xs={12} sm={2} md={2} sx={{ alignSelf: 'center', mt: { xs: 1, sm: '24px' } }}>
+            <Grid
+              sx={{ alignSelf: 'center', mt: { xs: 1, sm: '24px' } }}
+              size={{
+                xs: 12,
+                sm: 2,
+                md: 2
+              }}>
               <Button
                 variant="contained"
                 color="primary"
@@ -309,7 +355,7 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
         </Grid>
 
         {/* Tags Section - Thay đổi Typography thành label, cập nhật Autocomplete */}
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Autocomplete
             multiple
             disableCloseOnSelect
@@ -367,7 +413,12 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
         </Grid>
         
         {isEditMode && (
-          <Grid item xs={4} sm={6} md={12}>
+          <Grid
+            size={{
+              xs: 4,
+              sm: 6,
+              md: 12
+            }}>
             <FormControlLabel
               control={
                 <Switch
@@ -383,14 +434,19 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
           </Grid>
         )}
 
-        <Grid item xs={4} sm={6} md={12}>
+        <Grid
+          size={{
+            xs: 4,
+            sm: 6,
+            md: 12
+          }}>
           <Button type="submit" variant="contained" color="primary" sx={{ mt: 3, mb: 2 }}>
             {isEditMode ? 'Cập nhật Manga' : 'Tạo Manga'}
           </Button>
         </Grid>
       </Grid>
     </Box>
-  )
+  );
 }
 
 export default MangaForm 

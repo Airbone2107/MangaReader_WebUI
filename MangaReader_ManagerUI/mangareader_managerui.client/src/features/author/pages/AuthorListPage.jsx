@@ -101,11 +101,16 @@ function AuthorListPage() {
       <Typography variant="h4" component="h1" gutterBottom className="page-header">
         Quản lý Tác giả
       </Typography>
-
       {/* Filter Section */}
       <Box className="filter-section">
         <Grid container spacing={2} alignItems="flex-start">
-          <Grid item xs={12} sm={6} md={4} lg={6}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4,
+              lg: 6
+            }}>
             <TextField
               label="Lọc theo Tên tác giả"
               variant="outlined"
@@ -115,7 +120,14 @@ function AuthorListPage() {
               sx={{ minWidth: '200px' }}
             />
           </Grid>
-          <Grid item xs={12} sm={3} md={2} lg={3} sx={{ display: 'flex', alignItems: 'center' }}>
+          <Grid
+            sx={{ display: 'flex', alignItems: 'center' }}
+            size={{
+              xs: 12,
+              sm: 3,
+              md: 2,
+              lg: 3
+            }}>
             <Button
               variant="contained"
               color="primary"
@@ -127,7 +139,14 @@ function AuthorListPage() {
               Áp dụng
             </Button>
           </Grid>
-          <Grid item xs={12} sm={3} md={2} lg={3} sx={{ display: 'flex', alignItems: 'center' }}>
+          <Grid
+            sx={{ display: 'flex', alignItems: 'center' }}
+            size={{
+              xs: 12,
+              sm: 3,
+              md: 2,
+              lg: 3
+            }}>
             <Button
               variant="outlined"
               color="inherit"
@@ -141,7 +160,6 @@ function AuthorListPage() {
           </Grid>
         </Grid>
       </Box>
-
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, mt: 3 }}>
         <Button
           variant="contained"
@@ -152,7 +170,6 @@ function AuthorListPage() {
           Thêm Tác giả mới
         </Button>
       </Box>
-
       <AuthorTable
         authors={authors}
         totalAuthors={totalAuthors}
@@ -167,7 +184,6 @@ function AuthorListPage() {
         onEdit={handleEdit}
         isLoading={isLoading}
       />
-
       <Dialog open={openFormDialog} onClose={() => setOpenFormDialog(false)} fullWidth maxWidth="sm">
         <DialogTitle>{editingAuthor ? 'Chỉnh sửa Tác giả' : 'Tạo Tác giả mới'}</DialogTitle>
         <DialogContent>
@@ -184,7 +200,7 @@ function AuthorListPage() {
         </DialogActions>
       </Dialog>
     </Box>
-  )
+  );
 }
 
 export default AuthorListPage 

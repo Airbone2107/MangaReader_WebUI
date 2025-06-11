@@ -114,11 +114,16 @@ function TagListPage() {
       <Typography variant="h4" component="h1" gutterBottom className="page-header">
         Quản lý Tags
       </Typography>
-
       {/* Filter Section */}
       <Box className="filter-section">
         <Grid container spacing={2} alignItems="flex-start">
-          <Grid item xs={12} sm={6} md={4} lg={4}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4,
+              lg: 4
+            }}>
             <TextField
               label="Lọc theo Tên tag"
               variant="outlined"
@@ -128,7 +133,13 @@ function TagListPage() {
               sx={{ minWidth: '200px' }}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={4} lg={4}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4,
+              lg: 4
+            }}>
             <TextField
               select
               label="Nhóm tag"
@@ -146,7 +157,14 @@ function TagListPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={12} sm={6} md={2} lg={2} sx={{ display: 'flex', alignItems: 'center' }}>
+          <Grid
+            sx={{ display: 'flex', alignItems: 'center' }}
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 2,
+              lg: 2
+            }}>
             <Button
               variant="contained"
               color="primary"
@@ -158,7 +176,14 @@ function TagListPage() {
               Áp dụng
             </Button>
           </Grid>
-          <Grid item xs={12} sm={6} md={2} lg={2} sx={{ display: 'flex', alignItems: 'center' }}>
+          <Grid
+            sx={{ display: 'flex', alignItems: 'center' }}
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 2,
+              lg: 2
+            }}>
             <Button
               variant="outlined"
               color="inherit"
@@ -172,7 +197,6 @@ function TagListPage() {
           </Grid>
         </Grid>
       </Box>
-
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, mt: 3 }}>
         <Button
           variant="contained"
@@ -183,7 +207,6 @@ function TagListPage() {
           Thêm Tag mới
         </Button>
       </Box>
-
       <TagTable
         tags={tags}
         totalTags={totalTags}
@@ -198,7 +221,6 @@ function TagListPage() {
         onEdit={handleEdit}
         isLoading={isLoading}
       />
-
       <Dialog open={openFormDialog} onClose={() => setOpenFormDialog(false)} fullWidth maxWidth="sm">
         <DialogTitle>{editingTag ? 'Chỉnh sửa Tag' : 'Tạo Tag mới'}</DialogTitle>
         <DialogContent>
@@ -215,7 +237,7 @@ function TagListPage() {
         </DialogActions>
       </Dialog>
     </Box>
-  )
+  );
 }
 
 export default TagListPage 
