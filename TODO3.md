@@ -1,3 +1,20 @@
+# TODO.md - Cập nhật Giao diện Trang Quản lý Manga
+
+## Mục tiêu:
+1.  Bố cục lại các mục lọc trên trang quản lý Manga.
+2.  Sửa lỗi hiển thị chip `+X` trong các ô chọn đa lựa chọn.
+
+## File cần cập nhật:
+-   `MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\pages\MangaListPage.jsx`
+
+## Các bước thực hiện và Code:
+
+### 1. Cập nhật file `MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\pages\MangaListPage.jsx`
+
+Nội dung file sau khi chỉnh sửa:
+
+```javascript
+// MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\pages\MangaListPage.jsx
 import AddIcon from '@mui/icons-material/Add'
 import ClearIcon from '@mui/icons-material/Clear'
 import SearchIcon from '@mui/icons-material/Search'
@@ -168,7 +185,7 @@ function MangaListPage() {
           alignItems="stretch" // Đảm bảo các item trong Grid cùng chiều cao nếu cần
         >
           {/* Dòng 1: Lọc theo tiêu đề */}
-          <Grid size={12}>
+          <Grid item xs={12}>
             <TextField
               label="Lọc theo Tiêu đề"
               variant="outlined"
@@ -179,12 +196,7 @@ function MangaListPage() {
           </Grid>
 
           {/* Dòng 2: Trạng thái, Đánh Giá, Ngôn Ngữ Gốc */}
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
+          <Grid item xs={12} sm={6} md={4}>
             <TextField
               select
               label="Trạng thái"
@@ -201,12 +213,7 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
+          <Grid item xs={12} sm={6} md={4}>
             <TextField
               select
               label="Đánh giá"
@@ -223,12 +230,7 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
+          <Grid item xs={12} sm={6} md={4}>
             <TextField
               select
               label="Ngôn ngữ gốc"
@@ -247,12 +249,7 @@ function MangaListPage() {
           </Grid>
 
           {/* Dòng 3: Đối Tượng, Năm, Lọc Theo Tác Giả */}
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
+          <Grid item xs={12} sm={6} md={4}>
             <FormControl fullWidth variant="outlined">
               <InputLabel id="publication-demographics-filter-label">Đối tượng</InputLabel>
               <Select
@@ -281,12 +278,7 @@ function MangaListPage() {
               </Select>
             </FormControl>
           </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
+          <Grid item xs={12} sm={6} md={4}>
             <TextField
               label="Năm"
               variant="outlined"
@@ -297,12 +289,7 @@ function MangaListPage() {
               inputProps={{ min: 1000, max: new Date().getFullYear() + 5, step: 1 }}
             />
           </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
+          <Grid item xs={12} sm={6} md={4}>
             <Autocomplete
               multiple
               options={availableAuthors}
@@ -323,12 +310,7 @@ function MangaListPage() {
           </Grid>
 
           {/* Dòng 4: Tags Phải Có, Chế độ Tags Phải Có */}
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
+          <Grid item xs={12} sm={6} md={4}>
              <Autocomplete
               multiple
               options={availableTags}
@@ -347,12 +329,7 @@ function MangaListPage() {
               fullWidth
             />
           </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
+          <Grid item xs={12} sm={6} md={4}>
             <TextField
               select
               label="Chế độ Tags Phải Có"
@@ -366,23 +343,13 @@ function MangaListPage() {
               <MenuItem value="OR">HOẶC (Bất kỳ)</MenuItem>
             </TextField>
           </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
+          <Grid item xs={12} sm={6} md={4}>
             {/* Để trống cho cân đối hoặc thêm filter khác nếu cần */}
           </Grid>
 
 
           {/* Dòng 5: Tags Không Có, Chế độ Tags Không Có */}
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
+          <Grid item xs={12} sm={6} md={4}>
             <Autocomplete
               multiple
               options={availableTags}
@@ -401,12 +368,7 @@ function MangaListPage() {
               fullWidth
             />
           </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
+          <Grid item xs={12} sm={6} md={4}>
             <TextField
               select
               label="Chế độ Tags Không Có"
@@ -419,19 +381,12 @@ function MangaListPage() {
               <MenuItem value="OR">HOẶC (Bất kỳ)</MenuItem>
             </TextField>
           </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
+          <Grid item xs={12} sm={6} md={4}>
             {/* Để trống cho cân đối hoặc thêm filter khác nếu cần */}
           </Grid>
           
           {/* Dòng 6: Các nút bấm */}
-          <Grid
-            sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 1 }}
-            size={12}>
+          <Grid item xs={12} sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 1 }}>
              <Button
               variant="contained"
               color="primary"
@@ -484,3 +439,4 @@ function MangaListPage() {
 }
 
 export default MangaListPage
+```

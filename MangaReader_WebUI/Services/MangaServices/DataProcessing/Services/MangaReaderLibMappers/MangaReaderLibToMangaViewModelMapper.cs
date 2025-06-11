@@ -1,16 +1,20 @@
 using MangaReader.WebUI.Models;
 using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.DTOs.Mangas;
+using MangaReaderLib.DTOs.Authors;
+using MangaReaderLib.DTOs.CoverArts;
 using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Interfaces;
 using MangaReader.WebUI.Services.AuthServices;
 using MangaReader.WebUI.Services.MangaServices;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
 using MangaReader.WebUI.Services.UtilityServices;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaReaderLibMappers
 {
@@ -18,25 +22,26 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
     {
         private readonly ILogger<MangaReaderLibToMangaViewModelMapper> _logger;
         private readonly IMangaReaderLibCoverApiService _coverApiService;
-        private readonly IMangaReaderLibAuthorClient _authorClient;
         private readonly IUserService _userService;
         private readonly IMangaFollowService _mangaFollowService;
         private readonly LocalizationService _localizationService;
+        private readonly string _cloudinaryBaseUrl;
 
         public MangaReaderLibToMangaViewModelMapper(
             ILogger<MangaReaderLibToMangaViewModelMapper> logger,
             IMangaReaderLibCoverApiService coverApiService,
-            IMangaReaderLibAuthorClient authorClient,
             IUserService userService,
             IMangaFollowService mangaFollowService,
-            LocalizationService localizationService)
+            LocalizationService localizationService,
+            IConfiguration configuration)
         {
             _logger = logger;
             _coverApiService = coverApiService;
-            _authorClient = authorClient;
             _userService = userService;
             _mangaFollowService = mangaFollowService;
             _localizationService = localizationService;
+            _cloudinaryBaseUrl = configuration["MangaReaderApiSettings:CloudinaryBaseUrl"]?.TrimEnd('/') 
+                                ?? throw new InvalidOperationException("MangaReaderApiSettings:CloudinaryBaseUrl is not configured.");
         }
 
         public async Task<MangaViewModel> MapToMangaViewModelAsync(ResourceObject<MangaAttributesDto> mangaData, bool isFollowing = false)
@@ -51,73 +56,60 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
             try
             {
                 string title = attributes.Title;
-                string description = ""; // MangaReaderLib không có description trong MangaAttributesDto, cần lấy từ TranslatedManga nếu có
+                string description = "";
                 string coverUrl = "/images/cover-placeholder.jpg";
                 string author = "Không rõ";
                 string artist = "Không rõ";
 
-                // Lấy Cover URL từ relationships (cần tìm relationship type "cover_art")
                 var coverRelationship = relationships?.FirstOrDefault(r => r.Type == "cover_art");
-                if (coverRelationship != null && Guid.TryParse(coverRelationship.Id, out Guid coverArtGuid))
+                if (coverRelationship != null && !string.IsNullOrEmpty(coverRelationship.Id))
                 {
-                    // Gọi API để lấy CoverArtAttributesDto để có publicId
-                    var coverArtResponse = await _coverApiService.GetCoverArtByIdAsync(coverArtGuid);
-                    if (coverArtResponse?.Data?.Attributes?.PublicId != null)
-                    {
-                        // Truyền coverRelationship.Id (là coverArtId) và PublicId
-                        coverUrl = _coverApiService.GetCoverArtUrl(coverRelationship.Id, coverArtResponse.Data.Attributes.PublicId);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Không tìm thấy PublicId cho cover art ID {CoverArtId} của manga {MangaId}", coverRelationship.Id, id);
-                    }
+                    coverUrl = $"{_cloudinaryBaseUrl}/{coverRelationship.Id}";
+                    _logger.LogDebug("MangaReaderLib Mapper: Cover URL set to {CoverUrl} using PublicId from relationship.", coverUrl);
                 }
                 else
                 {
-                    _logger.LogWarning("Không tìm thấy cover_art relationship hoặc ID không hợp lệ cho manga {MangaId}", id);
+                    _logger.LogWarning("MangaReaderLib Mapper: No cover_art relationship with PublicId found for manga {MangaId}. Using placeholder.", id);
                 }
 
-                // Lấy Author/Artist từ relationships
                 if (relationships != null)
                 {
                     foreach (var rel in relationships)
                     {
-                        if (rel.Type == "author" || rel.Type == "artist")
+                        if (rel.Attributes != null)
                         {
                             try
                             {
-                                if(Guid.TryParse(rel.Id, out Guid staffId))
+                                var relAttributes = JsonSerializer.Deserialize<AuthorAttributesDto>(JsonSerializer.Serialize(rel.Attributes));
+                                if (relAttributes != null)
                                 {
-                                    var authorResponse = await _authorClient.GetAuthorByIdAsync(staffId);
-                                    if (authorResponse?.Data?.Attributes?.Name != null)
-                                    {
-                                        if (rel.Type == "author")
-                                        {
-                                            author = authorResponse.Data.Attributes.Name;
-                                        }
-                                        else if (rel.Type == "artist")
-                                        {
-                                            artist = authorResponse.Data.Attributes.Name;
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    _logger.LogWarning("Invalid Author/Artist ID format: {AuthorId} for manga {MangaId}", rel.Id, id);
+                                    if (rel.Type == "author") author = relAttributes.Name ?? author;
+                                    else if (rel.Type == "artist") artist = relAttributes.Name ?? artist;
                                 }
                             }
-                            catch (Exception authorEx)
+                            catch (JsonException ex)
                             {
-                                _logger.LogError(authorEx, "Lỗi khi lấy thông tin tác giả/họa sĩ ID {AuthorId} cho manga {MangaId}", rel.Id, id);
+                                _logger.LogWarning(ex, "MangaReaderLib Mapper: Failed to deserialize relationship attributes for manga {MangaId}, relationship type {RelType}.", id, rel.Type);
                             }
                         }
                     }
                 }
+                _logger.LogDebug("MangaReaderLib Mapper: Author: {Author}, Artist: {Artist} for manga {MangaId}", author, artist, id);
 
                 string status = _localizationService.GetStatus(attributes.Status.ToString());
-                List<string> tags = new List<string>(); // MangaReaderLib không có tags trực tiếp trong MangaAttributesDto
+                
+                List<string> tags = new List<string>();
+                if (attributes.Tags != null && attributes.Tags.Any())
+                {
+                    tags = attributes.Tags
+                        .Where(t => t.Attributes != null && !string.IsNullOrEmpty(t.Attributes.Name))
+                        .Select(t => t.Attributes.Name)
+                        .Distinct()
+                        .OrderBy(t => t, StringComparer.Create(new System.Globalization.CultureInfo("vi-VN"), false))
+                        .ToList();
+                }
+                _logger.LogDebug("MangaReaderLib Mapper: Tags: [{Tags}] for manga {MangaId}", string.Join(", ", tags), id);
 
-                // Kiểm tra trạng thái follow
                 if (_userService.IsAuthenticated())
                 {
                     try

@@ -4,6 +4,7 @@ using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaRe
 using MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies.MangaReaderLib
 {
@@ -61,7 +62,6 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
             var allChaptersFromLib = new List<global::MangaReaderLib.DTOs.Common.ResourceObject<global::MangaReaderLib.DTOs.Chapters.ChapterAttributesDto>>();
             string foundLanguageKey = "";
 
-            // Ưu tiên ngôn ngữ người dùng, sau đó là ngôn ngữ gốc, cuối cùng là 'en'
             var mangaDetails = await _mangaClient.GetMangaByIdAsync(guidMangaId);
             var originalLang = mangaDetails?.Data?.Attributes?.OriginalLanguage?.ToLowerInvariant();
             var languagesToTry = new List<string>();
@@ -82,7 +82,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
                         _logger.LogInformation("[MRLib Strategy->FetchChaptersAsync] Found {Count} chapters for lang {LanguageKey}", chaptersResponse.Data.Count, langKey);
                         allChaptersFromLib.AddRange(chaptersResponse.Data);
                         foundLanguageKey = langKey;
-                        if (targetLanguages.Contains(langKey)) break; // Found preferred language
+                        if (targetLanguages.Contains(langKey)) break;
                     }
                 }
             }
@@ -92,16 +92,27 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
                 _logger.LogWarning("[MRLib Strategy->FetchChaptersAsync] No chapters found for manga {MangaId} after trying all languages.", mangaId);
                 return new ChapterList { Result = "ok", Data = new List<Chapter>(), Total = 0 };
             }
-            if (string.IsNullOrEmpty(foundLanguageKey)) foundLanguageKey = "en"; // Final fallback
+            if (string.IsNullOrEmpty(foundLanguageKey)) foundLanguageKey = "en";
 
             var mappedChapters = allChaptersFromLib
                 .Select(dto => _chapterViewModelMapper.MapToChapterViewModel(dto, foundLanguageKey))
                 .Select(vm => new Chapter
                 {
-                    Id = Guid.Parse(vm.Id),
+                    Id = Guid.TryParse(vm.Id, out var chapterGuid) ? chapterGuid : Guid.NewGuid(),
                     Type = "chapter",
-                    Attributes = new ChapterAttributes { Title = vm.Title, Volume = vm.Number, ChapterNumber = vm.Number, Pages = 0, TranslatedLanguage = vm.Language, PublishAt = vm.PublishedAt, ReadableAt = vm.PublishedAt, CreatedAt = vm.PublishedAt, UpdatedAt = vm.PublishedAt, Version = 1 },
-                    Relationships = vm.Relationships?.Select(r => new Relationship { Id = Guid.Parse(r.Id), Type = r.Type }).ToList() ?? new List<Relationship>()
+                    Attributes = new ChapterAttributes { 
+                        Title = vm.Title, 
+                        Volume = vm.Number,
+                        ChapterNumber = vm.Number, 
+                        Pages = 0,
+                        TranslatedLanguage = vm.Language, 
+                        PublishAt = vm.PublishedAt, 
+                        ReadableAt = vm.PublishedAt, 
+                        CreatedAt = vm.PublishedAt,
+                        UpdatedAt = vm.PublishedAt,
+                        Version = 1 
+                    },
+                    Relationships = vm.Relationships?.Select(r => new Relationship { Id = Guid.TryParse(r.Id, out var relGuid) ? relGuid : Guid.NewGuid(), Type = r.Type }).ToList() ?? new List<Relationship>()
                 }).ToList();
             _logger.LogInformation("[MRLib Strategy->FetchChaptersAsync] Successfully mapped {Count} chapters.", mappedChapters.Count);
 
@@ -124,9 +135,8 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
                 return null;
             }
 
-            string determinedLanguage = "en"; // Fallback mặc định
+            string determinedLanguage = "en"; // Fallback
 
-            // Cố gắng lấy ngôn ngữ từ translated_manga relationship của chapter
             var tmRelationship = libResponse.Data.Relationships?.FirstOrDefault(r => r.Type.Equals("translated_manga", StringComparison.OrdinalIgnoreCase));
             if (tmRelationship != null && Guid.TryParse(tmRelationship.Id, out var tmGuid))
             {
@@ -134,7 +144,6 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
                 if (!string.IsNullOrEmpty(tmDetails?.Data?.Attributes?.LanguageKey))
                 {
                     determinedLanguage = tmDetails.Data.Attributes.LanguageKey;
-                    _logger.LogInformation("[MRLib Strategy->FetchChapterInfoAsync] Determined translated language '{Language}' for chapter {ChapterId} from TranslatedManga {TmId}", determinedLanguage, chapterId, tmGuid);
                 }
                 else
                 {
@@ -150,57 +159,46 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
 
             var chapterViewModel = _chapterViewModelMapper.MapToChapterViewModel(libResponse.Data, determinedLanguage);
 
-            // === PHẦN SỬA ĐỔI QUAN TRỌNG CHO RELATIONSHIPS ===
             var mangaDexRelationships = new List<MangaReader.WebUI.Models.Mangadex.Relationship>();
             if (libResponse.Data.Relationships != null && libResponse.Data.Relationships.Any())
             {
-                _logger.LogDebug("[MRLib Strategy->FetchChapterInfoAsync] Processing {Count} relationships for chapter {ChapterId}", libResponse.Data.Relationships.Count, chapterId);
                 foreach (var rel in libResponse.Data.Relationships)
                 {
-                    if (rel == null || string.IsNullOrEmpty(rel.Type) || string.IsNullOrEmpty(rel.Id))
-                    {
-                        _logger.LogWarning("[MRLib Strategy->FetchChapterInfoAsync] Skipping invalid relationship object for chapter {ChapterId}: {@Relationship}", chapterId, rel);
-                        continue;
-                    }
+                    if (rel == null || string.IsNullOrEmpty(rel.Type) || string.IsNullOrEmpty(rel.Id)) continue;
 
-                    if (rel.Type.Equals("manga", StringComparison.OrdinalIgnoreCase))
+                    if (rel.Type.Equals("manga", StringComparison.OrdinalIgnoreCase) && Guid.TryParse(rel.Id, out Guid mangaGuid))
                     {
-                        if (Guid.TryParse(rel.Id, out Guid mangaGuid))
-                        {
-                            mangaDexRelationships.Add(new MangaReader.WebUI.Models.Mangadex.Relationship
-                            {
-                                Id = mangaGuid,
-                                Type = "manga"
-                            });
-                            _logger.LogInformation("[MRLib Strategy->FetchChapterInfoAsync] Found 'manga' relationship for chapter {ChapterId}. MangaID: {MangaId}", chapterId, mangaGuid);
-                        }
-                        else
-                        {
-                            _logger.LogError("[MRLib Strategy->FetchChapterInfoAsync] 'manga' relationship found for chapter {ChapterId}, but its ID '{MangaRelId}' is NOT a valid Guid.", chapterId, rel.Id);
-                        }
+                        mangaDexRelationships.Add(new MangaReader.WebUI.Models.Mangadex.Relationship { Id = mangaGuid, Type = "manga" });
                     }
                     else if (rel.Type.Equals("user", StringComparison.OrdinalIgnoreCase))
                     {
-                        _logger.LogInformation("[MRLib Strategy->FetchChapterInfoAsync] Processing 'user' relationship for chapter {ChapterId}. UserID (from MRLib): '{UserId}'. This ID will NOT be parsed as Guid for MangaDex model.", chapterId, rel.Id);
-                    }
-                    else if (rel.Type.Equals("translated_manga", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (Guid.TryParse(rel.Id, out Guid tmGuidParsed))
-                        {
-                            _logger.LogDebug("[MRLib Strategy->FetchChapterInfoAsync] Found 'translated_manga' relationship with ID {TmId} for chapter {ChapterId}. Not mapping to scanlation_group.", tmGuidParsed, chapterId);
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogDebug("[MRLib Strategy->FetchChapterInfoAsync] Skipping unhandled relationship type '{RelType}' with ID '{RelId}' for chapter {ChapterId}", rel.Type, rel.Id, chapterId);
+                        _logger.LogDebug("[MRLib Strategy->FetchChapterInfoAsync] Skipping 'user' relationship for MRLib mapping as UserID format differs. MRLib UserID: {UserId}", rel.Id);
                     }
                 }
             }
-            else
+            
+            var chapterAttributes = new MangaReader.WebUI.Models.Mangadex.ChapterAttributes
             {
-                 _logger.LogInformation("[MRLib Strategy->FetchChapterInfoAsync] No relationships found for chapter {ChapterId}", chapterId);
+                Title = chapterViewModel.Title,
+                Volume = libResponse.Data.Attributes.Volume,
+                ChapterNumber = libResponse.Data.Attributes.ChapterNumber,
+                Pages = libResponse.Data.Attributes.PagesCount,
+                TranslatedLanguage = determinedLanguage, 
+                PublishAt = chapterViewModel.PublishedAt,
+                ReadableAt = chapterViewModel.PublishedAt,
+                CreatedAt = libResponse.Data.Attributes.CreatedAt,
+                UpdatedAt = libResponse.Data.Attributes.UpdatedAt,
+                Version = 1
+            };
+
+            if (libResponse.Data.Relationships != null)
+            {
+                var mangaRel = libResponse.Data.Relationships.FirstOrDefault(r => r.Type == "manga");
+                if (mangaRel != null && Guid.TryParse(mangaRel.Id, out Guid uploaderGuidPlaceholder))
+                {
+                    // chapterAttributes.Uploader = uploaderGuidPlaceholder;
+                }
             }
-            // === KẾT THÚC PHẦN SỬA ĐỔI ===
 
             return new ChapterResponse
             {
@@ -210,19 +208,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
                 {
                     Id = Guid.Parse(chapterViewModel.Id),
                     Type = "chapter",
-                    Attributes = new MangaReader.WebUI.Models.Mangadex.ChapterAttributes
-                    {
-                        Title = chapterViewModel.Title,
-                        Volume = libResponse.Data.Attributes.Volume,
-                        ChapterNumber = libResponse.Data.Attributes.ChapterNumber,
-                        Pages = libResponse.Data.Attributes.PagesCount,
-                        TranslatedLanguage = determinedLanguage,
-                        PublishAt = chapterViewModel.PublishedAt,
-                        ReadableAt = chapterViewModel.PublishedAt,
-                        CreatedAt = libResponse.Data.Attributes.CreatedAt,
-                        UpdatedAt = libResponse.Data.Attributes.UpdatedAt,
-                        Version = 1
-                    },
+                    Attributes = chapterAttributes,
                     Relationships = mangaDexRelationships.Any() ? mangaDexRelationships : null
                 }
             };
@@ -258,14 +244,13 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
             _logger.LogInformation("[MRLib Strategy->FetchChapterPagesAsync] Chapter ID: {ChapterId}", chapterId);
             if (!Guid.TryParse(chapterId, out var guidChapterId)) return null;
 
-            var pagesResponse = await _chapterPageClient.GetChapterPagesAsync(guidChapterId, limit: 500); // Lấy tối đa 500 trang
+            var pagesResponse = await _chapterPageClient.GetChapterPagesAsync(guidChapterId, limit: 500);
             if (pagesResponse == null)
             {
                 _logger.LogWarning("[MRLib Strategy->FetchChapterPagesAsync] GetChapterPagesAsync returned null for ChapterId: {ChapterId}", chapterId);
                 return null;
             }
             _logger.LogInformation("[MRLib Strategy->FetchChapterPagesAsync] Received {Count} page DTOs for ChapterId: {ChapterId}", pagesResponse.Data?.Count ?? 0, chapterId);
-
 
             return _atHomeResponseMapper.MapToAtHomeServerResponse(pagesResponse, chapterId, _mangaReaderLibApiBaseUrl);
         }

@@ -1,3 +1,60 @@
+Chào bạn, tôi đã xem qua vấn đề bạn gặp phải.
+
+**Giải thích nguyên nhân và cách khắc phục:**
+
+Lỗi "A props object containing a "key" prop is being spread into JSX" xảy ra khi bạn truyền một đối tượng `props` vào một component JSX bằng cách sử dụng toán tử spread (`{...props}`), và đối tượng `props` đó lại chứa một thuộc tính `key`. React yêu cầu `key` phải được truyền trực tiếp vào phần tử JSX, chứ không phải thông qua spread operator.
+
+Trong trường hợp của bạn, lỗi này xuất phát từ hàm `renderOption` trong component `Autocomplete` của Material-UI (MUI) tại file `MangaForm.jsx`. Khi bạn tùy chỉnh cách hiển thị các lựa chọn (options) trong `Autocomplete` bằng `renderOption`, MUI sẽ truyền vào một đối tượng `props` cho mỗi option. Đối tượng `props` này đã bao gồm một `key` do MUI tự quản lý để tối ưu hóa việc render danh sách.
+
+Nếu bạn lấy toàn bộ `props` này và spread nó vào một component JSX của bạn (ví dụ: `<Box {...props} />`), thì `key` cũng sẽ được truyền theo kiểu spread, gây ra cảnh báo từ React.
+
+**Cách khắc phục:**
+
+Để khắc phục, bạn cần tách `key` ra khỏi đối tượng `props` trước khi spread. Sau đó, truyền `key` một cách tường minh vào component JSX của bạn, và spread các props còn lại.
+
+Ví dụ, nếu `renderOption` của bạn trông giống như sau:
+
+```jsx
+renderOption={(props, option, { selected }) => (
+  <li {...props}>
+    {/* Nội dung của option */}
+  </li>
+)}
+```
+
+Bạn cần sửa lại thành:
+
+```jsx
+renderOption={(liProps, option, { selected }) => {
+  // Đổi tên `props` thành `liProps` để tránh nhầm lẫn
+  // và để phù hợp với việc nó sẽ được truyền vào thẻ <li> (hoặc Box, Chip...)
+  const { key, ...otherLiProps } = liProps; // Tách `key` ra
+  return (
+    <li key={key} {...otherLiProps}> {/* Truyền `key` trực tiếp, spread các props còn lại */}
+      {/* Nội dung của option */}
+    </li>
+  );
+}}
+```
+Trong trường hợp của file `MangaForm.jsx` mà bạn cung cấp, phần `renderOption` cho `Autocomplete` của Tags đang sử dụng `<Box component="li" {...props} ...>`. Chúng ta sẽ áp dụng cách sửa tương tự ở đó.
+
+Dưới đây là file `TODO.md` với các bước chi tiết và code cần cập nhật.
+
+```markdown
+# TODO: Khắc phục lỗi React Key Spread trong MangaForm.jsx
+
+Hướng dẫn này mô tả các bước để sửa lỗi "A props object containing a "key" prop is being spread into JSX" trong file `MangaForm.jsx`.
+
+## Các bước thực hiện:
+
+1.  **Cập nhật file `MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaForm.jsx`:**
+    *   Trong hàm `renderOption` của `Autocomplete` dùng để chọn Tags, tách thuộc tính `key` ra khỏi đối tượng `props` được Material-UI cung cấp.
+    *   Truyền `key` đã tách ra một cách trực tiếp vào component `Box` và spread các thuộc tính còn lại của `props`.
+
+## Code cập nhật:
+
+<!-- file path: MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaForm.jsx -->
+```jsx
 import { Add as AddIcon, CheckBox as CheckBoxIcon, CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import { Autocomplete, Box, Button, Checkbox, Chip, FormControlLabel, Grid, Paper, Switch, TextField, Typography } from '@mui/material'
 import React, { useEffect, useState } from 'react'
@@ -400,22 +457,26 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
               setValue('tagIds', newValue.map(tag => tag.id));
             }}
             isOptionEqualToValue={(option, value) => option.id === value.id}
-            renderOption={(props, option, { selected }) => (
-              <Box component="li" {...props} sx={{ width: '100%', justifyContent: 'flex-start', px: 1, py: 0.5 }}>
-                <Checkbox
-                  icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
-                  checkedIcon={<CheckBoxIcon fontSize="small" />}
-                  style={{ marginRight: 8 }}
-                  checked={selected}
-                />
-                <Chip 
-                  label={option.name} 
-                  size="small" 
-                  variant="outlined" 
-                  sx={{ cursor: 'pointer', flexGrow: 1, justifyContent: 'flex-start' }} 
-                />
-              </Box>
-            )}
+            renderOption={(liProps, option, { selected }) => {
+              // Tách key ra khỏi liProps
+              const { key, ...otherLiProps } = liProps;
+              return (
+                <Box component="li" key={key} {...otherLiProps} sx={{ width: '100%', justifyContent: 'flex-start', px: 1, py: 0.5 }}>
+                  <Checkbox
+                    icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                    checkedIcon={<CheckBoxIcon fontSize="small" />}
+                    style={{ marginRight: 8 }}
+                    checked={selected}
+                  />
+                  <Chip 
+                    label={option.name} 
+                    size="small" 
+                    variant="outlined" 
+                    sx={{ cursor: 'pointer', flexGrow: 1, justifyContent: 'flex-start' }} 
+                  />
+                </Box>
+              );
+            }}
             PaperComponent={HorizontalTagPaper}
             renderInput={(params) => (
               <TextField
@@ -480,4 +541,5 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
   );
 }
 
-export default MangaForm 
+export default MangaForm
+```

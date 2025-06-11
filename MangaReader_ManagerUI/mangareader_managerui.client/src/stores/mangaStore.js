@@ -51,7 +51,7 @@ const useMangaStore = create(persistStore((set, get) => ({
       contentRatingFilter: filters.contentRatingFilter || undefined,
       publicationDemographicsFilter: filters.publicationDemographicsFilter?.length > 0 ? filters.publicationDemographicsFilter : undefined,
       originalLanguageFilter: filters.originalLanguageFilter || undefined,
-      yearFilter: filters.yearFilter || undefined,
+      yearFilter: filters.yearFilter === null || filters.yearFilter === undefined ? undefined : filters.yearFilter,
       includedTags: filters.includedTags?.length > 0 ? filters.includedTags : undefined,
       includedTagsMode: filters.includedTags?.length > 0 ? filters.includedTagsMode : undefined,
       excludedTags: filters.excludedTags?.length > 0 ? filters.excludedTags : undefined,

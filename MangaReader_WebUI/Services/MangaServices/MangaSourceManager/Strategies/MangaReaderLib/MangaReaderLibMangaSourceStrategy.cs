@@ -4,8 +4,10 @@ using MangaReader.WebUI.Models.Mangadex;
 using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
 using MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies.Interfaces;
-using MangaReaderLib.DTOs.CoverArts; // Thêm using này nếu chưa có
-using MangaReaderLib.Enums;
+using MangaReaderLib.DTOs.CoverArts;
+using MangaReaderLib.Enums; // Cho PublicationDemographic
+using MangaReaderLib.DTOs.Authors; // Cho AuthorAttributesDto
+using System.Text.Json; // Cho JsonSerializer
 
 namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies.MangaReaderLib
 {
@@ -15,7 +17,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
         private readonly IMangaReaderLibCoverApiService _coverApiService;
         private readonly IMangaReaderLibAuthorClient _authorClient;
         private readonly IMangaReaderLibTagClient _tagClient;
-        private readonly IMangaReaderLibToMangaViewModelMapper _mangaViewModelMapper; // Dùng để lấy một số thuộc tính cơ bản
+        private readonly IMangaReaderLibToMangaViewModelMapper _mangaViewModelMapper;
         private readonly ILogger<MangaReaderLibMangaSourceStrategy> _logger;
 
         public MangaReaderLibMangaSourceStrategy(
@@ -36,31 +38,55 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
 
         public async Task<MangaList?> FetchMangaAsync(int? limit = null, int? offset = null, SortManga? sortManga = null)
         {
-            _logger.LogInformation("[MRLib Strategy->FetchMangaAsync] Fetching Manga with TitleFilter: {TitleFilter}", sortManga?.Title);
+            _logger.LogInformation("[MRLib Strategy->FetchMangaAsync] TitleFilter: {TitleFilter}", sortManga?.Title);
             
-            // Chuyển đổi demographic từ string sang List<PublicationDemographic>
             List<PublicationDemographic>? publicationDemographics = null;
-            if (sortManga?.Demographic?.FirstOrDefault() != null)
+            if (sortManga?.Demographic != null && sortManga.Demographic.Any())
             {
-                string demographic = sortManga.Demographic.FirstOrDefault()!;
-                if (Enum.TryParse<PublicationDemographic>(demographic, true, out var pubDemographic))
+                publicationDemographics = new List<PublicationDemographic>();
+                foreach (var demoStr in sortManga.Demographic)
                 {
-                    publicationDemographics = new List<PublicationDemographic> { pubDemographic };
+                    if (Enum.TryParse<PublicationDemographic>(demoStr, true, out var pubDemo))
+                    {
+                        publicationDemographics.Add(pubDemo);
+                    }
                 }
             }
+
+            // Map ContentRating của MangaDex (List<string>) sang string của MangaReaderLib (lấy phần tử đầu tiên nếu có)
+            string? contentRatingFilter = null;
+            if (sortManga?.ContentRating != null && sortManga.ContentRating.Any())
+            {
+                // MangaReaderLib ContentRating enum không có "None", "All".
+                // Nếu UI gửi "safe", "suggestive", "erotica", "pornographic" thì map.
+                var validRatings = sortManga.ContentRating
+                    .Where(r => Enum.TryParse<ContentRating>(r, true, out _))
+                    .ToList();
+                if (validRatings.Any())
+                {
+                     // MangaReaderLib API chỉ nhận 1 content rating filter
+                    contentRatingFilter = validRatings.First();
+                }
+            }
+
 
             var libResult = await _mangaClient.GetMangasAsync(
                 offset: offset,
                 limit: limit,
                 titleFilter: sortManga?.Title,
                 statusFilter: sortManga?.Status?.FirstOrDefault(),
-                contentRatingFilter: sortManga?.ContentRating?.FirstOrDefault()?.ToLowerInvariant(),
+                contentRatingFilter: contentRatingFilter, // Sử dụng contentRatingFilter đã map
                 publicationDemographicsFilter: publicationDemographics,
                 originalLanguageFilter: sortManga?.OriginalLanguage?.FirstOrDefault(),
                 yearFilter: sortManga?.Year,
-                includedTags: sortManga?.IncludedTags?.Where(s => !string.IsNullOrEmpty(s) && Guid.TryParse(s, out _)).Select(Guid.Parse).ToList(),
-                orderBy: sortManga?.SortBy,
-                ascending: sortManga?.SortBy switch { "title" => true, "createdAt" => false, "updatedAt" => false, _ => false }
+                authorIdsFilter: sortManga?.Authors?.Where(s => Guid.TryParse(s, out _)).Select(Guid.Parse).ToList(), // authors là ID trong SortManga
+                includedTags: sortManga?.IncludedTags?.Where(s => Guid.TryParse(s, out _)).Select(Guid.Parse).ToList(),
+                includedTagsMode: sortManga?.IncludedTagsMode,
+                excludedTags: sortManga?.ExcludedTags?.Where(s => Guid.TryParse(s, out _)).Select(Guid.Parse).ToList(),
+                excludedTagsMode: sortManga?.ExcludedTagsMode,
+                orderBy: sortManga?.SortBy, // Cần mapping logic nếu SortBy của UI khác API
+                ascending: sortManga?.SortBy switch { "title" => true, _ => false }, // Mặc định desc cho các trường hợp khác
+                includes: new List<string> { "cover_art", "author" } // Luôn yêu cầu includes
             );
 
             if (libResult?.Data == null)
@@ -85,48 +111,35 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
 
             return new MangaList
             {
-                    Result = "ok",
-                    Response = "collection",
-                    Data = mappedData,
+                Result = "ok",
+                Response = "collection",
+                Data = mappedData,
                 Limit = libResult.Limit,
                 Offset = libResult.Offset,
                 Total = libResult.Total
             };
         }
 
-        public async Task<MangaList?> FetchMangaByIdsAsync(List<string> mangaIds)
-        {
-            _logger.LogInformation("[MRLib Strategy->FetchMangaByIdsAsync] Fetching Manga by IDs: [{MangaIds}]", string.Join(", ", mangaIds));
-            var mappedData = new List<Manga>();
-            foreach (var idStr in mangaIds)
-            {
-                if (Guid.TryParse(idStr, out var guidId))
-                {
-                    var libResponse = await _mangaClient.GetMangaByIdAsync(guidId);
-                    if (libResponse?.Data != null)
-                    {
-                        var mangaDexModel = await MapMangaReaderLibDtoToMangaDexModel(libResponse.Data);
-                        if (mangaDexModel != null) mappedData.Add(mangaDexModel);
-                    }
-                }
-            }
-            return new MangaList { Result = "ok", Response = "collection", Data = mappedData, Limit = mappedData.Count, Total = mappedData.Count };
-        }
-
         public async Task<MangaResponse?> FetchMangaDetailsAsync(string mangaId)
         {
-            _logger.LogInformation("[MRLib Strategy->FetchMangaDetailsAsync] Fetching Manga Details for ID: {MangaId}", mangaId);
+            _logger.LogInformation("[MRLib Strategy->FetchMangaDetailsAsync] ID: {MangaId}", mangaId);
             if (!Guid.TryParse(mangaId, out var guidMangaId)) return null;
 
-            var libResponse = await _mangaClient.GetMangaByIdAsync(guidMangaId);
-            if (libResponse?.Data == null) return null;
+            // Yêu cầu include author, artist
+            var libResponse = await _mangaClient.GetMangaByIdAsync(guidMangaId, new List<string> { "author" });
+            if (libResponse?.Data == null)
+            {
+                _logger.LogWarning("[MRLib Strategy->FetchMangaDetailsAsync] Failed to get manga details for ID {MangaId}", mangaId);
+                return null;
+            }
 
             var mangaDexModel = await MapMangaReaderLibDtoToMangaDexModel(libResponse.Data, true); // isDetails = true
             if (mangaDexModel == null) return null;
             
             return new MangaResponse { Result = "ok", Response = "entity", Data = mangaDexModel };
         }
-
+        
+        // Hàm MapMangaReaderLibDtoToMangaDexModel cần được cập nhật để xử lý attributes trong relationship
         private async Task<Manga?> MapMangaReaderLibDtoToMangaDexModel(global::MangaReaderLib.DTOs.Common.ResourceObject<global::MangaReaderLib.DTOs.Mangas.MangaAttributesDto> dto, bool isDetails = false)
         {
             if (dto == null || dto.Attributes == null) return null;
@@ -135,47 +148,55 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
 
             var relationshipsDex = new List<Relationship>();
             var mangaDexTags = new List<MangaReader.WebUI.Models.Mangadex.Tag>();
-            string? coverArtPublicIdForMangaAttributes = null; // Biến để lưu publicId cho MangaAttributes
 
             // Cover Art
             var coverRelLib = dto.Relationships?.FirstOrDefault(r => r.Type == "cover_art");
-            if (coverRelLib != null && Guid.TryParse(coverRelLib.Id, out var coverArtIdGuid))
+            if (coverRelLib != null)
             {
-                try
+                string? publicIdForCover = null;
+                Guid coverArtGuid = Guid.Empty;
+
+                if (isDetails && Guid.TryParse(coverRelLib.Id, out coverArtGuid)) // Khi get detail, ID là GUID của CoverArt
                 {
-                    var coverArtDetailsResponse = await _coverApiService.GetCoverArtByIdAsync(coverArtIdGuid);
-                    if (coverArtDetailsResponse?.Data?.Attributes?.PublicId != null)
+                     try
                     {
-                        string publicId = coverArtDetailsResponse.Data.Attributes.PublicId;
-                        coverArtPublicIdForMangaAttributes = publicId; // Lưu lại publicId
-
-                        // Tạo một đối tượng CoverAttributes của MangaDex để chứa publicId
-                        var mangaDexCoverAttributes = new CoverAttributes 
-                        { 
-                            FileName = publicId, // MangaDex dùng FileName, ta sẽ gán publicId vào đây
-                            Volume = coverArtDetailsResponse.Data.Attributes.Volume,
-                            Description = coverArtDetailsResponse.Data.Attributes.Description,
-                            CreatedAt = coverArtDetailsResponse.Data.Attributes.CreatedAt,
-                            UpdatedAt = coverArtDetailsResponse.Data.Attributes.UpdatedAt,
-                            Version = 1 // Giá trị mặc định
-                        };
-
-                        relationshipsDex.Add(new Relationship
-                        {
-                            Id = coverArtIdGuid,
-                            Type = "cover_art",
-                            Attributes = mangaDexCoverAttributes // Gán đối tượng attributes đã được làm giàu
-                        });
-                        _logger.LogDebug("[MRLib Strategy Mapper] Successfully enriched cover_art relationship for MangaId {MangaId} with PublicId {PublicId}", dto.Id, publicId);
+                        var coverArtDetailsResponse = await _coverApiService.GetCoverArtByIdAsync(coverArtGuid);
+                        publicIdForCover = coverArtDetailsResponse?.Data?.Attributes?.PublicId;
+                         _logger.LogDebug("[MRLib Strategy Mapper] Cover Art (Details): Fetched PublicId '{PublicId}' for CoverArt GUID '{CoverArtGuid}'", publicIdForCover, coverArtGuid);
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        _logger.LogWarning("[MRLib Strategy Mapper] Could not get PublicId for coverArtId {CoverArtId} for MangaId {MangaId}. Response: {ResponseResult}", coverArtIdGuid, dto.Id, coverArtDetailsResponse?.Result);
+                        _logger.LogError(ex, "[MRLib Strategy Mapper] Cover Art (Details): Error fetching cover art details for GUID {CoverArtGuid}", coverArtGuid);
                     }
                 }
-                catch (Exception ex)
+                else if (!isDetails && !string.IsNullOrEmpty(coverRelLib.Id)) // Khi get list + include, ID là PublicId
                 {
-                    _logger.LogError(ex, "[MRLib Strategy Mapper] Error fetching cover art details for ID {CoverArtId} for MangaId {MangaId}", coverArtIdGuid, dto.Id);
+                    publicIdForCover = coverRelLib.Id;
+                    _logger.LogDebug("[MRLib Strategy Mapper] Cover Art (List): Using PublicId '{PublicId}' directly from relationship ID.", publicIdForCover);
+                }
+                
+                if (!string.IsNullOrEmpty(publicIdForCover))
+                {
+                    var mangaDexCoverAttributes = new CoverAttributes 
+                    { 
+                        FileName = publicIdForCover, // MangaDex dùng FileName, ta sẽ gán publicId vào đây
+                        // Các thuộc tính khác của CoverAttributes có thể null hoặc lấy từ coverArtDetailsResponse nếu isDetails
+                        Volume = isDetails && coverArtGuid != Guid.Empty ? (await _coverApiService.GetCoverArtByIdAsync(coverArtGuid))?.Data?.Attributes?.Volume : null,
+                        Description = isDetails && coverArtGuid != Guid.Empty ? (await _coverApiService.GetCoverArtByIdAsync(coverArtGuid))?.Data?.Attributes?.Description : null,
+                        CreatedAt = DateTimeOffset.UtcNow, // Giá trị mặc định
+                        UpdatedAt = DateTimeOffset.UtcNow, // Giá trị mặc định
+                        Version = 1 
+                    };
+                    relationshipsDex.Add(new Relationship
+                    {
+                        Id = coverArtGuid != Guid.Empty ? coverArtGuid : (Guid.TryParse(coverRelLib.Id, out var parsedGuid) ? parsedGuid : Guid.NewGuid()), // Dùng GUID nếu có, nếu không thì parse ID của rel, fallback NewGuid
+                        Type = "cover_art",
+                        Attributes = mangaDexCoverAttributes
+                    });
+                }
+                else
+                {
+                     _logger.LogWarning("[MRLib Strategy Mapper] Cover Art: Could not determine PublicId for cover art for MangaId {MangaId}. Relationship ID: {RelId}", dto.Id, coverRelLib.Id);
                 }
             }
             else
@@ -189,64 +210,81 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
             {
                 if (Guid.TryParse(staffRelLib.Id, out var staffIdGuid))
                 {
-                    try
+                    string staffName = "Không rõ";
+                    string? staffBio = null;
+
+                    if (staffRelLib.Attributes != null) // API đã include attributes
                     {
-                        var staffDetails = await _authorClient.GetAuthorByIdAsync(staffIdGuid);
-                        if (staffDetails?.Data?.Attributes != null)
+                        try
                         {
-                            // Tạo đối tượng MangaDex.AuthorAttributes
-                            var mangaDexStaffAttributes = new MangaReader.WebUI.Models.Mangadex.AuthorAttributes 
-                            { 
-                                Name = staffDetails.Data.Attributes.Name,
-                                Biography = new Dictionary<string, string> { { dto.Attributes.OriginalLanguage ?? "en", staffDetails.Data.Attributes.Biography ?? "" } },
-                                CreatedAt = staffDetails.Data.Attributes.CreatedAt,
-                                UpdatedAt = staffDetails.Data.Attributes.UpdatedAt,
-                                Version = 1 // Giá trị mặc định
-                            };
-                            relationshipsDex.Add(new Relationship
+                            var libStaffAttrs = JsonSerializer.Deserialize<global::MangaReaderLib.DTOs.Authors.AuthorAttributesDto>(JsonSerializer.Serialize(staffRelLib.Attributes));
+                            if (libStaffAttrs != null)
                             {
-                                Id = staffIdGuid, 
-                                Type = staffRelLib.Type, // Giữ nguyên type "author" hoặc "artist"
-                                Attributes = mangaDexStaffAttributes // Gán object attributes đã làm giàu
-                            });
-                             _logger.LogDebug("[MRLib Strategy Mapper] Successfully enriched {StaffType} relationship for MangaId {MangaId} with Name {StaffName}", staffRelLib.Type, dto.Id, staffDetails.Data.Attributes.Name);
-                        } else _logger.LogWarning("[MRLib Strategy Mapper] Could not get details for staffId {StaffId} for MangaId {MangaId}", staffIdGuid, dto.Id);
+                                staffName = libStaffAttrs.Name ?? staffName;
+                                staffBio = libStaffAttrs.Biography;
+                                _logger.LogDebug("[MRLib Strategy Mapper] Staff (from included attributes): Type '{Type}', Name '{Name}' for MangaId {MangaId}", staffRelLib.Type, staffName, dto.Id);
+                            }
+                        }
+                        catch (JsonException ex)
+                        {
+                             _logger.LogWarning(ex, "[MRLib Strategy Mapper] Staff: Failed to deserialize included attributes for staff ID {StaffId}, Type {StaffType}", staffRelLib.Id, staffRelLib.Type);
+                        }
                     }
-                    catch (Exception ex)
+                    else if (isDetails) // Nếu là trang detail và API không include, thử gọi API phụ
                     {
-                        _logger.LogError(ex, "[MRLib Strategy Mapper] Error fetching staff details for ID {StaffId} for MangaId {MangaId}", staffIdGuid, dto.Id);
+                         try
+                        {
+                            var staffDetails = await _authorClient.GetAuthorByIdAsync(staffIdGuid);
+                            if (staffDetails?.Data?.Attributes != null)
+                            {
+                                staffName = staffDetails.Data.Attributes.Name ?? staffName;
+                                staffBio = staffDetails.Data.Attributes.Biography;
+                                 _logger.LogDebug("[MRLib Strategy Mapper] Staff (from API call): Type '{Type}', Name '{Name}' for MangaId {MangaId}", staffRelLib.Type, staffName, dto.Id);
+                            } else _logger.LogWarning("[MRLib Strategy Mapper] Staff: Could not get details for staffId {StaffId} for MangaId {MangaId}", staffIdGuid, dto.Id);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "[MRLib Strategy Mapper] Staff: Error fetching staff details for ID {StaffId} for MangaId {MangaId}", staffIdGuid, dto.Id);
+                        }
                     }
+
+                    var mangaDexStaffAttributes = new MangaReader.WebUI.Models.Mangadex.AuthorAttributes 
+                    { 
+                        Name = staffName,
+                        Biography = new Dictionary<string, string> { { dto.Attributes.OriginalLanguage ?? "en", staffBio ?? "" } },
+                        CreatedAt = DateTimeOffset.UtcNow, // Mặc định
+                        UpdatedAt = DateTimeOffset.UtcNow, // Mặc định
+                        Version = 1 
+                    };
+                    relationshipsDex.Add(new Relationship
+                    {
+                        Id = staffIdGuid, 
+                        Type = staffRelLib.Type,
+                        Attributes = mangaDexStaffAttributes
+                    });
                 } else _logger.LogWarning("[MRLib Strategy Mapper] Invalid staff ID format: {StaffId} for MangaId {MangaId}", staffRelLib.Id, dto.Id);
             }
 
-            // Tags
-            var tagRelsLib = dto.Relationships?.Where(r => r.Type == "tag").ToList() ?? new();
-            foreach (var tagRelLib in tagRelsLib)
+            // Tags: Lấy từ `attributes.Tags`
+            if (dto.Attributes.Tags != null && dto.Attributes.Tags.Any())
             {
-                if (Guid.TryParse(tagRelLib.Id, out var tagIdGuid))
+                foreach (var libTagResource in dto.Attributes.Tags)
                 {
-                    try
+                    if (libTagResource?.Attributes != null && Guid.TryParse(libTagResource.Id, out var tagIdGuid))
                     {
-                        var tagDetails = await _tagClient.GetTagByIdAsync(tagIdGuid);
-                        if (tagDetails?.Data?.Attributes != null)
-                        {
-                            var mdTagAttrs = new MangaReader.WebUI.Models.Mangadex.TagAttributes 
-                            { 
-                                Name = new Dictionary<string, string> { { "en", tagDetails.Data.Attributes.Name } }, // Mặc định lấy tên tag là tiếng Anh
-                                Group = tagDetails.Data.Attributes.TagGroupName?.ToLowerInvariant() ?? "other", 
-                                Version = 1 
-                            };
-                            relationshipsDex.Add(new Relationship { Id = tagIdGuid, Type = "tag", Attributes = mdTagAttrs });
-                            mangaDexTags.Add(new MangaReader.WebUI.Models.Mangadex.Tag { Id = tagIdGuid, Type = "tag", Attributes = mdTagAttrs });
-                        } else _logger.LogWarning("[MRLib Strategy Mapper] Could not get details for tagId {TagId} for MangaId {MangaId}", tagIdGuid, dto.Id);
-                    }
-                    catch (Exception ex)
-                    {
-                         _logger.LogError(ex, "[MRLib Strategy Mapper] Error fetching tag details for ID {TagId} for MangaId {MangaId}", tagIdGuid, dto.Id);
+                        var mdTagAttrs = new MangaReader.WebUI.Models.Mangadex.TagAttributes 
+                        { 
+                            Name = new Dictionary<string, string> { { "en", libTagResource.Attributes.Name } },
+                            Group = libTagResource.Attributes.TagGroupName?.ToLowerInvariant() ?? "other", 
+                            Version = 1 
+                        };
+                        // Không thêm vào relationshipsDex vì MangaDex model không có tag trong relationship
+                        mangaDexTags.Add(new MangaReader.WebUI.Models.Mangadex.Tag { Id = tagIdGuid, Type = "tag", Attributes = mdTagAttrs });
                     }
                 }
+                 _logger.LogDebug("[MRLib Strategy Mapper] Processed {TagCount} tags for manga {MangaId}.", mangaDexTags.Count, dto.Id);
             }
-            _logger.LogDebug("[MRLib Strategy Mapper] Processed {RelCount} relationships for manga {MangaId}.", relationshipsDex.Count, dto.Id);
+
 
             string description = "Mô tả sẽ được tải ở trang chi tiết.";
             if (isDetails) 
@@ -258,14 +296,11 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
                     var preferredTranslation = translations?.Data?.FirstOrDefault(t => 
                         (t.Attributes?.LanguageKey?.Equals("en", StringComparison.OrdinalIgnoreCase) ?? false) || 
                         (t.Attributes?.LanguageKey?.Equals(dto.Attributes.OriginalLanguage, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                        (t.Attributes?.LanguageKey?.Equals("vi", StringComparison.OrdinalIgnoreCase) ?? false) ); // Thêm ưu tiên tiếng Việt
+                        (t.Attributes?.LanguageKey?.Equals("vi", StringComparison.OrdinalIgnoreCase) ?? false) );
                     
                     if (preferredTranslation?.Attributes?.Description != null)
                     {
                         description = preferredTranslation.Attributes.Description;
-                        _logger.LogDebug("[MRLib Strategy Mapper] Found description for manga {MangaId} (lang: {Lang}): {Desc}", dto.Id, preferredTranslation.Attributes.LanguageKey, description.Substring(0, Math.Min(50, description.Length)));
-                    } else {
-                        _logger.LogInformation("[MRLib Strategy Mapper] No suitable (en, vi, original) language description found for manga {MangaId}.", dto.Id);
                     }
                 }
                 catch (Exception ex)
@@ -281,7 +316,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
                 Attributes = new MangaAttributes
                 {
                     Title = new Dictionary<string, string> { { dto.Attributes.OriginalLanguage ?? "en", dto.Attributes.Title } },
-                    AltTitles = new List<Dictionary<string, string>>(), // MangaReaderLib không có altTitles trực tiếp trong Manga DTO
+                    AltTitles = new List<Dictionary<string, string>>(),
                     Description = new Dictionary<string, string> { { dto.Attributes.OriginalLanguage ?? "en", description } },
                     Status = dto.Attributes.Status.ToString(),
                     ContentRating = dto.Attributes.ContentRating.ToString(),
@@ -291,12 +326,30 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
                     IsLocked = dto.Attributes.IsLocked,
                     CreatedAt = dto.Attributes.CreatedAt,
                     UpdatedAt = dto.Attributes.UpdatedAt,
-                    Version = 1, // Giả định version
-                    Tags = mangaDexTags,
-                    // ChapterNumbersResetOnNewVolume, AvailableTranslatedLanguages, LatestUploadedChapter không có trong MangaReaderLib
+                    Version = 1,
+                    Tags = mangaDexTags.Any() ? mangaDexTags : null,
                 },
-                Relationships = relationshipsDex.Any() ? relationshipsDex : null // Trả về null nếu rỗng
+                Relationships = relationshipsDex.Any() ? relationshipsDex : null
             };
+        }
+
+        public async Task<MangaList?> FetchMangaByIdsAsync(List<string> mangaIds)
+        {
+            _logger.LogInformation("[MRLib Strategy->FetchMangaByIdsAsync] IDs: [{MangaIds}]", string.Join(", ", mangaIds));
+            var mappedData = new List<Manga>();
+            foreach (var idStr in mangaIds)
+            {
+                if (Guid.TryParse(idStr, out var guidId))
+                {
+                    var libResponse = await _mangaClient.GetMangaByIdAsync(guidId, new List<string> { "cover_art", "author" }); // Thêm includes
+                    if (libResponse?.Data != null)
+                    {
+                        var mangaDexModel = await MapMangaReaderLibDtoToMangaDexModel(libResponse.Data);
+                        if (mangaDexModel != null) mappedData.Add(mangaDexModel);
+                    }
+                }
+            }
+            return new MangaList { Result = "ok", Response = "collection", Data = mappedData, Limit = mappedData.Count, Total = mappedData.Count };
         }
     }
 } 

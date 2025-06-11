@@ -1,15 +1,19 @@
 using MangaReader.WebUI.Models;
 using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.DTOs.Mangas;
+using MangaReaderLib.DTOs.Authors;
+using MangaReaderLib.DTOs.CoverArts;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper; // For IMangaToMangaViewModelMapper
 using System.Diagnostics;
 using MangaReader.WebUI.Services.UtilityServices; // For LocalizationService
 using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Interfaces; // Cho IMangaReaderLibAuthorClient
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;       // Cho List
 using System.Linq;                      // Cho FirstOrDefault
 using System.Threading.Tasks;           // Cho Task
+using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaReaderLibMappers
 {
@@ -17,19 +21,28 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
     {
         private readonly IMangaReaderLibToMangaViewModelMapper _mangaViewModelMapper;
         private readonly ILogger<MangaReaderLibToMangaDetailViewModelMapper> _logger;
-        private readonly IMangaReaderLibAuthorClient _authorClient; // Sửa thành IMangaReaderLibAuthorClient
+        private readonly IMangaReaderLibAuthorClient _authorClient; // Giữ nguyên, không cần thiết nếu API trả attributes
         private readonly LocalizationService _localizationService;
+        private readonly IMangaReaderLibCoverApiService _coverApiService;
+        private readonly IConfiguration _configuration;
+        private readonly string _cloudinaryBaseUrl;
 
         public MangaReaderLibToMangaDetailViewModelMapper(
             IMangaReaderLibToMangaViewModelMapper mangaViewModelMapper,
             ILogger<MangaReaderLibToMangaDetailViewModelMapper> logger,
-            IMangaReaderLibAuthorClient authorClient, // Sửa thành IMangaReaderLibAuthorClient
-            LocalizationService localizationService)
+            IMangaReaderLibAuthorClient authorClient,
+            LocalizationService localizationService,
+            IMangaReaderLibCoverApiService coverApiService,
+            IConfiguration configuration)
         {
             _mangaViewModelMapper = mangaViewModelMapper;
             _logger = logger;
             _authorClient = authorClient;
             _localizationService = localizationService;
+            _coverApiService = coverApiService;
+            _configuration = configuration;
+            _cloudinaryBaseUrl = _configuration["MangaReaderApiSettings:CloudinaryBaseUrl"]?.TrimEnd('/') 
+                                ?? throw new InvalidOperationException("MangaReaderApiSettings:CloudinaryBaseUrl is not configured.");
         }
 
         public async Task<MangaDetailViewModel> MapToMangaDetailViewModelAsync(ResourceObject<MangaAttributesDto> mangaData, List<ChapterViewModel> chapters)
@@ -41,61 +54,71 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
             var attributes = mangaData.Attributes!;
             var relationships = mangaData.Relationships;
 
-            // Map thông tin manga cơ bản bằng mapper đã có
             var mangaViewModel = await _mangaViewModelMapper.MapToMangaViewModelAsync(mangaData);
 
-            // Lấy mô tả từ MangaAttributesDto (nếu có)
-            // MangaReaderLib's MangaAttributesDto doesn't have a description field.
-            // You might need to fetch it from TranslatedManga or extend MangaAttributesDto in your backend.
-            // For now, it will be empty unless you fetch it from TranslatedManga later.
-            string description = ""; // Set default or fetch from TranslatedManga if available
+            // Description: MangaReaderLib không có description trong MangaAttributesDto.
+            // Nó sẽ được lấy từ TranslatedManga bởi service gọi mapper này.
+            // Hoặc mapper này có thể gọi API để lấy, nhưng tốt hơn là service chuẩn bị trước.
+            // Hiện tại, mangaViewModel.Description sẽ rỗng, và view sẽ xử lý.
 
-            // Extract Author/Artist from relationships (similar to MangaViewModel mapper)
+            // Author/Artist: API `/mangas/{id}?includes[]=author` sẽ trả về attributes trong relationship.
             string authorName = "Không rõ";
             string artistName = "Không rõ";
             if (relationships != null)
             {
                 foreach (var rel in relationships)
                 {
-                    if (rel.Type == "author" || rel.Type == "artist")
+                    if (rel.Attributes != null && (rel.Type == "author" || rel.Type == "artist"))
                     {
                         try
                         {
-                            var authorResponse = await _authorClient.GetAuthorByIdAsync(Guid.Parse(rel.Id));
-                            if (authorResponse?.Data?.Attributes?.Name != null)
+                            // Attributes của relationship đã chứa name, biography
+                            var staffAttributes = JsonSerializer.Deserialize<AuthorAttributesDto>(JsonSerializer.Serialize(rel.Attributes));
+                            if (staffAttributes != null && !string.IsNullOrEmpty(staffAttributes.Name))
                             {
-                                if (rel.Type == "author")
-                                {
-                                    authorName = authorResponse.Data.Attributes.Name;
-                                }
-                                else if (rel.Type == "artist")
-                                {
-                                    artistName = authorResponse.Data.Attributes.Name;
-                                }
+                                if (rel.Type == "author") authorName = staffAttributes.Name;
+                                else if (rel.Type == "artist") artistName = staffAttributes.Name;
                             }
                         }
-                        catch (Exception ex)
+                        catch (JsonException ex)
                         {
-                            _logger.LogError(ex, "Lỗi khi lấy thông tin tác giả/họa sĩ ID {AuthorId} cho chi tiết manga {MangaId}", rel.Id, mangaData.Id);
+                             _logger.LogWarning(ex, "MangaReaderLib Detail Mapper: Failed to deserialize relationship attributes for manga {MangaId}, type {RelType}.", mangaData.Id, rel.Type);
                         }
                     }
                 }
             }
-            
-            // Update MangaViewModel with full description and potentially author/artist if not already set
-            if (mangaViewModel.Description == null) // Only update if not already set by MangaViewModel mapper
+             // Cập nhật lại author/artist nếu mapper cha chưa lấy được (ví dụ không include ở list)
+            if (mangaViewModel.Author == "Không rõ" && authorName != "Không rõ") mangaViewModel.Author = authorName;
+            if (mangaViewModel.Artist == "Không rõ" && artistName != "Không rõ") mangaViewModel.Artist = artistName;
+
+            // Cover Art cho Detail: `RelationshipObject.Id` là GUID của CoverArt.
+            // Cần gọi API để lấy PublicId.
+            var coverRelationship = relationships?.FirstOrDefault(r => r.Type == "cover_art");
+            if (coverRelationship != null && Guid.TryParse(coverRelationship.Id, out Guid coverArtGuid))
             {
-                mangaViewModel.Description = description;
+                try
+                {
+                    var coverArtDetailsResponse = await _coverApiService.GetCoverArtByIdAsync(coverArtGuid);
+                    if (coverArtDetailsResponse?.Data?.Attributes?.PublicId != null)
+                    {
+                        mangaViewModel.CoverUrl = $"{_cloudinaryBaseUrl}/{coverArtDetailsResponse.Data.Attributes.PublicId}";
+                        _logger.LogDebug("MangaReaderLib Detail Mapper: Cover URL set to {CoverUrl} using PublicId from CoverArt entity {CoverArtGuid}.", mangaViewModel.CoverUrl, coverArtGuid);
+                    }
+                    else
+                    {
+                         _logger.LogWarning("MangaReaderLib Detail Mapper: Could not get PublicId for coverArtId {CoverArtId} for manga {MangaId}.", coverArtGuid, mangaData.Id);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "MangaReaderLib Detail Mapper: Error fetching cover art details for ID {CoverArtId} for manga {MangaId}.", coverArtGuid, mangaData.Id);
+                }
             }
-            if (mangaViewModel.Author == "Không rõ")
+            else
             {
-                mangaViewModel.Author = authorName;
+                _logger.LogDebug("MangaReaderLib Detail Mapper: No cover_art relationship with GUID or invalid ID for manga {MangaId}", mangaData.Id);
             }
-            if (mangaViewModel.Artist == "Không rõ")
-            {
-                mangaViewModel.Artist = artistName;
-            }
-            
+
             // MangaReaderLib không có alternative titles, nên dictionary sẽ rỗng
             var alternativeTitlesByLanguage = new Dictionary<string, List<string>>();
 
@@ -103,6 +126,8 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
             mangaViewModel.Status = _localizationService.GetStatus(attributes.Status.ToString());
             mangaViewModel.PublicationDemographic = attributes.PublicationDemographic?.ToString() ?? "";
             mangaViewModel.ContentRating = attributes.ContentRating.ToString() ?? "";
+
+            // Tags đã được xử lý trong _mangaViewModelMapper
 
             return new MangaDetailViewModel
             {

@@ -28,7 +28,7 @@ const commonMangaFields = {
     .number()
     .int('Năm phải là số nguyên')
     .min(1000, 'Năm không hợp lệ')
-    .max(new Date().getFullYear(), 'Năm không thể lớn hơn năm hiện tại')
+    .max(new Date().getFullYear() + 5, `Năm không thể lớn hơn ${new Date().getFullYear() + 5}`)
     .optional()
     .nullable(),
   contentRating: z.enum(CONTENT_RATING_OPTIONS.map((opt) => opt.value), {

@@ -9,6 +9,6 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.Man
         AtHomeServerResponse MapToAtHomeServerResponse(
             ApiCollectionResponse<ResourceObject<ChapterPageAttributesDto>> chapterPagesData,
             string chapterId,
-            string mangaReaderLibBaseUrl); // Cần base URL để tạo đường dẫn ảnh
+            string mangaReaderLibBaseUrlIgnored); // mangaReaderLibBaseUrl không còn cần thiết
     }
 } 
