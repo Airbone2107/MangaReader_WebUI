@@ -236,6 +236,7 @@ namespace MangaReader.WebUI.Models
         public string Id { get; set; }
         public string Title { get; set; }
         public string Number { get; set; }
+        public string Volume { get; set; }
         public string Language { get; set; }
         public DateTime PublishedAt { get; set; }
         public List<ChapterRelationship> Relationships { get; set; } = new List<ChapterRelationship>();

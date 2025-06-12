@@ -194,10 +194,14 @@
                             
                             // Nhóm chapters theo tập (volume) và đảo ngược thứ tự (giảm dần)
                             var chaptersByVolume = langChapters
-                                .GroupBy(c => GetVolumeFromChapterNumber(c.Number))
-                                .OrderByDescending(g => int.TryParse(g.Key, out int volNum) ? volNum : 0)
+                                .GroupBy(c => c.Volume ?? "Không rõ")
+                                .OrderByDescending(g => 
+                                {
+                                    if (g.Key == "Không rõ") return int.MinValue;
+                                    return int.TryParse(g.Key, out int volNum) ? volNum : int.MinValue;
+                                })
                                 .ToDictionary(g => g.Key, g => g.OrderByDescending(c => {
-                                    _ = double.TryParse(c.Number, out double num);
+                                    _ = double.TryParse(c.Number, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double num);
                                     return num;
                                 }).ToList());
                             
@@ -214,26 +218,30 @@
                                 
                                 <div class="custom-language-content" id="lang-content-@langId">
                                     <div class="custom-volumes-container">
-                                        @foreach (var volume in chaptersByVolume.Keys)
+                                        @foreach (var volumeKey in chaptersByVolume.Keys)
                                         {
-                                            var volumeChapters = chaptersByVolume[volume];
-                                            var volumeId = $"{langId}-vol-{volume.Replace(".", "-")}";
+                                            var volumeChapters = chaptersByVolume[volumeKey];
+                                            var volumeIdSafe = $"{langId}-vol-{System.Text.RegularExpressions.Regex.Replace(volumeKey, @"[^a-zA-Z0-9\-_]", "-")}"; // Tạo ID an toàn
                                             
-                                            // Tìm số chương nhỏ nhất và lớn nhất trong volume
-                                            var minChapter = volumeChapters.Last().Number;
-                                            var maxChapter = volumeChapters.First().Number;
+                                            var minChapterNum = volumeChapters.LastOrDefault()?.Number ?? "?";
+                                            var maxChapterNum = volumeChapters.FirstOrDefault()?.Number ?? "?";
                                             
-                                            <div class="custom-volume-dropdown" id="volume-@volumeId">
-                                                <div class="custom-volume-header" data-volume-id="@volumeId">
+                                            <div class="custom-volume-dropdown" id="volume-@volumeIdSafe">
+                                                <div class="custom-volume-header" data-volume-id="@volumeIdSafe">
                                                     <div class="custom-volume-title">
-                                                        <i class="bi bi-journal-bookmark me-2"></i>Tập @volume
+                                                        <i class="bi bi-journal-bookmark me-2"></i>
+                                                        @(volumeKey == "Không rõ" ? "Tập không rõ" : $"Tập {volumeKey}")
                                                     </div>
                                                     <div class="custom-volume-chapters-info">
-                                                        Chương @minChapter - @maxChapter
+                                                        @if (minChapterNum != "?" && maxChapterNum != "?" && minChapterNum != maxChapterNum) {
+                                                            @($"Chương {minChapterNum} - {maxChapterNum}")
+                                                        } else if (maxChapterNum != "?") {
+                                                            @($"Chương {maxChapterNum}")
+                                                        }
                                                     </div>
                                                     <i class="bi bi-chevron-down volume-toggle-icon"></i>
                                                 </div>
-                                                <div class="custom-volume-chapters" id="chapters-@volumeId">
+                                                <div class="custom-volume-chapters" id="chapters-@volumeIdSafe">
                                                     @foreach (var chapter in volumeChapters)
                                                     {
                                                         <a asp-controller="Chapter" asp-action="Read" 
@@ -449,19 +457,5 @@
             "pornographic" => "Người lớn",
             _ => rating
         };
-    }
-    
-    // Tách volume từ số chapter, ví dụ: "12.5" -> "12"
-    public string GetVolumeFromChapterNumber(string chapterNumber)
-    {
-        // Nếu không thể parse số chapter, trả về "Không xác định"
-        if (string.IsNullOrEmpty(chapterNumber) || !double.TryParse(chapterNumber, out double number))
-        {
-            return "Không xác định";
-        }
-        
-        // Ví dụ: Chapter 1-10 thuộc tập 1, Chapter 11-20 thuộc tập 2, v.v.
-        int volume = (int)(Math.Floor(number) / 10) + 1;
-        return volume.ToString();
     }
 } 

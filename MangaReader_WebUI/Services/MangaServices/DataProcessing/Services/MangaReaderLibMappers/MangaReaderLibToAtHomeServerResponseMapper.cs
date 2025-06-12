@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
+using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaReaderLibMappers
 {
@@ -31,11 +32,15 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
         {
             Debug.Assert(chapterPagesData != null, "chapterPagesData không được null khi mapping.");
             Debug.Assert(!string.IsNullOrEmpty(chapterId), "chapterId không được rỗng.");
+            
+            _logger.LogInformation("[MRLib AtHome Mapper] Bắt đầu map chapter pages cho ChapterId: {ChapterId}. Dữ liệu đầu vào: {ChapterPagesDataJson}", 
+                chapterId, JsonSerializer.Serialize(chapterPagesData));
 
             var pages = new List<string>();
             if (chapterPagesData.Data != null && chapterPagesData.Data.Any())
             {
                 var sortedPages = chapterPagesData.Data.OrderBy(p => p.Attributes.PageNumber);
+                 _logger.LogDebug("[MRLib AtHome Mapper] Sorted pages DTOs: {SortedPagesJson}", JsonSerializer.Serialize(sortedPages));
 
                 foreach (var pageDto in sortedPages)
                 {
@@ -43,21 +48,21 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
                     {
                         var imageUrl = $"{_cloudinaryBaseUrl}/{pageDto.Attributes.PublicId}";
                         pages.Add(imageUrl);
-                        _logger.LogDebug("Mapped MangaReaderLib page: ChapterId={ChapterId}, PageNumber={PageNumber}, PublicId={PublicId} to Cloudinary URL: {ImageUrl}",
+                        _logger.LogDebug("[MRLib AtHome Mapper] Mapped MangaReaderLib page: ChapterId={ChapterId}, PageNumber={PageNumber}, PublicId={PublicId} to Cloudinary URL: {ImageUrl}",
                             chapterId, pageDto.Attributes.PageNumber, pageDto.Attributes.PublicId, imageUrl);
                     }
                     else
                     {
-                        _logger.LogWarning("Skipping page due to missing PublicId. ChapterId={ChapterId}, PageDtoId={PageDtoId}", chapterId, pageDto?.Id);
+                        _logger.LogWarning("[MRLib AtHome Mapper] Skipping page due to missing PublicId. ChapterId={ChapterId}, PageDtoId={PageDtoId}", chapterId, pageDto?.Id);
                     }
                 }
             }
             else
             {
-                _logger.LogWarning("No page data found in chapterPagesData for ChapterId={ChapterId}", chapterId);
+                _logger.LogWarning("[MRLib AtHome Mapper] No page data found in chapterPagesData for ChapterId={ChapterId}", chapterId);
             }
 
-            return new AtHomeServerResponse
+            var result = new AtHomeServerResponse
             {
                 Result = "ok",
                 BaseUrl = "",
@@ -68,6 +73,9 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
                     DataSaver = pages
                 }
             };
+            _logger.LogInformation("[MRLib AtHome Mapper] Kết thúc map chapter pages cho ChapterId: {ChapterId}. Kết quả: {ResultJson}", 
+                chapterId, JsonSerializer.Serialize(result));
+            return result;
         }
     }
 } 

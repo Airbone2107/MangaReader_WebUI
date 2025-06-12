@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration; // Thêm using này
 using Microsoft.AspNetCore.Http;        // Thêm using này
 using System.Diagnostics;
 using System.Text.Json; // Cần cho JsonException và JsonSerializer
+using System.Text.RegularExpressions; // THÊM USING NÀY
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services;
 
@@ -341,23 +342,45 @@ public class MangaDataExtractorService : IMangaDataExtractor
     {
         Debug.Assert(attributes != null, "ChapterAttributes không được null khi trích xuất Display Title.");
 
-        string chapterNumber = attributes.ChapterNumber ?? "?"; // Lấy số chapter, mặc định là "?"
-        string chapterTitle = attributes.Title ?? ""; // Lấy tiêu đề, mặc định là rỗng
+        string chapterNumberString = attributes.ChapterNumber ?? "?"; 
+        string specificChapterTitle = attributes.Title?.Trim() ?? "";
 
-        // Trường hợp đặc biệt cho Oneshot hoặc khi không có số chapter
+        // Nếu không có số chương hoặc chapterNumber là "?", chỉ hiển thị title (nếu có), hoặc "Oneshot"
         if (string.IsNullOrEmpty(attributes.ChapterNumber) || attributes.ChapterNumber == "?")
         {
-            return !string.IsNullOrEmpty(chapterTitle) ? chapterTitle : "Oneshot";
+            return !string.IsNullOrEmpty(specificChapterTitle) ? specificChapterTitle : "Oneshot";
         }
 
-        // Format tiêu đề chuẩn
-        string displayTitle = $"Chương {chapterNumber}";
-        if (!string.IsNullOrEmpty(chapterTitle) && chapterTitle != chapterNumber)
+        // Logic hotfix:
+        // Kiểm tra xem specificChapterTitle đã bắt đầu bằng "Chương X" hoặc "Chapter X" (X là chapterNumberString)
+        // một cách không phân biệt hoa thường và có thể có dấu hai chấm hoặc khoảng trắng theo sau.
+        string patternChapterVn = $"^Chương\\s+{Regex.Escape(chapterNumberString)}([:\\s]|$)";
+        string patternChapterEn = $"^Chapter\\s+{Regex.Escape(chapterNumberString)}([:\\s]|$)";
+        // Có thể thêm các biến thể khác như "Ch.", "Chap." nếu cần
+        // string patternCh = $"^Ch\\.\\s*{Regex.Escape(chapterNumberString)}([:\\s-]|$)";
+
+        bool startsWithChapterInfo = Regex.IsMatch(specificChapterTitle, patternChapterVn, RegexOptions.IgnoreCase) ||
+                                     Regex.IsMatch(specificChapterTitle, patternChapterEn, RegexOptions.IgnoreCase);
+                                     // || Regex.IsMatch(specificChapterTitle, patternCh, RegexOptions.IgnoreCase)
+
+        if (startsWithChapterInfo)
         {
-            displayTitle += $": {chapterTitle}";
+            // specificChapterTitle đã bao gồm "Chương X" hoặc "Chapter X" rồi, dùng nó
+            // Ta cần đảm bảo rằng nếu nó chỉ là "Chương X" (không có tên riêng) thì vẫn chuẩn
+            // Ví dụ: title là "Chương 1", chapterNumber là "1" -> return "Chương 1"
+            // Ví dụ: title là "Chương 1: Tên gì đó", chapterNumber là "1" -> return "Chương 1: Tên gì đó"
+            return specificChapterTitle;
         }
-
-        return displayTitle;
+        else if (!string.IsNullOrEmpty(specificChapterTitle))
+        {
+            // specificChapterTitle là tên riêng (không chứa "Chương X" ở đầu), ghép "Chương X: " vào
+            return $"Chương {chapterNumberString}: {specificChapterTitle}";
+        }
+        else
+        {
+            // specificChapterTitle rỗng, chỉ hiển thị "Chương X"
+            return $"Chương {chapterNumberString}";
+        }
     }
 
     public string ExtractChapterNumber(ChapterAttributes attributes)

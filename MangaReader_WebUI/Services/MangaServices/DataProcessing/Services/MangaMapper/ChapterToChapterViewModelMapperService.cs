@@ -2,6 +2,8 @@ using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
 using System.Diagnostics;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaMapper;
 
@@ -36,6 +38,7 @@ public class ChapterToChapterViewModelMapperService(
                 Id = chapterData.Id.ToString(),
                 Title = displayTitle,
                 Number = chapterNumber,
+                Volume = attributes.Volume ?? "Không rõ",
                 Language = attributes.TranslatedLanguage ?? "unknown",
                 PublishedAt = attributes.PublishAt.DateTime, // Convert DateTimeOffset to DateTime
                 Relationships = relationships
@@ -50,6 +53,7 @@ public class ChapterToChapterViewModelMapperService(
                 Id = chapterData?.Id.ToString() ?? "error",
                 Title = "Lỗi tải chương",
                 Number = "?",
+                Volume = "Lỗi",
                 Language = "error",
                 PublishedAt = DateTime.MinValue,
                 Relationships = new List<ChapterRelationship>()
