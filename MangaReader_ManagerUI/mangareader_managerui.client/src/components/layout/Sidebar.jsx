@@ -1,5 +1,5 @@
 import CategoryIcon from '@mui/icons-material/Category'
-import DashboardIcon from '@mui/icons-material/Dashboard'
+// import DashboardIcon from '@mui/icons-material/Dashboard'
 import LocalOfferIcon from '@mui/icons-material/LocalOffer'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import PersonIcon from '@mui/icons-material/Person'
@@ -12,7 +12,7 @@ function Sidebar() {
   const isSidebarOpen = useUiStore((state) => state.isSidebarOpen)
 
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    // { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Manga', icon: <MenuBookIcon />, path: '/mangas' },
     { text: 'Authors', icon: <PersonIcon />, path: '/authors' },          // NEW
     { text: 'Tags', icon: <LocalOfferIcon />, path: '/tags' },            // NEW

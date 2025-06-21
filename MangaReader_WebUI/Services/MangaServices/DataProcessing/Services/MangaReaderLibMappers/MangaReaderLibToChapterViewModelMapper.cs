@@ -34,11 +34,12 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
             try
             {
                 string chapterNumForDisplay = attributes.ChapterNumber ?? "?";
+                string volumeForDisplay = attributes.Volume ?? "Không rõ";
                 string titleFromApi = attributes.Title?.Trim() ?? "";
                 string nameOnlyPart = titleFromApi;
 
-                _logger.LogDebug("[MRLib Chapter Mapper] Chapter ID: {ChapterId} - Input: ChapterNumber='{ChapterNumber}', Title='{TitleFromApi}'",
-                    chapterData.Id, attributes.ChapterNumber, titleFromApi);
+                _logger.LogDebug("[MRLib Chapter Mapper] Chapter ID: {ChapterId} - Input: ChapterNumber='{ChapterNumber}', Volume='{Volume}', Title='{TitleFromApi}'",
+                    chapterData.Id, attributes.ChapterNumber, attributes.Volume, titleFromApi);
 
                 // Danh sách các pattern tiền tố cần loại bỏ (sắp xếp từ dài đến ngắn để tránh lỗi greedy matching)
                 // Bao gồm cả các biến thể có và không có dấu hai chấm, có và không có số chương
@@ -96,9 +97,6 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
                      _logger.LogDebug("[MRLib Chapter Mapper] Chapter ID: {ChapterId} - displayTitle trường hợp 2 (số chương + tên riêng): '{DisplayTitle}'", chapterData.Id, displayTitle);
                 }
 
-                // _logger.LogDebug("Final display title for ChapterId {ChapterId}: '{DisplayTitle}' (RawNumber: '{RawNum}', RawApiTitle: '{RawApiTitle}', CleanedNamePart: '{CleanedNamePart}')", 
-                //     chapterData.Id, displayTitle, attributes.ChapterNumber, attributes.Title, nameOnlyPart);
-
                 if (chapterData.Relationships != null && chapterData.Relationships.Any())
                 {
                     relationships.AddRange(chapterData.Relationships
@@ -111,8 +109,8 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
                 {
                     Id = chapterData.Id,
                     Title = displayTitle,
-                    Number = chapterNumForDisplay, 
-                    Volume = attributes.Volume ?? "Không rõ",
+                    Number = chapterNumForDisplay,
+                    Volume = volumeForDisplay,
                     Language = translatedLanguage,
                     PublishedAt = attributes.PublishAt,
                     Relationships = relationships

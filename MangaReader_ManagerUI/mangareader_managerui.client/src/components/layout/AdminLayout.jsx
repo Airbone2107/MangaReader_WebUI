@@ -19,7 +19,7 @@ function AdminLayout() { // Bỏ `children` prop ở đây
           flexGrow: 1,
           p: 3,
           mt: '64px', // AppBar height
-          width: '100%',
+          minWidth: 0, // Allow the main content to shrink and prevent overflow
           transition: (theme) =>
             theme.transitions.create('margin', {
               easing: theme.transitions.easing.sharp,

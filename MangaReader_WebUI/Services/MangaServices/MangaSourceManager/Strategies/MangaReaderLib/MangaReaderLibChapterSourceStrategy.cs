@@ -105,7 +105,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaSourceManager.Strategies
                     Type = "chapter",
                     Attributes = new ChapterAttributes { 
                         Title = vm.Title, 
-                        Volume = vm.Number,
+                        Volume = vm.Volume,
                         ChapterNumber = vm.Number,
                         Pages = 0,
                         TranslatedLanguage = vm.Language, 

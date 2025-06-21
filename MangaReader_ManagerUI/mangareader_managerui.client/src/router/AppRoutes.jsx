@@ -7,7 +7,7 @@ import AuthorEditPage from '../features/author/pages/AuthorEditPage'
 import AuthorListPage from '../features/author/pages/AuthorListPage'
 import ChapterEditPage from '../features/chapter/pages/ChapterEditPage'
 import ChapterListPage from '../features/chapter/pages/ChapterListPage'
-import DashboardPage from '../features/dashboard/DashboardPage'
+// import DashboardPage from '../features/dashboard/DashboardPage'
 import MangaCreatePage from '../features/manga/pages/MangaCreatePage'
 import MangaEditPage from '../features/manga/pages/MangaEditPage'
 import MangaListPage from '../features/manga/pages/MangaListPage'
@@ -35,8 +35,8 @@ function AppRoutes() {
           isAuthenticated ? <AdminLayout /> : <Navigate to="/login" replace />
         }
       >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
+        <Route index element={<Navigate to="/mangas" replace />} />
+        {/* <Route path="dashboard" element={<DashboardPage />} /> */}
         <Route path="mangas" element={<MangaListPage />} />
         <Route path="mangas/create" element={<MangaCreatePage />} />
         <Route path="mangas/edit/:id" element={<MangaEditPage />} />
@@ -64,7 +64,7 @@ function AppRoutes() {
         <Route path="taggroups/edit/:id" element={<TagGroupEditPage />} />
 
         {/* Catch-all for undefined routes */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/mangas" replace />} />
       </Route>
     </Routes>
   )
