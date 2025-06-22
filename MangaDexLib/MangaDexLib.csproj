@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="DataProcessing\Interfaces\" />
+    <Folder Include="DataProcessing\Services\" />
+    <Folder Include="Models\" />
+    <Folder Include="Services\APIServices\Interfaces\" />
+    <Folder Include="Services\APIServices\Services\" />
+    <Folder Include="Services\UtilityServices\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.6" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.6" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.6" />
+  </ItemGroup>
+
+</Project>

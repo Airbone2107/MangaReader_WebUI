@@ -25,7 +25,7 @@ tags:
   - name: User
 info:
   title: MangaDex API
-  version: 5.10.2
+  version: 5.12.0
   contact:
     name: MangaDex staff team
     email: "support@mangadex.org"
@@ -300,6 +300,11 @@ paths:
             enum: ['0', '1', 'true', 'false']
           in: query
           name: hasAvailableChapters
+        - name: hasUnavailableChapters
+          in: query
+          schema:
+            type: string
+            enum: ['0', '1']
         - schema:
             type: string
             format: uuid
@@ -1838,6 +1843,12 @@ paths:
         - schema: *triStateFilter
           in: query
           name: includeExternalUrl
+        - name: includeUnavailable
+          schema:
+            type: string
+            default: "0"
+            enum: ["0", "1"]
+          in: query
         - schema:
             type: string
             description: "DateTime string with following format: YYYY-MM-DDTHH:MM:SS in timezone UTC+0"
@@ -2175,6 +2186,12 @@ paths:
         - schema: *triStateFilter
           in: query
           name: includeExternalUrl
+        - name: includeUnavailable
+          in: query
+          schema:
+            type: string
+            default: "0"
+            enum: ["0", "1"]
   /list/{id}/feed:
     parameters:
       - schema:
@@ -2392,7 +2409,7 @@ paths:
                   type: string
                   format: binary
                 volume:
-                  $ref: '#/components/schemas/CoverVolume' 
+                  $ref: '#/components/schemas/CoverVolume'
                 description:
                   type: string
                   nullable: false
@@ -4660,6 +4677,8 @@ paths:
                                   type: integer
                         follows:
                           type: integer
+                        unavailableChapterCount:
+                          type: integer
                 example:
                   result: ok
                   statistics:
@@ -4682,6 +4701,7 @@ paths:
                           "9": 0
                           "10": 0
                       follows: 3
+                      unavailableChapterCount: 1
       tags:
         - Statistics
   /statistics/manga:
@@ -4740,6 +4760,16 @@ paths:
                         average: 7.5
                         bayesian: 6.47
                       follows: 3
+                      unavailableChapterCount: 1
+                    62bc0125-f1ba-4343-88d3-00a30f78e6b6:
+                      comments:
+                        threadId: 12345
+                        repliesCount: 11
+                      rating:
+                        average: 5.5
+                        bayesian: 8.47
+                      follows: 35
+                      unavailableChapterCount: 12
       tags:
         - Statistics
   /settings/template:
@@ -5256,6 +5286,8 @@ components:
           type: string
         readableAt:
           type: string
+        isUnavailable:
+          type: boolean
     MangaAttributes:
       title: MangaAttributes
       type: object
@@ -5865,13 +5897,13 @@ components:
         - version
         - volume
     CoverVolume:
-      title: CoverVolume      
+      title: CoverVolume
       type: string
       nullable: true
       pattern: ^(0|[1-9]\d*)(\.\d+)?([a-z]+)?$
       maxLength: 8
     ChapterVolume:
-      title: ChapterVolume      
+      title: ChapterVolume
       type: string
       nullable: true
       pattern: ^((0|[1-9]\d*)(\.\d+)?[a-z]?)?$
