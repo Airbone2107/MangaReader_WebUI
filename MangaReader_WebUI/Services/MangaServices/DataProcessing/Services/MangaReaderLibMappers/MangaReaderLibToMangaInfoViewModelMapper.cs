@@ -1,11 +1,9 @@
-using MangaReaderLib.DTOs.Common;        // Cho ResourceObject
-using MangaReaderLib.DTOs.Mangas;        // Cho MangaAttributesDto
+using MangaReader.WebUI.Models.ViewModels.Manga;
 using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Interfaces; // Cho IMangaReaderLibCoverApiService
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
-using MangaReader.WebUI.Services.MangaServices.Models; // Cho MangaInfoViewModel
-using Microsoft.Extensions.Logging;
+using MangaReaderLib.DTOs.Common;        // Cho ResourceObject
+using MangaReaderLib.DTOs.Mangas;        // Cho MangaAttributesDto
 using System.Diagnostics;
-using System.Linq;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaReaderLibMappers
 {

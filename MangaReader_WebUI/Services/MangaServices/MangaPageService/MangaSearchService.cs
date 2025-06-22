@@ -1,6 +1,12 @@
 using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Models.ViewModels.Manga;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
 {
@@ -25,17 +31,17 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
         /// </summary>
         public SortManga CreateSortMangaFromParameters(
             string title = "",
-            List<string> status = null,
+            List<string>? status = null,
             string sortBy = "latest",
             string authors = "",
             string artists = "",
             int? year = null,
-            List<string> availableTranslatedLanguage = null,
-            List<string> publicationDemographic = null,
-            List<string> contentRating = null,
+            List<string>? availableTranslatedLanguage = null,
+            List<string>? publicationDemographic = null,
+            List<string>? contentRating = null,
             string includedTagsMode = "AND",
             string excludedTagsMode = "OR",
-            List<string> genres = null,
+            List<string>? genres = null,
             string includedTagsStr = "",
             string excludedTagsStr = "")
         {
@@ -142,7 +148,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                         CurrentPage = page,
                         PageSize = pageSize,
                         TotalCount = 10000,
-                        MaxPages = 0,
+                        MaxPages = (int)Math.Ceiling(MAX_API_RESULTS / (double)pageSize),
                         SortOptions = sortManga
                     };
                 }

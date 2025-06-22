@@ -1,18 +1,12 @@
-using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Models.ViewModels.Chapter;
+using MangaReader.WebUI.Models.ViewModels.Manga;
+using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Interfaces; // Cho IMangaReaderLibAuthorClient
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
+using MangaReader.WebUI.Services.UtilityServices; // For LocalizationService
+using MangaReaderLib.DTOs.Authors;
 using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.DTOs.Mangas;
-using MangaReaderLib.DTOs.Authors;
-using MangaReaderLib.DTOs.CoverArts;
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper; // For IMangaToMangaViewModelMapper
 using System.Diagnostics;
-using MangaReader.WebUI.Services.UtilityServices; // For LocalizationService
-using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Interfaces; // Cho IMangaReaderLibAuthorClient
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using System.Collections.Generic;       // Cho List
-using System.Linq;                      // Cho FirstOrDefault
-using System.Threading.Tasks;           // Cho Task
 using System.Text.Json;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaReaderLibMappers

@@ -1,4 +1,4 @@
-using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Models.ViewModels.Chapter;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
 

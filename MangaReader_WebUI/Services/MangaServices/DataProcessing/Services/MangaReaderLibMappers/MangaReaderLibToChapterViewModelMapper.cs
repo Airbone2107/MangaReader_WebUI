@@ -1,13 +1,10 @@
-using MangaReader.WebUI.Models;           // Cho ChapterViewModel, ChapterRelationship
-using MangaReaderLib.DTOs.Common;        // Cho ResourceObject
-using MangaReaderLib.DTOs.Chapters;      // Cho ChapterAttributesDto
+using MangaReader.WebUI.Models.ViewModels.Chapter; // Thêm using cho JsonSerializer
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
-using Microsoft.Extensions.Logging;
+using MangaReaderLib.DTOs.Chapters;      // Cho ChapterAttributesDto
+using MangaReaderLib.DTOs.Common;        // Cho ResourceObject
 using System.Diagnostics;
-using System.Collections.Generic;       // Cho List
-using System.Linq; // Thêm using này
+using System.Text.Json;
 using System.Text.RegularExpressions; // Thêm using cho Regex
-using System.Text.Json; // Thêm using cho JsonSerializer
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaReaderLibMappers
 {
@@ -26,7 +23,7 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
             Debug.Assert(chapterData.Attributes != null, "chapterData.Attributes không được null khi mapping thành ChapterViewModel.");
 
             var attributes = chapterData.Attributes!;
-            var relationships = new List<ChapterRelationship>();
+            var relationships = new List<ChapterRelationshipViewModel>();
 
             _logger.LogInformation("[MRLib Chapter Mapper] Bắt đầu map chapter ID: {ChapterId}. Dữ liệu Attributes đầu vào: {AttributesJson}",
                 chapterData.Id, JsonSerializer.Serialize(attributes));
@@ -101,7 +98,7 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
                 {
                     relationships.AddRange(chapterData.Relationships
                         .Where(r => r != null && !string.IsNullOrEmpty(r.Id) && !string.IsNullOrEmpty(r.Type))
-                        .Select(r => new ChapterRelationship { Id = r.Id, Type = r.Type })
+                        .Select(r => new ChapterRelationshipViewModel { Id = r.Id, Type = r.Type })
                     );
                 }
 
@@ -130,7 +127,7 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
                     Volume = "Lỗi",
                     Language = translatedLanguage,
                     PublishedAt = DateTime.MinValue,
-                    Relationships = new List<ChapterRelationship>()
+                    Relationships = new List<ChapterRelationshipViewModel>()
                 };
             }
         }

@@ -1,9 +1,12 @@
-using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Models.ViewModels.Manga;
 using MangaReader.WebUI.Models.Mangadex;
 using MangaReader.WebUI.Services.AuthServices;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
 using System.Diagnostics;
+using System.Collections.Generic;
+using System;
+using System.Threading.Tasks;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaMapper;
 
@@ -23,7 +26,7 @@ public class MangaToMangaViewModelMapperService(
         Debug.Assert(mangaData.Attributes != null, "mangaData.Attributes không được null khi mapping thành MangaViewModel.");
 
         string id = mangaData.Id.ToString();
-        var attributes = mangaData.Attributes!; // Sử dụng ! vì đã assert ở trên
+        var attributes = mangaData.Attributes!;
         var relationships = mangaData.Relationships;
 
         try
@@ -37,11 +40,9 @@ public class MangaToMangaViewModelMapperService(
             var altTitlesDict = mangaDataExtractor.ExtractAlternativeTitles(attributes.AltTitles);
             string preferredAltTitle = mangaDataExtractor.ExtractPreferredAlternativeTitle(altTitlesDict);
 
-            // Kiểm tra trạng thái follow (yêu cầu User Service và Follow Service)
             bool isFollowing = false;
             if (userService.IsAuthenticated())
             {
-                // Thêm try-catch riêng cho việc kiểm tra follow để không làm crash toàn bộ mapping
                 try
                 {
                     isFollowing = await mangaFollowService.IsFollowingMangaAsync(id);
@@ -49,7 +50,6 @@ public class MangaToMangaViewModelMapperService(
                 catch (Exception followEx)
                 {
                     logger.LogError(followEx, "Lỗi khi kiểm tra trạng thái theo dõi cho manga {MangaId} trong Mapper.", id);
-                    // isFollowing vẫn là false
                 }
             }
 
@@ -74,7 +74,6 @@ public class MangaToMangaViewModelMapperService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Lỗi nghiêm trọng khi mapping MangaData thành MangaViewModel cho ID: {MangaId}", id);
-            // Trả về ViewModel lỗi để không làm crash trang
             return new MangaViewModel
             {
                 Id = id,

@@ -1,4 +1,7 @@
-using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Models.ViewModels.Manga;   // ViewModel mới
+using MangaReader.WebUI.Models.ViewModels.Chapter; // ViewModel mới
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
 

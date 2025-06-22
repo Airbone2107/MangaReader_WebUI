@@ -1,5 +1,7 @@
+using MangaReader.WebUI.Models.ViewModels.Chapter;
+using MangaReader.WebUI.Models.ViewModels.History;
+using MangaReader.WebUI.Models.ViewModels.Manga;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
-using MangaReader.WebUI.Services.MangaServices.Models;
 using System.Diagnostics;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaMapper;
@@ -9,7 +11,7 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
 /// </summary>
 public class LastReadMangaViewModelMapperService() : ILastReadMangaViewModelMapper
 {
-    public LastReadMangaViewModel MapToLastReadMangaViewModel(MangaInfoViewModel mangaInfo, ChapterInfo chapterInfo, DateTime lastReadAt)
+    public LastReadMangaViewModel MapToLastReadMangaViewModel(MangaInfoViewModel mangaInfo, ChapterInfoViewModel chapterInfo, DateTime lastReadAt)
     {
         Debug.Assert(mangaInfo != null, "mangaInfo không được null khi mapping thành LastReadMangaViewModel.");
         Debug.Assert(chapterInfo != null, "chapterInfo không được null khi mapping thành LastReadMangaViewModel.");

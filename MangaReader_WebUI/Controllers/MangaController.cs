@@ -1,14 +1,15 @@
 using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Models.ViewModels.History;
+using MangaReader.WebUI.Models.ViewModels.Manga;
+using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.AuthServices;
 using MangaReader.WebUI.Services.MangaServices;
 using MangaReader.WebUI.Services.MangaServices.MangaPageService;
-using MangaReader.WebUI.Services.MangaServices.Models;
 using MangaReader.WebUI.Services.UtilityServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using MangaReader.WebUI.Services.APIServices.Interfaces;
 
 namespace MangaReader.WebUI.Controllers
 {
@@ -131,17 +132,17 @@ namespace MangaReader.WebUI.Controllers
         // GET: Manga/Search
         public async Task<IActionResult> Search(
             string title = "", 
-            List<string> status = null, 
+            List<string>? status = null, 
             string sortBy = "latest",
             string authors = "",
             string artists = "",
             int? year = null,
-            List<string> availableTranslatedLanguage = null,
-            List<string> publicationDemographic = null,
-            List<string> contentRating = null,
+            List<string>? availableTranslatedLanguage = null,
+            List<string>? publicationDemographic = null,
+            List<string>? contentRating = null,
             string includedTagsMode = "AND",
             string excludedTagsMode = "OR",
-            List<string> genres = null,
+            List<string>? genres = null,
             string includedTagsStr = "",
             string excludedTagsStr = "",
             int page = 1, 
@@ -192,7 +193,7 @@ namespace MangaReader.WebUI.Controllers
                 string initialViewMode = "grid"; // Mặc định là grid
                 
                 // Đọc cookie để xác định chế độ xem mong muốn của người dùng
-                if (Request.Cookies.TryGetValue("MangaViewMode", out string cookieViewMode))
+                if (Request.Cookies.TryGetValue("MangaViewMode", out string? cookieViewMode))
                 {
                     // Kiểm tra giá trị hợp lệ
                     if (cookieViewMode == "grid" || cookieViewMode == "list")
@@ -442,17 +443,17 @@ namespace MangaReader.WebUI.Controllers
         /// </summary>
         public async Task<IActionResult> GetSearchResultsPartial(
             string title = "", 
-            List<string> status = null, 
+            List<string>? status = null, 
             string sortBy = "latest",
             string authors = "",
             string artists = "",
             int? year = null,
-            List<string> availableTranslatedLanguage = null,
-            List<string> publicationDemographic = null,
-            List<string> contentRating = null,
+            List<string>? availableTranslatedLanguage = null,
+            List<string>? publicationDemographic = null,
+            List<string>? contentRating = null,
             string includedTagsMode = "AND",
             string excludedTagsMode = "OR",
-            List<string> genres = null,
+            List<string>? genres = null,
             string includedTagsStr = "",
             string excludedTagsStr = "",
             int page = 1, 
@@ -624,7 +625,7 @@ namespace MangaReader.WebUI.Controllers
     // Lớp hỗ trợ cho request body
     public class MangaActionRequest
     {
-        public string MangaId { get; set; }
+        public string? MangaId { get; set; }
     }
 
     // Lớp hỗ trợ để phân tích phản hồi kiểm tra trạng thái

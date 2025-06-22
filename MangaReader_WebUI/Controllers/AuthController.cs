@@ -1,7 +1,9 @@
-using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Models.ViewModels.Auth;
 using MangaReader.WebUI.Services.AuthServices;
 using MangaReader.WebUI.Services.UtilityServices;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Threading.Tasks;
 
 namespace MangaReader.WebUI.Controllers
 {
@@ -26,7 +28,7 @@ namespace MangaReader.WebUI.Controllers
         /// </summary>
         /// <param name="returnUrl">URL trả về sau khi đăng nhập thành công</param>
         /// <returns>View đăng nhập</returns>
-        public IActionResult Login(string returnUrl = null)
+        public IActionResult Login(string? returnUrl = null)
         {
             _logger.LogInformation("Hiển thị trang Login.");
             ViewBag.ReturnUrl = returnUrl;
@@ -38,7 +40,7 @@ namespace MangaReader.WebUI.Controllers
         /// </summary>
         /// <param name="returnUrl">URL trả về sau khi đăng nhập thành công</param>
         /// <returns>Chuyển hướng đến URL xác thực Google</returns>
-        public async Task<IActionResult> GoogleLogin(string returnUrl = null)
+        public async Task<IActionResult> GoogleLogin(string? returnUrl = null)
         {
             // Lưu returnUrl vào session để sử dụng sau khi callback
             if (!string.IsNullOrEmpty(returnUrl))
@@ -89,7 +91,7 @@ namespace MangaReader.WebUI.Controllers
                 _userService.SaveToken(token);
                 
                 // Lấy URL trả về từ session (nếu có)
-                string returnUrl = HttpContext.Session.GetString("ReturnUrl");
+                string? returnUrl = HttpContext.Session.GetString("ReturnUrl");
                 HttpContext.Session.Remove("ReturnUrl");
                 
                 if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))

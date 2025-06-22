@@ -1,4 +1,4 @@
-@model MangaReader.WebUI.Models.MangaListViewModel
+@model MangaReader.WebUI.Models.ViewModels.Manga.MangaListViewModel
 
 @if (Model.Mangas.Count == 0 && ViewBag.ErrorMessage == null)
 {
@@ -56,7 +56,6 @@ else
     
     <partial name="_SearchResultsPartial" model="Model" />
     
-    @* Chỉ hiển thị phân trang khi không có lỗi, có kết quả và cần phân trang *@
     @if (ViewBag.ErrorMessage == null && Model.Mangas.Any() && Model.MaxPages > 1)
     {
         <partial name="_SearchPaginationPartial" model="Model" />

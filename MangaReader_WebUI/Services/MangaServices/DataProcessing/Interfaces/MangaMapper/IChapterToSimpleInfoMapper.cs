@@ -1,4 +1,4 @@
-using MangaReader.WebUI.Services.MangaServices.Models;
+using MangaReader.WebUI.Models.ViewModels.Chapter;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
 
@@ -12,5 +12,5 @@ public interface IChapterToSimpleInfoMapper
     /// </summary>
     /// <param name="chapterData">Đối tượng Chapter gốc từ API.</param>
     /// <returns>SimpleChapterInfo.</returns>
-    SimpleChapterInfo MapToSimpleChapterInfo(MangaReader.WebUI.Models.Mangadex.Chapter chapterData);
+    SimpleChapterInfoViewModel MapToSimpleChapterInfo(MangaReader.WebUI.Models.Mangadex.Chapter chapterData);
 } 

@@ -1,4 +1,4 @@
-using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Models.ViewModels.Chapter; // ViewModel mới
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
 using System.Diagnostics;
@@ -30,8 +30,8 @@ public class ChapterToChapterViewModelMapperService(
             // Xử lý relationships (đơn giản hóa, chỉ lấy ID và Type)
             var relationships = chapterData.Relationships?
                 .Where(r => r != null)
-                .Select(r => new ChapterRelationship { Id = r!.Id.ToString(), Type = r.Type })
-                .ToList() ?? new List<ChapterRelationship>();
+                .Select(r => new ChapterRelationshipViewModel { Id = r!.Id.ToString(), Type = r.Type })
+                .ToList() ?? new List<ChapterRelationshipViewModel>();
 
             return new ChapterViewModel
             {
@@ -56,7 +56,7 @@ public class ChapterToChapterViewModelMapperService(
                 Volume = "Lỗi",
                 Language = "error",
                 PublishedAt = DateTime.MinValue,
-                Relationships = new List<ChapterRelationship>()
+                Relationships = new List<ChapterRelationshipViewModel>()
             };
         }
     }

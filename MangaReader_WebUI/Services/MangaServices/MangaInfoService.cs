@@ -1,6 +1,6 @@
+using MangaReader.WebUI.Models.ViewModels.Manga;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
-using MangaReader.WebUI.Services.MangaServices.Models;
 
 namespace MangaReader.WebUI.Services.MangaServices
 {
@@ -20,7 +20,7 @@ namespace MangaReader.WebUI.Services.MangaServices
             _mangaToInfoViewModelMapper = mangaToInfoViewModelMapper;
         }
 
-        public async Task<MangaInfoViewModel> GetMangaInfoAsync(string mangaId)
+        public async Task<MangaInfoViewModel?> GetMangaInfoAsync(string mangaId)
         {
             if (string.IsNullOrEmpty(mangaId))
             {

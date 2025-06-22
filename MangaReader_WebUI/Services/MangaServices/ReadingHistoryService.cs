@@ -1,8 +1,8 @@
+using MangaReader.WebUI.Models.ViewModels.Chapter;
+using MangaReader.WebUI.Models.ViewModels.History;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.AuthServices;
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
-using MangaReader.WebUI.Services.MangaServices.Models;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -31,9 +31,8 @@ namespace MangaReader.WebUI.Services.MangaServices
         private readonly ILogger<ReadingHistoryService> _logger;
         private readonly TimeSpan _rateLimitDelay; // Delay giữa các nhóm API call
         private readonly ILastReadMangaViewModelMapper _lastReadMapper;
-        private readonly IChapterToSimpleInfoMapper _chapterSimpleInfoMapper;
-        private readonly IMangaDataExtractor _mangaDataExtractor;
         private readonly IChapterApiService _chapterApiService;
+        private readonly IChapterToChapterViewModelMapper _chapterViewModelMapper; // Để map sang ChapterViewModel rồi lấy Title
 
         public ReadingHistoryService(
             IHttpClientFactory httpClientFactory,
@@ -42,9 +41,8 @@ namespace MangaReader.WebUI.Services.MangaServices
             IConfiguration configuration,
             ILogger<ReadingHistoryService> logger,
             ILastReadMangaViewModelMapper lastReadMapper,
-            IChapterToSimpleInfoMapper chapterSimpleInfoMapper,
-            IMangaDataExtractor mangaDataExtractor,
-            IChapterApiService chapterApiService)
+            IChapterApiService chapterApiService,
+            IChapterToChapterViewModelMapper chapterViewModelMapper)
         {
             _httpClientFactory = httpClientFactory;
             _userService = userService;
@@ -54,9 +52,8 @@ namespace MangaReader.WebUI.Services.MangaServices
             // Lấy giá trị delay từ config hoặc đặt mặc định (vd: 550ms)
             _rateLimitDelay = TimeSpan.FromMilliseconds(configuration.GetValue<int>("ApiRateLimitDelayMs", 250));
             _lastReadMapper = lastReadMapper;
-            _chapterSimpleInfoMapper = chapterSimpleInfoMapper;
-            _mangaDataExtractor = mangaDataExtractor;
             _chapterApiService = chapterApiService;
+            _chapterViewModelMapper = chapterViewModelMapper;
         }
 
         public async Task<List<LastReadMangaViewModel>> GetReadingHistoryAsync()
@@ -117,7 +114,7 @@ namespace MangaReader.WebUI.Services.MangaServices
                         continue; 
                     }
 
-                    ChapterInfo chapterInfo = null;
+                    ChapterInfoViewModel chapterInfoViewModel = null!;
                     try 
                     {
                         var chapterResponse = await _chapterApiService.FetchChapterInfoAsync(item.ChapterId);
@@ -127,13 +124,12 @@ namespace MangaReader.WebUI.Services.MangaServices
                             continue; 
                         }
                         
-                        // Sử dụng _chapterSimpleInfoMapper để lấy thông tin đơn giản
-                        var simpleChapter = _chapterSimpleInfoMapper.MapToSimpleChapterInfo(chapterResponse.Data);
-                        chapterInfo = new ChapterInfo
+                        var mappedChapter = _chapterViewModelMapper.MapToChapterViewModel(chapterResponse.Data);
+                        chapterInfoViewModel = new ChapterInfoViewModel
                         {
                             Id = item.ChapterId,
-                            Title = simpleChapter.DisplayTitle, // DisplayTitle đã được format
-                            PublishedAt = simpleChapter.PublishedAt
+                            Title = mappedChapter.Title, 
+                            PublishedAt = mappedChapter.PublishedAt
                         };
                     }
                     catch (Exception ex) 
@@ -142,16 +138,16 @@ namespace MangaReader.WebUI.Services.MangaServices
                         continue; 
                     }
                     
-                    if (chapterInfo == null) // Kiểm tra lại sau try-catch
+                    if (chapterInfoViewModel == null) 
                     {
                         _logger.LogWarning($"Thông tin Chapter cho ChapterId: {item.ChapterId} vẫn null sau khi thử lấy. Bỏ qua mục lịch sử này.");
                         continue; 
                     }
 
-                    var historyViewModel = _lastReadMapper.MapToLastReadMangaViewModel(mangaInfo, chapterInfo, item.LastReadAt);
+                    var historyViewModel = _lastReadMapper.MapToLastReadMangaViewModel(mangaInfo, chapterInfoViewModel, item.LastReadAt);
                     historyViewModels.Add(historyViewModel);
                     
-                    _logger.LogDebug($"Đã xử lý xong mục lịch sử cho manga: {mangaInfo.MangaTitle}, chapter: {chapterInfo.Title}");
+                    _logger.LogDebug($"Đã xử lý xong mục lịch sử cho manga: {mangaInfo.MangaTitle}, chapter: {chapterInfoViewModel.Title}");
                 }
 
                 _logger.LogInformation($"Hoàn tất xử lý {historyViewModels.Count} mục lịch sử đọc.");

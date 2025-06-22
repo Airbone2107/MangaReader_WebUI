@@ -1,9 +1,16 @@
-using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Models.ViewModels.Manga;
+using MangaReader.WebUI.Models.ViewModels.Chapter;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.ChapterServices;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
 {
@@ -15,7 +22,6 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
         private readonly ChapterService _chapterService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMangaToDetailViewModelMapper _mangaDetailViewModelMapper;
-        private readonly IMangaDataExtractor _mangaDataExtractor;
 
         public MangaDetailsService(
             IMangaApiService mangaApiService,
@@ -23,8 +29,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
             IMangaFollowService mangaFollowService,
             ChapterService chapterService,
             IHttpContextAccessor httpContextAccessor,
-            IMangaToDetailViewModelMapper mangaDetailViewModelMapper,
-            IMangaDataExtractor mangaDataExtractor)
+            IMangaToDetailViewModelMapper mangaDetailViewModelMapper)
         {
             _mangaApiService = mangaApiService;
             _logger = logger;
@@ -32,7 +37,6 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
             _chapterService = chapterService;
             _httpContextAccessor = httpContextAccessor;
             _mangaDetailViewModelMapper = mangaDetailViewModelMapper;
-            _mangaDataExtractor = mangaDataExtractor;
         }
 
         /// <summary>

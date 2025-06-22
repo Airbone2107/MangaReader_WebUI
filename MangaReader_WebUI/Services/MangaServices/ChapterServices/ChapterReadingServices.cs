@@ -1,5 +1,5 @@
-using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Models.Mangadex;
+using MangaReader.WebUI.Models.ViewModels.Chapter;
 using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
 using System.Text.Json;

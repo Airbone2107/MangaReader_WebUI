@@ -1,6 +1,6 @@
-using MangaReader.WebUI.Models;           // Cho ChapterViewModel
+using MangaReader.WebUI.Models.ViewModels.Chapter;      // Cho ChapterAttributesDto
+using MangaReaderLib.DTOs.Chapters;
 using MangaReaderLib.DTOs.Common;        // Cho ResourceObject
-using MangaReaderLib.DTOs.Chapters;      // Cho ChapterAttributesDto
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers
 {

@@ -1,6 +1,8 @@
+using MangaReader.WebUI.Models.ViewModels.Manga;   // ViewModel mới
+using MangaReader.WebUI.Models.ViewModels.Chapter; // ViewModel mới
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
-using MangaReader.WebUI.Services.MangaServices.Models;
 using System.Diagnostics;
+using System.Collections.Generic;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaMapper;
 
@@ -9,7 +11,7 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
 /// </summary>
 public class FollowedMangaViewModelMapperService() : IFollowedMangaViewModelMapper
 {
-    public FollowedMangaViewModel MapToFollowedMangaViewModel(MangaInfoViewModel mangaInfo, List<SimpleChapterInfo> latestChapters)
+    public FollowedMangaViewModel MapToFollowedMangaViewModel(MangaInfoViewModel mangaInfo, List<SimpleChapterInfoViewModel> latestChapters)
     {
         Debug.Assert(mangaInfo != null, "mangaInfo không được null khi mapping thành FollowedMangaViewModel.");
         Debug.Assert(latestChapters != null, "latestChapters không được null khi mapping thành FollowedMangaViewModel.");

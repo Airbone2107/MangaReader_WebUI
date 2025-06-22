@@ -1,11 +1,11 @@
-using MangaReaderLib.DTOs.Common;        // Cho ResourceObject
-using MangaReaderLib.DTOs.Chapters;      // Cho ChapterAttributesDto
-using MangaReader.WebUI.Services.MangaServices.Models; // Cho SimpleChapterInfo
+using MangaReader.WebUI.Models.ViewModels.Chapter;
+using MangaReaderLib.DTOs.Chapters;
+using MangaReaderLib.DTOs.Common;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers
 {
     public interface IMangaReaderLibToSimpleChapterInfoMapper
     {
-        SimpleChapterInfo MapToSimpleChapterInfo(ResourceObject<ChapterAttributesDto> chapterData, string translatedLanguage);
+        SimpleChapterInfoViewModel MapToSimpleChapterInfo(ResourceObject<ChapterAttributesDto> chapterData, string translatedLanguage);
     }
 } 

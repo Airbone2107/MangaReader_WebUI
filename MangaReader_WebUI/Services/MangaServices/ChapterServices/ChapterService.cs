@@ -1,7 +1,13 @@
-using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Models.ViewModels.Chapter; // ViewModel mới
 using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
-using MangaReader.WebUI.Services.MangaServices.Models;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
@@ -125,7 +131,7 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         /// </summary>
         /// <param name="chapterId">ID của chapter cần lấy</param>
         /// <returns>ChapterViewModel hoặc null nếu không tìm thấy</returns>
-        public async Task<ChapterViewModel> GetChapterById(string chapterId)
+        public async Task<ChapterViewModel?> GetChapterById(string chapterId)
         {
             try
             {
@@ -181,12 +187,12 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         /// <param name="limit">Số lượng chapters cần lấy</param>
         /// <param name="languages">Danh sách ngôn ngữ cần lấy (mặc định: "vi,en")</param>
         /// <returns>Danh sách SimpleChapterInfo</returns>
-        public async Task<List<SimpleChapterInfo>> GetLatestChaptersAsync(string mangaId, int limit, string languages = "vi,en")
+        public async Task<List<SimpleChapterInfoViewModel>> GetLatestChaptersAsync(string mangaId, int limit, string languages = "vi,en")
         {
             try
             {
                 var chapterListResponse = await _chapterApiService.FetchChaptersAsync(mangaId, languages, maxChapters: limit);
-                var simpleChapters = new List<SimpleChapterInfo>();
+                var simpleChapters = new List<SimpleChapterInfoViewModel>();
 
                 if (chapterListResponse?.Data != null)
                 {
@@ -211,14 +217,14 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Lỗi khi lấy chapters mới nhất cho manga {mangaId}");
-                return new List<SimpleChapterInfo>();
+                return new List<SimpleChapterInfoViewModel>();
             }
         }
 
         // Helper để parse số chapter, trả về null nếu không parse được
         private double? ParseChapterNumber(string chapterNumber)
         {
-            if (double.TryParse(chapterNumber, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double number))
+            if (double.TryParse(chapterNumber, NumberStyles.Any, CultureInfo.InvariantCulture, out double number))
             {
                 return number;
             }

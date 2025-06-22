@@ -1,4 +1,6 @@
 using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Models.ViewModels.Manga;
+using MangaReader.WebUI.Models.ViewModels.Shared;
 using MangaReader.WebUI.Services.MangaServices;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
@@ -8,6 +10,7 @@ using MangaReader.WebUI.Services.APIServices.Interfaces;
 using MangaReader.WebUI.Services.APIServices.Services;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
 using MangaReader.WebUI.Enums;
+using System;
 
 namespace MangaReader.WebUI.Controllers
 {
@@ -37,14 +40,12 @@ namespace MangaReader.WebUI.Controllers
         {
             try
             {
-                // Thiết lập page type để chọn CSS phù hợp
                 ViewData["PageType"] = "home";
                 
-                // Kiểm tra kết nối API trước
                 bool isConnected = await _apiStatusService.TestConnectionAsync();
                 if (!isConnected)
                 {
-                    _logger.LogWarning("Không thể kết nối đến API MangaDex");
+                    _logger.LogWarning("Không thể kết nối đến API");
                     ViewBag.ErrorMessage = "Không thể kết nối đến API. Vui lòng thử lại sau.";
                     ViewBag.IsConnected = false;
                     return View("Index", new List<MangaViewModel>());
@@ -52,7 +53,6 @@ namespace MangaReader.WebUI.Controllers
                 
                 ViewBag.IsConnected = true;
                 
-                // Lấy danh sách manga mới nhất
                 try
                 {
                     var sortOptions = new SortManga { 
@@ -60,11 +60,10 @@ namespace MangaReader.WebUI.Controllers
                         Languages = new List<string> { "vi", "en" }
                     };
                     
-                    // Lấy nguồn truyện hiện tại từ cookie
                     var currentSource = HttpContext.Request.Cookies.TryGetValue("MangaSource", out var sourceString) &&
                                         Enum.TryParse(sourceString, true, out MangaSource sourceEnum)
                                         ? sourceEnum
-                                        : MangaSource.MangaDex; // Mặc định là MangaDex
+                                        : MangaSource.MangaDex; 
 
                     _logger.LogInformation("Trang chủ: Nguồn truyện hiện tại là {MangaSource}", currentSource);
 
@@ -73,16 +72,14 @@ namespace MangaReader.WebUI.Controllers
                         sortOptions.ContentRating = new List<string> { "safe" };
                         _logger.LogInformation("Trang chủ (MangaDex): Áp dụng ContentRating = 'safe'");
                     }
-                    else // MangaSource.MangaReaderLib
+                    else 
                     {
-                        sortOptions.ContentRating = new List<string>(); // Không áp dụng filter content rating
+                        sortOptions.ContentRating = new List<string>(); 
                         _logger.LogInformation("Trang chủ (MangaReaderLib): Không áp dụng ContentRating filter");
                     }
                     
-                    Console.WriteLine("Đang lấy danh sách manga mới nhất...");
                     var recentMangaResponse = await _mangaApiService.FetchMangaAsync(10, 0, sortOptions);
 
-                    // Nếu không có dữ liệu
                     if (recentMangaResponse?.Data == null || !recentMangaResponse.Data.Any())
                     {
                         _logger.LogWarning("API đã kết nối nhưng không trả về dữ liệu manga");
@@ -90,7 +87,6 @@ namespace MangaReader.WebUI.Controllers
                         return View("Index", new List<MangaViewModel>());
                     }
 
-                    // Chuyển đổi thành MangaViewModel
                     var viewModels = new List<MangaViewModel>();
                     var mangaListToProcess = recentMangaResponse.Data;
                     
@@ -98,7 +94,6 @@ namespace MangaReader.WebUI.Controllers
                     {
                         try
                         {
-                            // Sử dụng mapper để chuyển đổi
                             var viewModel = await _mangaViewModelMapper.MapToMangaViewModelAsync(manga);
                             viewModels.Add(viewModel);
                         }
@@ -108,13 +103,11 @@ namespace MangaReader.WebUI.Controllers
                         }
                     }
 
-                    // Nếu không thể xử lý dữ liệu từ bất kỳ manga nào
-                    if (viewModels.Count == 0)
+                    if (viewModels.Count == 0 && mangaListToProcess.Any())
                     {
                         ViewBag.ErrorMessage = "Không thể hiển thị dữ liệu manga. Định dạng dữ liệu không hợp lệ.";
                     }
 
-                    // Nếu là HTMX request, chỉ trả về nội dung một phần
                     if (Request.Headers.ContainsKey("HX-Request"))
                     {
                         return PartialView("Index", viewModels);
@@ -124,8 +117,8 @@ namespace MangaReader.WebUI.Controllers
                 }
                 catch (Exception apiEx)
                 {
-                    _logger.LogError($"Lỗi khi gọi API MangaDex: {apiEx.Message}");
-                    ViewBag.ErrorMessage = $"Lỗi khi tải dữ liệu từ MangaDex: {apiEx.Message}";
+                    _logger.LogError($"Lỗi khi gọi API: {apiEx.Message}");
+                    ViewBag.ErrorMessage = $"Lỗi khi tải dữ liệu từ API: {apiEx.Message}";
                     ViewBag.StackTrace = apiEx.StackTrace;
                     return View("Index", new List<MangaViewModel>());
                 }
@@ -139,36 +132,30 @@ namespace MangaReader.WebUI.Controllers
                 }
                 
                 ViewBag.ErrorMessage = $"Không thể tải danh sách manga: {ex.Message}";
-                ViewBag.StackTrace = ex.StackTrace; // Thêm stack trace để debug
+                ViewBag.StackTrace = ex.StackTrace; 
                 return View("Index", new List<MangaViewModel>());
             }
         }
 
-        // Trang test cho việc debug
         public async Task<IActionResult> ApiTest()
         {
-            // Thiết lập page type để chọn CSS phù hợp
             ViewData["PageType"] = "home";
-            
             var testResults = new Dictionary<string, string>();
             
             try
             {
-                // Kiểm tra kết nối chung
                 testResults.Add("API Connection", await _apiStatusService.TestConnectionAsync() ? "Success" : "Failed");
                 
-                // Kiểm tra lấy manga với limit = 1
                 try
                 {
                     var manga = await _mangaApiService.FetchMangaAsync(1, 0);
-                    testResults.Add("Fetch Manga", $"Success - Found {manga?.Total ?? 0} items trong tổng số; {manga?.Data?.Count ?? 0} items trả về");
+                    testResults.Add("Fetch Manga", $"Success - Found {manga?.Total ?? 0} items; {manga?.Data?.Count ?? 0} items returned");
                 }
                 catch (Exception ex)
                 {
                     testResults.Add("Fetch Manga", $"Failed - {ex.Message}");
                 }
                 
-                // Nếu là HTMX request, chỉ trả về nội dung một phần
                 if (Request.Headers.ContainsKey("HX-Request"))
                 {
                     return PartialView("ApiTest", testResults);
@@ -185,77 +172,30 @@ namespace MangaReader.WebUI.Controllers
 
         public IActionResult Privacy()
         {
-            // Thiết lập page type để chọn CSS phù hợp
             ViewData["PageType"] = "home";
-            
-            // Nếu là HTMX request, chỉ trả về nội dung một phần
             if (Request.Headers.ContainsKey("HX-Request"))
             {
                 return PartialView("Privacy");
             }
-            
             return View("Privacy");
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
-            // Thiết lập page type để chọn CSS phù hợp
             ViewData["PageType"] = "home";
-            
             var model = new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier };
-            
-            // Nếu là HTMX request, chỉ trả về nội dung một phần
             if (Request.Headers.ContainsKey("HX-Request"))
             {
                 return PartialView("Error", model);
             }
-            
             return View("Error", model);
         }
         
-        // Hàm utility để xử lý dữ liệu
-        private string GetLocalizedTitle(string titleJson)
-        {
-            try
-            {
-                var titles = JsonSerializer.Deserialize<Dictionary<string, string>>(titleJson);
-                
-                if (titles == null || !titles.Any())
-                {
-                    return "Không có tiêu đề";
-                }
-                
-                // Ưu tiên trả về tiêu đề tiếng Việt nếu có
-                if (titles.TryGetValue("vi", out var viTitle) && !string.IsNullOrEmpty(viTitle))
-                {
-                    return viTitle;
-                }
-                
-                // Sau đó là tiếng Anh
-                if (titles.TryGetValue("en", out var enTitle) && !string.IsNullOrEmpty(enTitle))
-                {
-                    return enTitle;
-                }
-                
-                // Cuối cùng là ngôn ngữ gốc (key đầu tiên trong từ điển)
-                return titles.Values.FirstOrDefault(t => !string.IsNullOrEmpty(t)) ?? "Không có tiêu đề";
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Lỗi khi parse tiêu đề manga: {ex.Message}");
-                return "Lỗi tiêu đề";
-            }
-        }
-
-        /// <summary>
-        /// Phương thức lấy danh sách manga mới nhất và trả về dạng partial view
-        /// </summary>
         public async Task<IActionResult> GetLatestMangaPartial()
         {
             try
             {
-                // Lấy danh sách manga mới nhất
                 var sortOptions = new SortManga { 
                     SortBy = "Mới cập nhật",
                     Languages = new List<string> { "vi", "en" }

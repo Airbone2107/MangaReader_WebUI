@@ -15,6 +15,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Text.Json;
+using MangaReader.WebUI.Models.ViewModels.Manga;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaReaderLibMappers
 {

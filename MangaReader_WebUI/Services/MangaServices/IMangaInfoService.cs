@@ -1,4 +1,4 @@
-using MangaReader.WebUI.Services.MangaServices.Models;
+using MangaReader.WebUI.Models.ViewModels.Manga;
 
 namespace MangaReader.WebUI.Services.MangaServices
 {
@@ -9,6 +9,6 @@ namespace MangaReader.WebUI.Services.MangaServices
         /// </summary>
         /// <param name="mangaId">ID của manga.</param>
         /// <returns>MangaInfoViewModel chứa thông tin cơ bản hoặc null nếu có lỗi.</returns>
-        Task<MangaInfoViewModel> GetMangaInfoAsync(string mangaId);
+        Task<MangaInfoViewModel?> GetMangaInfoAsync(string mangaId);
     }
 } 
