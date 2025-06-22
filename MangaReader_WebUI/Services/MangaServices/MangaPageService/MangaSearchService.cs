@@ -1,7 +1,8 @@
 using MangaReader.WebUI.Models;
 using MangaReader.WebUI.Models.ViewModels.Manga;
-using MangaReader.WebUI.Services.APIServices.Interfaces;
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
+using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Interfaces;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
+using MangaReaderLib.Enums;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -12,16 +13,16 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
 {
     public class MangaSearchService
     {
-        private readonly IMangaApiService _mangaApiService;
+        private readonly IMangaReaderLibMangaClient _mangaClient;
         private readonly ILogger<MangaSearchService> _logger;
-        private readonly IMangaToMangaViewModelMapper _mangaViewModelMapper;
+        private readonly IMangaReaderLibToMangaViewModelMapper _mangaViewModelMapper;
 
         public MangaSearchService(
-            IMangaApiService mangaApiService,
+            IMangaReaderLibMangaClient mangaClient,
             ILogger<MangaSearchService> logger,
-            IMangaToMangaViewModelMapper mangaViewModelMapper)
+            IMangaReaderLibToMangaViewModelMapper mangaViewModelMapper)
         {
-            _mangaApiService = mangaApiService;
+            _mangaClient = mangaClient;
             _logger = logger;
             _mangaViewModelMapper = mangaViewModelMapper;
         }
@@ -67,15 +68,18 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
             // Xử lý danh sách họa sĩ
             if (!string.IsNullOrEmpty(artists))
             {
-                sortManga.Artists = artists.Split(',').Select(a => a.Trim()).Where(a => !string.IsNullOrEmpty(a)).ToList();
-                _logger.LogInformation($"Tìm kiếm với họa sĩ: {string.Join(", ", sortManga.Artists)}");
+                // Note: MangaReaderLib API uses authorIdsFilter for both authors and artists.
+                // We merge them here for simplicity. The API should handle filtering by role.
+                sortManga.Authors.AddRange(artists.Split(',').Select(a => a.Trim()).Where(a => !string.IsNullOrEmpty(a)));
+                sortManga.Authors = sortManga.Authors.Distinct().ToList();
+                _logger.LogInformation($"Tìm kiếm với họa sĩ: {string.Join(", ", sortManga.Authors)}");
             }
 
             // Xử lý danh sách ngôn ngữ
             if (availableTranslatedLanguage != null && availableTranslatedLanguage.Any())
             {
-                sortManga.Languages = availableTranslatedLanguage;
-                _logger.LogInformation($"Tìm kiếm với ngôn ngữ: {string.Join(", ", sortManga.Languages)}");
+                sortManga.OriginalLanguage = availableTranslatedLanguage;
+                _logger.LogInformation($"Tìm kiếm với ngôn ngữ: {string.Join(", ", sortManga.OriginalLanguage)}");
             }
 
             // Xử lý danh sách đánh giá nội dung
@@ -118,67 +122,48 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
         {
             try
             {
-                // Xử lý giới hạn 10000 kết quả từ API
-                const int MAX_API_RESULTS = 10000;
                 int offset = (page - 1) * pageSize;
-                int limit = pageSize;
 
-                // Kiểm tra nếu đang truy cập trang cuối cùng gần với giới hạn 10000
-                if (offset + limit > MAX_API_RESULTS)
+                List<PublicationDemographic>? demographics = null;
+                if (sortManga.Demographic != null && sortManga.Demographic.Any())
                 {
-                    // Tính lại limit để không vượt quá 10000 kết quả
-                    if (offset < MAX_API_RESULTS)
-                    {
-                        limit = MAX_API_RESULTS - offset;
-                        _logger.LogInformation($"Đã điều chỉnh limit: {limit} cho trang cuối (offset: {offset})");
-                    }
-                    else
-                    {
-                        // Trường hợp offset đã vượt quá 10000, không thể lấy kết quả
-                        _logger.LogWarning($"Offset {offset} vượt quá giới hạn API 10000 kết quả, không thể lấy dữ liệu");
-                        limit = 0;
-                    }
+                    demographics = sortManga.Demographic
+                        .Select(d => Enum.TryParse<PublicationDemographic>(d, true, out var demo) ? (PublicationDemographic?)demo : null)
+                        .Where(d => d.HasValue)
+                        .Select(d => d.Value)
+                        .ToList();
                 }
 
-                if (limit == 0)
-                {
-                    return new MangaListViewModel
-                    {
-                        Mangas = new List<MangaViewModel>(),
-                        CurrentPage = page,
-                        PageSize = pageSize,
-                        TotalCount = 10000,
-                        MaxPages = (int)Math.Ceiling(MAX_API_RESULTS / (double)pageSize),
-                        SortOptions = sortManga
-                    };
-                }
+                var result = await _mangaClient.GetMangasAsync(
+                    offset: offset,
+                    limit: pageSize,
+                    titleFilter: sortManga.Title,
+                    statusFilter: sortManga.Status?.FirstOrDefault(),
+                    contentRatingFilter: sortManga.ContentRating?.FirstOrDefault(),
+                    publicationDemographicsFilter: demographics,
+                    originalLanguageFilter: sortManga.OriginalLanguage?.FirstOrDefault(),
+                    yearFilter: sortManga.Year,
+                    authorIdsFilter: sortManga.Authors?.Where(s => Guid.TryParse(s, out _)).Select(Guid.Parse).ToList(),
+                    includedTags: sortManga.IncludedTags?.Where(s => Guid.TryParse(s, out _)).Select(Guid.Parse).ToList(),
+                    includedTagsMode: sortManga.IncludedTagsMode,
+                    excludedTags: sortManga.ExcludedTags?.Where(s => Guid.TryParse(s, out _)).Select(Guid.Parse).ToList(),
+                    excludedTagsMode: sortManga.ExcludedTagsMode,
+                    orderBy: sortManga.SortBy,
+                    ascending: sortManga.SortBy == "title",
+                    includes: new List<string> { "cover_art", "author", "tag" }
+                );
 
-                var result = await _mangaApiService.FetchMangaAsync(limit: limit, offset: offset, sortManga: sortManga);
-
-                // Lấy tổng số manga từ kết quả API (nếu có)
                 int totalCount = result?.Total ?? 0;
+                int maxPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
-                // Kiểm tra nếu không lấy được tổng số, sử dụng số lượng kết quả nhân với tỷ lệ page hiện tại
-                if (totalCount <= 0 && result?.Data != null)
-                {
-                    // Ước tính tổng số manga dựa trên số lượng kết quả và offset
-                    int resultCount = result.Data.Count;
-                    totalCount = Math.Max(resultCount * 10, (page - 1) * pageSize + resultCount + pageSize);
-                    _logger.LogInformation($"Ước tính tổng số manga: {totalCount} dựa trên {resultCount} kết quả");
-                }
-
-                // Tính toán số trang tối đa dựa trên giới hạn 10000 kết quả của API
-                int maxPages = (int)Math.Ceiling(Math.Min(totalCount, MAX_API_RESULTS) / (double)pageSize);
-
-                // Sử dụng mapper mới
                 var mangaViewModels = new List<MangaViewModel>();
                 if (result?.Data != null)
                 {
-                    foreach (var mangaData in result.Data)
+                    foreach (var mangaDto in result.Data)
                     {
-                        if (mangaData != null) // Kiểm tra null cho mangaData
+                        if (mangaDto != null)
                         {
-                            mangaViewModels.Add(await _mangaViewModelMapper.MapToMangaViewModelAsync(mangaData));
+                            mangaViewModels.Add(await _mangaViewModelMapper.MapToMangaViewModelAsync(mangaDto));
                         }
                     }
                 }
@@ -195,12 +180,11 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi khi tải danh sách manga: {ex.Message}\nStack trace: {ex.StackTrace}");
-                // Trả về ViewModel rỗng trong trường hợp lỗi
+                _logger.LogError(ex, "Lỗi khi tải danh sách manga.");
                 return new MangaListViewModel
                 {
                     Mangas = new List<MangaViewModel>(),
-                    CurrentPage = 1,
+                    CurrentPage = page,
                     PageSize = pageSize,
                     TotalCount = 0,
                     MaxPages = 0,

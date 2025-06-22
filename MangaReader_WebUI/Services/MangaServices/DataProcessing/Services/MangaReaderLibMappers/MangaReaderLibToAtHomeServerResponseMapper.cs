@@ -1,4 +1,4 @@
-using MangaReader.WebUI.Models.Mangadex;
+using MangaReader.WebUI.Models.ViewModels.Common;
 using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.DTOs.Chapters;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
@@ -25,13 +25,13 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
                                 ?? throw new InvalidOperationException("MangaReaderApiSettings:CloudinaryBaseUrl is not configured for AtHomeServerResponseMapper.");
         }
 
-        public AtHomeServerResponse MapToAtHomeServerResponse(
+        public PageServerResponse MapToAtHomeServerResponse(
             ApiCollectionResponse<ResourceObject<ChapterPageAttributesDto>> chapterPagesData,
             string chapterId,
             string mangaReaderLibBaseUrlIgnored)
         {
             Debug.Assert(chapterPagesData != null, "chapterPagesData không được null khi mapping.");
-            Debug.Assert(!string.IsNullOrEmpty(chapterId), "chapterId không được rỗng.");
+            Debug.Assert(!string.IsNullOrEmpty(chapterId), "chapterid không được rỗng.");
             
             _logger.LogInformation("[MRLib AtHome Mapper] Bắt đầu map chapter pages cho ChapterId: {ChapterId}. Dữ liệu đầu vào: {ChapterPagesDataJson}", 
                 chapterId, JsonSerializer.Serialize(chapterPagesData));
@@ -62,11 +62,11 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
                 _logger.LogWarning("[MRLib AtHome Mapper] No page data found in chapterPagesData for ChapterId={ChapterId}", chapterId);
             }
 
-            var result = new AtHomeServerResponse
+            var result = new PageServerResponse
             {
                 Result = "ok",
                 BaseUrl = "",
-                Chapter = new AtHomeChapterData
+                Chapter = new PageChapterData
                 {
                     Hash = chapterId,
                     Data = pages,

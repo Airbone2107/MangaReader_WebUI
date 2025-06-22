@@ -15,7 +15,6 @@
 import { initAuthUI } from '../auth.js';
 import { initCustomDropdowns } from './custom-dropdown.js';
 import { initMangaDetailsPage } from './manga-details.js';
-import { initTagsInSearchForm } from './manga-tags.js';
 import { initChapterDropdownNav, initImageLoading, initImageScaling, initPlaceholderButtons, initReadPage, initSidebarToggle } from './read-page.js';
 import SearchModule from './search.js';
 import { initSidebar, updateActiveSidebarLink } from './sidebar.js';

@@ -49,7 +49,7 @@ namespace MangaReader.WebUI.Services.MangaServices
                     return followedMangaList;
                 }
 
-                _logger.LogInformation($"Người dùng đang theo dõi {user.FollowingManga.Count} manga. Bắt đầu lấy thông tin...");
+                _logger.LogInformation("Người dùng đang theo dõi {Count} manga. Bắt đầu lấy thông tin...", user.FollowingManga.Count);
 
                 foreach (var mangaId in user.FollowingManga)
                 {
@@ -60,7 +60,7 @@ namespace MangaReader.WebUI.Services.MangaServices
 
                         if (mangaInfo == null)
                         {
-                             _logger.LogWarning($"Không thể lấy thông tin cơ bản cho manga ID: {mangaId}. Bỏ qua.");
+                             _logger.LogWarning("Không thể lấy thông tin cơ bản cho manga ID: {MangaId}. Bỏ qua.", mangaId);
                              continue; 
                         }
 
@@ -69,16 +69,16 @@ namespace MangaReader.WebUI.Services.MangaServices
 
                         var followedMangaViewModel = _followedMangaMapper.MapToFollowedMangaViewModel(mangaInfo, latestChapters ?? new List<SimpleChapterInfoViewModel>());
                         followedMangaList.Add(followedMangaViewModel);
-                        _logger.LogDebug($"Đã xử lý xong manga: {mangaInfo.MangaTitle}");
+                        _logger.LogDebug("Đã xử lý xong manga: {MangaTitle}", mangaInfo.MangaTitle);
 
                     }
                     catch (Exception mangaEx)
                     {
-                        _logger.LogError(mangaEx, $"Lỗi khi xử lý manga ID: {mangaId} trong danh sách theo dõi.");
+                        _logger.LogError(mangaEx, "Lỗi khi xử lý manga ID: {MangaId} trong danh sách theo dõi.", mangaId);
                     }
                 }
 
-                _logger.LogInformation($"Hoàn tất lấy thông tin cho {followedMangaList.Count} truyện đang theo dõi.");
+                _logger.LogInformation("Hoàn tất lấy thông tin cho {Count} truyện đang theo dõi.", followedMangaList.Count);
                 return followedMangaList;
             }
             catch (Exception ex)

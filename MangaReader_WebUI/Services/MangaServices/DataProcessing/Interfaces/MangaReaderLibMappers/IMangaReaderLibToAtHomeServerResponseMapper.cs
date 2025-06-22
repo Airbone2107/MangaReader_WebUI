@@ -1,4 +1,4 @@
-using MangaReader.WebUI.Models.Mangadex; // Cho AtHomeServerResponse
+using MangaReader.WebUI.Models.ViewModels.Common;
 using MangaReaderLib.DTOs.Common;        // Cho ApiCollectionResponse, ResourceObject
 using MangaReaderLib.DTOs.Chapters;      // Cho ChapterPageAttributesDto
 
@@ -6,9 +6,9 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.Man
 {
     public interface IMangaReaderLibToAtHomeServerResponseMapper
     {
-        AtHomeServerResponse MapToAtHomeServerResponse(
+        PageServerResponse MapToAtHomeServerResponse(
             ApiCollectionResponse<ResourceObject<ChapterPageAttributesDto>> chapterPagesData,
             string chapterId,
-            string mangaReaderLibBaseUrlIgnored); // mangaReaderLibBaseUrl không còn cần thiết
+            string mangaReaderLibBaseUrlIgnored);
     }
 } 

@@ -8,7 +8,6 @@ import { initCustomDropdowns } from './modules/custom-dropdown.js';
 import { initErrorHandling } from './modules/error-handling.js';
 import { initHtmxHandlers, reinitializeAfterHtmxLoad } from './modules/htmx-handlers.js';
 import { initMangaDetailsPage } from './modules/manga-details.js';
-// import { initTagsInSearchForm } from './modules/manga-tags.js'; // Đã bị thay thế bởi search-tags-dropdown.js
 import { initReadPage } from './modules/read-page.js';
 import { initReadingState } from './modules/reading-state.js';
 import SearchModule from './modules/search.js';
@@ -74,7 +73,6 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Search module registered');
     
     // Khởi tạo module quản lý thẻ manga
-    // initTagsInSearchForm(); // Đã bị thay thế bởi search-tags-dropdown.js
     if (window.initSearchTagsDropdown) {
         window.initSearchTagsDropdown();
         console.log('Search tags dropdown module registered');

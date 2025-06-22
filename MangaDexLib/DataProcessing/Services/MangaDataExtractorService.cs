@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 
 namespace MangaDexLib.DataProcessing.Services
 {
-    public class MangaDataExtractorService : IMangaDataExtractor
+    public partial class MangaDataExtractorService : IMangaDataExtractor
     {
         private readonly ILogger<MangaDataExtractorService> _logger;
         private readonly LocalizationService _localizationService;
@@ -32,32 +32,45 @@ namespace MangaDexLib.DataProcessing.Services
 
         public string ExtractCoverUrl(string mangaId, List<Relationship>? relationships)
         {
+            const string placeholder = "/images/cover-placeholder.jpg";
             try
             {
                 if (relationships == null || !relationships.Any())
                 {
-                    return "/images/cover-placeholder.jpg";
+                    return placeholder;
                 }
 
                 var coverRelationship = relationships.FirstOrDefault(r => r != null && r.Type == "cover_art");
 
-                if (coverRelationship == null)
+                if (coverRelationship?.Attributes == null)
                 {
-                    return "/images/cover-placeholder.jpg";
+                    return placeholder;
                 }
 
                 string? fileName = null;
-                if (coverRelationship.Attributes is JsonElement attributesElement && attributesElement.ValueKind == JsonValueKind.Object)
+
+                // Ưu tiên kiểm tra kiểu đã được deserialize đúng
+                if (coverRelationship.Attributes is CoverAttributes coverAttrs)
                 {
-                    if (attributesElement.TryGetProperty("fileName", out var fileNameElement) && fileNameElement.ValueKind == JsonValueKind.String)
+                    fileName = coverAttrs.FileName;
+                }
+                // Nếu không, thử deserialize từ JsonElement
+                else if (coverRelationship.Attributes is JsonElement attributesElement)
+                {
+                    try
                     {
-                        fileName = fileNameElement.GetString();
+                        var deserializedAttrs = attributesElement.Deserialize<CoverAttributes>(_jsonOptions);
+                        fileName = deserializedAttrs?.FileName;
+                    }
+                    catch (JsonException ex)
+                    {
+                        _logger.LogError(ex, "Lỗi khi deserialize CoverAttributes từ JsonElement cho manga ID: {mangaId}", mangaId);
                     }
                 }
 
                 if (string.IsNullOrEmpty(fileName))
                 {
-                    return "/images/cover-placeholder.jpg";
+                    return placeholder;
                 }
 
                 var originalImageUrl = $"https://uploads.mangadex.org/covers/{mangaId}/{fileName}.512.jpg";
@@ -66,7 +79,7 @@ namespace MangaDexLib.DataProcessing.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Lỗi khi trích xuất Cover URL cho manga ID: {mangaId}");
-                return "/images/cover-placeholder.jpg";
+                return placeholder;
             }
         }
 
@@ -200,27 +213,17 @@ namespace MangaDexLib.DataProcessing.Services
 
             try
             {
-                foreach (var rel in relationships)
+                var authorRel = relationships.FirstOrDefault(r => r?.Type == "author");
+                var artistRel = relationships.FirstOrDefault(r => r?.Type == "artist");
+
+                if (authorRel != null)
                 {
-                    if (rel == null) continue;
-                    string relType = rel.Type;
-                    string name = "Không rõ";
+                    author = GetNameFromRelationship(authorRel) ?? "Không rõ";
+                }
 
-                    if (relType == "author" || relType == "artist")
-                    {
-                        if (rel.Attributes is JsonElement attributesElement && attributesElement.ValueKind == JsonValueKind.Object)
-                        {
-                            if (attributesElement.TryGetProperty("name", out var nameElement) && nameElement.ValueKind == JsonValueKind.String)
-                            {
-                                name = nameElement.GetString() ?? "Không rõ";
-                            }
-                        }
-
-                        if (relType == "author")
-                            author = name;
-                        else
-                            artist = name;
-                    }
+                if (artistRel != null)
+                {
+                    artist = GetNameFromRelationship(artistRel) ?? "Không rõ";
                 }
             }
             catch (Exception ex)
@@ -231,11 +234,37 @@ namespace MangaDexLib.DataProcessing.Services
             return (author, artist);
         }
 
+        private string? GetNameFromRelationship(Relationship relationship)
+        {
+            if (relationship.Attributes == null) return null;
+
+            if (relationship.Attributes is AuthorAttributes authorAttrs)
+            {
+                return authorAttrs.Name;
+            }
+
+            if (relationship.Attributes is JsonElement attributesElement)
+            {
+                try
+                {
+                    var deserializedAttrs = attributesElement.Deserialize<AuthorAttributes>(_jsonOptions);
+                    return deserializedAttrs?.Name;
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogError(ex, "Lỗi khi deserialize AuthorAttributes từ JsonElement cho relationship ID: {relId}", relationship.Id);
+                    return null;
+                }
+            }
+            return null;
+        }
+
         public string ExtractAndTranslateStatus(string? status)
         {
             return _localizationService.GetStatus(status);
         }
 
+        // === ĐÃ CẢI TIẾN: Tối ưu Regex bằng Source Generator (yêu cầu .NET 7+) ===
         public string ExtractChapterDisplayTitle(ChapterAttributes attributes)
         {
             string chapterNumberString = attributes.ChapterNumber ?? "?";
@@ -246,11 +275,9 @@ namespace MangaDexLib.DataProcessing.Services
                 return !string.IsNullOrEmpty(specificChapterTitle) ? specificChapterTitle : "Oneshot";
             }
 
-            string patternChapterVn = $"^Chương\\s+{Regex.Escape(chapterNumberString)}([:\\s]|$)";
-            string patternChapterEn = $"^Chapter\\s+{Regex.Escape(chapterNumberString)}([:\\s]|$)";
-
-            bool startsWithChapterInfo = Regex.IsMatch(specificChapterTitle, patternChapterVn, RegexOptions.IgnoreCase) ||
-                                         Regex.IsMatch(specificChapterTitle, patternChapterEn, RegexOptions.IgnoreCase);
+            // Sử dụng các phương thức Regex đã được tạo sẵn
+            bool startsWithChapterInfo = ChapterTitleVnRegex().IsMatch(specificChapterTitle) ||
+                                         ChapterTitleEnRegex().IsMatch(specificChapterTitle);
 
             if (startsWithChapterInfo)
             {
@@ -280,18 +307,17 @@ namespace MangaDexLib.DataProcessing.Services
             {
                 foreach (var altTitleDict in altTitlesList)
                 {
-                    if (altTitleDict != null && altTitleDict.Any())
-                    {
-                        var langKey = altTitleDict.Keys.First();
-                        var titleText = altTitleDict[langKey];
+                    if (altTitleDict == null) continue;
 
-                        if (!string.IsNullOrEmpty(titleText))
+                    foreach (var kvp in altTitleDict)
+                    {
+                        if (!string.IsNullOrEmpty(kvp.Value))
                         {
-                            if (!altTitlesDictionary.ContainsKey(langKey))
+                            if (!altTitlesDictionary.ContainsKey(kvp.Key))
                             {
-                                altTitlesDictionary[langKey] = new List<string>();
+                                altTitlesDictionary[kvp.Key] = new List<string>();
                             }
-                            altTitlesDictionary[langKey].Add(titleText);
+                            altTitlesDictionary[kvp.Key].Add(kvp.Value);
                         }
                     }
                 }
@@ -342,5 +368,12 @@ namespace MangaDexLib.DataProcessing.Services
                 { "Tragedy", "Bi kịch" }, { "Gyaru", "Gyaru" }
             };
         }
+
+        // Phương thức được tạo bởi Regex Source Generator
+        [GeneratedRegex("^Chương\\s+[\\d.]+(?:\\s*:.*|\\s*$)", RegexOptions.IgnoreCase, "vi-VN")]
+        private static partial Regex ChapterTitleVnRegex();
+
+        [GeneratedRegex("^Chapter\\s+[\\d.]+(?:\\s*:.*|\\s*$)", RegexOptions.IgnoreCase, "en-US")]
+        private static partial Regex ChapterTitleEnRegex();
     }
 }

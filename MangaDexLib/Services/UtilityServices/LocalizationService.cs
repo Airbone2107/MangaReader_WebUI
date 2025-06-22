@@ -1,5 +1,8 @@
 using MangaDexLib.Models;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text.Json;
 
 namespace MangaDexLib.Services.UtilityServices
@@ -12,19 +15,19 @@ namespace MangaDexLib.Services.UtilityServices
             {
                 if (string.IsNullOrEmpty(titleJson))
                     return "Không có tiêu đề";
-                
+
                 try
                 {
                     var titles = JsonSerializer.Deserialize<Dictionary<string, string>>(titleJson);
-                    
+
                     if (titles == null || titles.Count == 0)
                         return "Không có tiêu đề";
-                        
+
                     if (titles.ContainsKey("vi"))
                         return titles["vi"];
                     if (titles.ContainsKey("en"))
                         return titles["en"];
-                        
+
                     var firstItem = titles.FirstOrDefault();
                     return firstItem.Equals(default(KeyValuePair<string, string>)) ? "Không có tiêu đề" : firstItem.Value;
                 }
@@ -33,14 +36,14 @@ namespace MangaDexLib.Services.UtilityServices
                     try
                     {
                         var jsonElement = JsonSerializer.Deserialize<JsonElement>(titleJson);
-                        
+
                         if (jsonElement.ValueKind == JsonValueKind.Object)
                         {
                             if (jsonElement.TryGetProperty("vi", out var viTitle))
                                 return viTitle.GetString() ?? "Không có tiêu đề";
                             if (jsonElement.TryGetProperty("en", out var enTitle))
                                 return enTitle.GetString() ?? "Không có tiêu đề";
-                            
+
                             using (var properties = jsonElement.EnumerateObject())
                             {
                                 if (properties.MoveNext())
@@ -54,7 +57,7 @@ namespace MangaDexLib.Services.UtilityServices
                     {
                     }
                 }
-                
+
                 return "Không có tiêu đề";
             }
             catch (Exception ex)
@@ -63,26 +66,26 @@ namespace MangaDexLib.Services.UtilityServices
                 return "Không có tiêu đề";
             }
         }
-        
+
         public string GetLocalizedDescription(string descriptionJson)
         {
             try
             {
                 if (string.IsNullOrEmpty(descriptionJson))
                     return "";
-                
+
                 try
                 {
                     var descriptions = JsonSerializer.Deserialize<Dictionary<string, string>>(descriptionJson);
-                    
+
                     if (descriptions == null || descriptions.Count == 0)
                         return "";
-                        
+
                     if (descriptions.ContainsKey("vi"))
                         return descriptions["vi"];
                     if (descriptions.ContainsKey("en"))
                         return descriptions["en"];
-                        
+
                     var firstItem = descriptions.FirstOrDefault();
                     return firstItem.Equals(default(KeyValuePair<string, string>)) ? "" : firstItem.Value;
                 }
@@ -91,14 +94,14 @@ namespace MangaDexLib.Services.UtilityServices
                     try
                     {
                         var jsonElement = JsonSerializer.Deserialize<JsonElement>(descriptionJson);
-                        
+
                         if (jsonElement.ValueKind == JsonValueKind.Object)
                         {
                             if (jsonElement.TryGetProperty("vi", out var viDescription))
                                 return viDescription.GetString() ?? "";
                             if (jsonElement.TryGetProperty("en", out var enDescription))
                                 return enDescription.GetString() ?? "";
-                            
+
                             using (var properties = jsonElement.EnumerateObject())
                             {
                                 if (properties.MoveNext())
@@ -112,7 +115,7 @@ namespace MangaDexLib.Services.UtilityServices
                     {
                     }
                 }
-                
+
                 return "";
             }
             catch (Exception ex)
@@ -122,7 +125,8 @@ namespace MangaDexLib.Services.UtilityServices
             }
         }
 
-        public string GetStatus(string status)
+        // === ĐÃ SỬA: Chấp nhận tham số có thể null (string?) ===
+        public string GetStatus(string? status)
         {
             return status switch
             {
@@ -154,4 +158,4 @@ namespace MangaDexLib.Services.UtilityServices
             return GetStatus(status);
         }
     }
-} 
+}

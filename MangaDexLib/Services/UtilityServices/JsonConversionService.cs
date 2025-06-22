@@ -1,12 +1,12 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace MangaDexLib.Services.UtilityServices
 {
     public class JsonConversionService
     {
-        public Dictionary<string, object> ConvertJsonElementToDict(JsonElement element)
+        public Dictionary<string, object?> ConvertJsonElementToDict(JsonElement element)
         {
-            var dict = new Dictionary<string, object>();
+            var dict = new Dictionary<string, object?>();
             if (element.ValueKind != JsonValueKind.Object)
             {
                 return dict;
@@ -55,10 +55,10 @@ namespace MangaDexLib.Services.UtilityServices
             }
             return dict;
         }
-        
-        public List<object> ConvertJsonElementToList(JsonElement element)
+
+        public List<object?> ConvertJsonElementToList(JsonElement element)
         {
-            var list = new List<object>();
+            var list = new List<object?>();
             if (element.ValueKind != JsonValueKind.Array)
             {
                 return list;
@@ -108,4 +108,4 @@ namespace MangaDexLib.Services.UtilityServices
             return list;
         }
     }
-} 
+}

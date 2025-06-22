@@ -1,11 +1,3 @@
-Chào bạn, tôi đã chuẩn bị sẵn sàng file `TODO.md` chi tiết để hướng dẫn bạn thực hiện tái cấu trúc project `MangaReader_WebUI`.
-
-File này sẽ bao gồm đầy đủ các bước từ việc dọn dẹp mã nguồn cũ liên quan đến MangaDex cho đến việc tái cấu trúc các service để sử dụng `MangaReaderLib` làm nguồn dữ liệu duy nhất. Tất cả các thay đổi về mã nguồn sẽ được cung cấp đầy đủ để bạn có thể sao chép và dán trực tiếp.
-
-Dưới đây là nội dung của file `TODO.md`:
-
-<!-- D:/Projects/MangaReader/TODO.md -->
-```markdown
 # TODO: Tái cấu trúc MangaReader_WebUI để sử dụng MangaReaderLib
 
 Tài liệu này hướng dẫn chi tiết các bước để tái cấu trúc project `MangaReader_WebUI`, loại bỏ hoàn toàn nguồn dữ liệu MangaDex và tập trung sử dụng `MangaReaderLib` làm nguồn dữ liệu duy nhất, theo kế hoạch đã đề ra trong `Plan.md` (Bước 2 và 3).
@@ -1953,9 +1945,4 @@ Các service được tổ chức thành các thư mục con dựa trên chức 
 - **Single Responsibility Principle:** Mỗi service tập trung vào một nhiệm vụ hoặc một nhóm nhiệm vụ liên quan chặt chẽ.
 - **Abstraction:** Sử dụng interface (ví dụ: `IUserService`) để tăng tính linh hoạt và khả năng kiểm thử.
 - **Error Handling:** Các service cố gắng xử lý lỗi một cách hợp lý (ví dụ: logging lỗi, trả về giá trị mặc định) để tránh làm crash ứng dụng.
-```
-
-Đến đây, bạn đã hoàn tất các bước 2 và 3 của kế hoạch. Project `MangaReader_WebUI` giờ đây đã được dọn dẹp và tái cấu trúc để chỉ sử dụng `MangaReaderLib` làm nguồn dữ liệu chính cho manga.
-
-Chúc bạn thành công!
 ```

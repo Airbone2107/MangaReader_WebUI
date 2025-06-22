@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace MangaDexLib.Models
@@ -6,7 +6,8 @@ namespace MangaDexLib.Models
     public class ErrorResponse
     {
         [JsonPropertyName("result")]
-        public string Result { get; set; }
+        public string Result { get; set; } = default!;
+
         [JsonPropertyName("errors")]
         public List<Error>? Errors { get; set; }
 
@@ -28,4 +29,4 @@ namespace MangaDexLib.Models
             public JsonElement? Context { get; set; }
         }
     }
-} 
+}

@@ -1,11 +1,8 @@
-using MangaReader.WebUI.Models.Mangadex; // Cho TagListResponse, Tag, TagAttributes
+using MangaReader.WebUI.Models.ViewModels.Manga;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
 using MangaReaderLib.DTOs.Common;        // Cho ApiCollectionResponse, ResourceObject
 using MangaReaderLib.DTOs.Tags;          // Cho TagAttributesDto
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
-using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Linq;                      // Cho Any
-using System.Collections.Generic;       // Cho Dictionary, List
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaReaderLibMappers
 {
@@ -18,18 +15,18 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
             _logger = logger;
         }
 
-        public TagListResponse MapToTagListResponse(ApiCollectionResponse<ResourceObject<TagAttributesDto>> tagsDataFromLib)
+        public TagListViewModel MapToTagListResponse(ApiCollectionResponse<ResourceObject<TagAttributesDto>> tagsDataFromLib)
         {
-            Debug.Assert(tagsDataFromLib != null, "tagsDataFromLib không được null khi mapping thành TagListResponse.");
+            Debug.Assert(tagsDataFromLib != null, "tagsDataFromLib không được null khi mapping thành TagListViewModel.");
 
-            var tagListResponse = new TagListResponse
+            var tagListViewModel = new TagListViewModel
             {
                 Result = tagsDataFromLib.Result,
-                Response = tagsDataFromLib.ResponseType, // Hoặc "collection"
+                Response = tagsDataFromLib.ResponseType,
                 Limit = tagsDataFromLib.Limit,
                 Offset = tagsDataFromLib.Offset,
                 Total = tagsDataFromLib.Total,
-                Data = new List<Tag>()
+                Data = new List<TagViewModel>()
             };
 
             if (tagsDataFromLib.Data != null)
@@ -42,35 +39,31 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
                         {
                             var libTagAttributes = libTagResource.Attributes;
                             
-                            // Tạo MangaDex.TagAttributes
-                            var dexTagAttributes = new TagAttributes
+                            var dexTagAttributes = new TagAttributesViewModel
                             {
-                                // MangaReaderLib TagAttributesDto.Name là string
-                                // MangaDex TagAttributes.Name là Dictionary<string, string>
-                                // Giả sử tên từ MangaReaderLib là tiếng Anh (en)
                                 Name = new Dictionary<string, string> { { "en", libTagAttributes.Name } },
-                                Description = new Dictionary<string, string>(), // MangaReaderLib TagAttributesDto không có description
-                                Group = libTagAttributes.TagGroupName?.ToLowerInvariant() ?? "other", // Map TagGroupName sang Group
-                                Version = 1 // Giá trị mặc định
+                                Description = new Dictionary<string, string>(),
+                                Group = libTagAttributes.TagGroupName?.ToLowerInvariant() ?? "other",
+                                Version = 1
                             };
 
-                            var dexTag = new Tag
+                            var dexTag = new TagViewModel
                             {
-                                Id = Guid.Parse(libTagResource.Id),
-                                Type = "tag", // Loại cố định cho MangaDex
+                                Id = libTagResource.Id,
+                                Type = "tag",
                                 Attributes = dexTagAttributes
                             };
-                            tagListResponse.Data.Add(dexTag);
+                            tagListViewModel.Data.Add(dexTag);
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, "Lỗi khi mapping MangaReaderLib Tag ID {TagId} sang MangaDex Tag ViewModel.", libTagResource.Id);
+                            _logger.LogError(ex, "Lỗi khi mapping MangaReaderLib Tag ID {TagId} sang TagViewModel.", libTagResource.Id);
                             continue;
                         }
                     }
                 }
             }
-            return tagListResponse;
+            return tagListViewModel;
         }
     }
 } 
