@@ -17,7 +17,7 @@ import {
     TextField,
     Typography,
 } from '@mui/material'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form'
 import coverArtApi from '../../../api/coverArtApi'
 import mangaApi from '../../../api/mangaApi'
@@ -195,7 +195,9 @@ function CoverArtManager({ mangaId }) {
               {...register('file')}
               error={!!errors.file}
               helperText={errors.file?.message}
-              inputProps={{ accept: 'image/jpeg,image/png,image/webp' }}
+              slotProps={{
+                htmlInput: { accept: 'image/jpeg,image/png,image/webp' }
+              }}
             />
             <TextField
               margin="dense"

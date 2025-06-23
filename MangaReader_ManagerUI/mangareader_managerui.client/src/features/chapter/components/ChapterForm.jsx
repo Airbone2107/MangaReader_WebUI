@@ -1,6 +1,6 @@
 import { Box, Button, Grid, Paper } from '@mui/material'
 import { format } from 'date-fns'
-import React, { useEffect } from 'react'
+import { useEffect } from 'react';
 import FormInput from '../../../components/common/FormInput'
 import useFormWithZod from '../../../hooks/useFormWithZod'
 import { createChapterSchema, updateChapterSchema } from '../../../schemas/chapterSchema'

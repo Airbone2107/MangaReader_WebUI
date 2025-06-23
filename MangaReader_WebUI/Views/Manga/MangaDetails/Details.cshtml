@@ -4,16 +4,14 @@
 @{
     ViewData["Title"] = Model.Manga?.Title ?? "Chi tiết manga";
     
-    // LOGGING DỮ LIỆU TẠI VIEW
-    if (Model?.Manga != null)
-    {
-        Logger.LogInformation("[LOGGING - VIEW] Dữ liệu nhận được tại Details.cshtml: Author='{Author}', Artist='{Artist}', Status='{Status}'", 
-            Model.Manga.Author, Model.Manga.Artist, Model.Manga.Status);
-    }
-    else
-    {
-        Logger.LogWarning("[LOGGING - VIEW] Model.Manga là null tại Details.cshtml.");
-    }
+    var availableLangs = Model.Manga?.AvailableTranslatedLanguages
+        .Select(lang => lang.ToLower())
+        .OrderBy(lang => lang == "vi" ? 0 : (lang == "en" ? 1 : 2))
+        .ThenBy(lang => lang)
+        .ToList() ?? new List<string>();
+        
+    Logger.LogInformation("[LOGGING - VIEW] Dữ liệu nhận được tại Details.cshtml: Author='{Author}', Artist='{Artist}', Status='{Status}', AvailableLangs='{Langs}'", 
+        Model.Manga?.Author, Model.Manga?.Artist, Model.Manga?.Status, string.Join(",", availableLangs));
 }
 
 <div class="details-manga-header-background" style="background-image: url('@Model.Manga?.CoverUrl')"></div>
@@ -58,32 +56,33 @@
                                     @if (Model.Chapters.Any())
                                     {
                                         var chapters = Model.Chapters.OrderBy(c => c.Number).ToList();
-                                        var vietnameseChapters = chapters.Where(c => c.Language == "vi").ToList();
-                                        var englishChapters = chapters.Where(c => c.Language == "en").ToList();
+                                        var firstChapter = availableLangs
+                                            .Select(lang => chapters.FirstOrDefault(c => c.Language.Equals(lang, StringComparison.OrdinalIgnoreCase)))
+                                            .FirstOrDefault(c => c != null);
                                         
-                                        var firstChapterId = vietnameseChapters.Any() 
-                                            ? vietnameseChapters.First().Id 
-                                            : englishChapters.Any() 
-                                                ? englishChapters.First().Id 
-                                                : chapters.First().Id;
-                                            
-                                        var newestChapters = Model.Chapters.OrderByDescending(c => double.TryParse(c.Number, out var num) ? num : 0).ToList();
-                                        var newestVietnameseChapter = newestChapters.FirstOrDefault(c => c.Language == "vi");
-                                        var newestEnglishChapter = newestChapters.FirstOrDefault(c => c.Language == "en");
-                                        var newestChapterId = newestVietnameseChapter?.Id ?? newestEnglishChapter?.Id ?? newestChapters.First().Id;
-                                        
-                                        <a asp-controller="Chapter" asp-action="Read" asp-route-id="@firstChapterId" class="btn btn-primary"
-                                           hx-get="@Url.Action("Read", "Chapter", new { id = firstChapterId })"
-                                           hx-target="#main-content"
-                                           hx-push-url="true">
-                                            <i class="bi bi-book-fill me-2"></i>Đọc từ đầu
-                                        </a>
-                                        <a asp-controller="Chapter" asp-action="Read" asp-route-id="@newestChapterId" class="btn btn-success"
-                                           hx-get="@Url.Action("Read", "Chapter", new { id = newestChapterId })"
-                                           hx-target="#main-content"
-                                           hx-push-url="true">
-                                            <i class="bi bi-lightning-fill me-2"></i>Đọc mới nhất
-                                        </a>
+                                        var newestChapter = Model.Chapters
+                                            .OrderByDescending(c => double.TryParse(c.Number, out var num) ? num : 0)
+                                            .ThenByDescending(c => c.PublishedAt)
+                                            .FirstOrDefault();
+
+                                        if (firstChapter != null)
+                                        {
+                                            <a asp-controller="Chapter" asp-action="Read" asp-route-id="@firstChapter.Id" class="btn btn-primary"
+                                               hx-get="@Url.Action("Read", "Chapter", new { id = firstChapter.Id })"
+                                               hx-target="#main-content"
+                                               hx-push-url="true">
+                                                <i class="bi bi-book-fill me-2"></i>Đọc từ đầu
+                                            </a>
+                                        }
+                                        if (newestChapter != null)
+                                        {
+                                            <a asp-controller="Chapter" asp-action="Read" asp-route-id="@newestChapter.Id" class="btn btn-success"
+                                               hx-get="@Url.Action("Read", "Chapter", new { id = newestChapter.Id })"
+                                               hx-target="#main-content"
+                                               hx-push-url="true">
+                                                <i class="bi bi-lightning-fill me-2"></i>Đọc mới nhất
+                                            </a>
+                                        }
                                     }
                                     
                                     <button class="btn btn-theme-outline" id="followBtn" data-id="@Model.Manga.Id" data-following="@Model.Manga.IsFollowing.ToString().ToLower()">
@@ -158,28 +157,31 @@
             
             <div class="tab-content" id="mangaDetailTabsContent">
                 <div class="tab-pane fade show active" id="chapters" role="tabpanel" aria-labelledby="chapters-tab">
-                    <div class="mb-4">
-                        <div class="custom-language-filter">
-                            <button class="language-filter-btn active" data-lang="all">Tất cả</button>
-                            <button class="language-filter-btn" data-lang="vi">Tiếng Việt</button>
-                            <button class="language-filter-btn" data-lang="en">Tiếng Anh</button>
+                    
+                    @if (availableLangs.Any())
+                    {
+                        <div class="mb-4">
+                            <div class="custom-language-filter">
+                                <button class="language-filter-btn active" data-lang="all">Tất cả</button>
+                                @foreach(var lang in availableLangs)
+                                {
+                                    <button class="language-filter-btn" data-lang="@lang">@TranslateLanguage(lang)</button>
+                                }
+                            </div>
                         </div>
-                    </div>
+                    }
                     
                     @{
                         var chaptersByLanguage = Model.Chapters
-                            .GroupBy(c => c.Language)
+                            .GroupBy(c => c.Language.ToLower())
                             .ToDictionary(g => g.Key, g => g.ToList());
-                        
-                        var sortedLanguages = chaptersByLanguage.Keys
-                            .OrderBy(lang => lang == "vi" ? 0 : lang == "en" ? 1 : 2)
-                            .ThenBy(lang => lang)
-                            .ToList();
                     }
                     
                     <div class="custom-chapters-container">
-                        @foreach (var language in sortedLanguages)
+                        @foreach (var language in availableLangs)
                         {
+                            if (!chaptersByLanguage.ContainsKey(language)) continue;
+
                             var langChapters = chaptersByLanguage[language];
                             var langId = $"lang-{language}";
                             var newestChapter = langChapters.OrderByDescending(c => {
@@ -289,12 +291,9 @@
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <span><i class="bi bi-translate me-2"></i>Bản dịch có sẵn</span>
                                     <span>
-                                        @{
-                                            var languages = Model.Chapters.Select(c => c.Language).Distinct().ToList();
-                                            foreach (var lang in languages)
-                                            {
-                                                <span class="badge bg-@(lang == "vi" ? "success" : "info") me-1">@TranslateLanguage(lang)</span>
-                                            }
+                                        @foreach (var lang in availableLangs)
+                                        {
+                                            <span class="badge bg-@(lang == "vi" ? "success" : "info") me-1">@TranslateLanguage(lang)</span>
                                         }
                                     </span>
                                 </li>
@@ -394,7 +393,7 @@
     
     public string TranslateLanguage(string lang)
     {
-        return lang switch
+        return lang.ToLower() switch
         {
             "vi" => "Tiếng Việt",
             "en" => "Tiếng Anh",
@@ -410,9 +409,9 @@
             "id" => "Tiếng Indonesia",
             "th" => "Tiếng Thái",
             "unknown" => "Không rõ ngôn ngữ",
-            "additionalProp1" => "Ngôn ngữ khác (1)",
-            "additionalProp2" => "Ngôn ngữ khác (2)",
-            "additionalProp3" => "Ngôn ngữ khác (3)",
+            "additionalprop1" => "Ngôn ngữ khác (1)",
+            "additionalprop2" => "Ngôn ngữ khác (2)",
+            "additionalprop3" => "Ngôn ngữ khác (3)",
             _ => lang?.ToUpper() ?? "Không rõ"
         };
     }

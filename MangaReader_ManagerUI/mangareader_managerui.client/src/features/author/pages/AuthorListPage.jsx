@@ -2,7 +2,7 @@ import AddIcon from '@mui/icons-material/Add'
 import ClearIcon from '@mui/icons-material/Clear'
 import SearchIcon from '@mui/icons-material/Search'
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid, TextField, Typography } from '@mui/material'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 import authorApi from '../../../api/authorApi'
 import { showSuccessToast } from '../../../components/common/Notification'
 import useAuthorStore from '../../../stores/authorStore'

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
     Box, Button, Typography, Paper, IconButton, CircularProgress, Tooltip, CardMedia, Chip
 } from '@mui/material';

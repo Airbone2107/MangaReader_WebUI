@@ -17,7 +17,7 @@ import {
     Checkbox,
     ListItemText,
 } from '@mui/material'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom'
 import authorApi from '../../../api/authorApi'
 import tagApi from '../../../api/tagApi'
@@ -165,7 +165,7 @@ function MangaListPage() {
         <Grid 
           container 
           spacing={2} 
-          alignItems="stretch" // Đảm bảo các item trong Grid cùng chiều cao nếu cần
+          alignItems="stretch"
         >
           {/* Dòng 1: Lọc theo tiêu đề */}
           <Grid size={12}>
@@ -245,6 +245,60 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
+
+          {/* Dòng 3: Đối tượng, Năm, Ngôn ngữ dịch */}
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
+            <FormControl fullWidth variant="outlined">
+              <InputLabel id="publication-demographics-filter-label">Đối tượng</InputLabel>
+              <Select
+                labelId="publication-demographics-filter-label"
+                multiple
+                value={localFilters.publicationDemographicsFilter || []}
+                onChange={(e) => handleLocalFilterChange('publicationDemographicsFilter', e.target.value)}
+                input={<OutlinedInput label="Đối tượng" />}
+                renderValue={(selected) => ( 
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {renderMultiSelectDisplay(
+                      selected.map(val => PUBLICATION_DEMOGRAPHIC_OPTIONS.find(opt => opt.value === val) || { value: val, label: val }),
+                      null, 
+                      2
+                    )}
+                  </Box>
+                )}
+                MenuProps={MenuProps}
+              >
+                {PUBLICATION_DEMOGRAPHIC_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    <Checkbox checked={(localFilters.publicationDemographicsFilter || []).indexOf(option.value) > -1} />
+                    <ListItemText primary={option.label} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
+            <TextField
+              label="Năm"
+              variant="outlined"
+              fullWidth
+              type="number"
+              value={localFilters.yearFilter || ''}
+              onChange={(e) => handleLocalFilterChange('yearFilter', e.target.value === '' ? null : parseInt(e.target.value, 10))}
+              slotProps={{
+                htmlInput: { min: 1000, max: new Date().getFullYear() + 5, step: 1 }
+              }}
+            />
+          </Grid>
           <Grid
             size={{
               xs: 12,
@@ -279,62 +333,33 @@ function MangaListPage() {
             </FormControl>
           </Grid>
 
-          {/* Dòng 3: Đối Tượng, Năm, Lọc Theo Tác Giả */}
+          {/* Dòng 4: Tác giả và Họa sĩ */}
           <Grid
             size={{
               xs: 12,
-              sm: 6,
-              md: 4
+              sm: 6
             }}>
-            <FormControl fullWidth variant="outlined">
-              <InputLabel id="publication-demographics-filter-label">Đối tượng</InputLabel>
-              <Select
-                labelId="publication-demographics-filter-label"
-                multiple
-                value={localFilters.publicationDemographicsFilter || []}
-                onChange={(e) => handleLocalFilterChange('publicationDemographicsFilter', e.target.value)}
-                input={<OutlinedInput label="Đối tượng" />}
-                renderValue={(selected) => ( 
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {renderMultiSelectDisplay(
-                      selected.map(val => PUBLICATION_DEMOGRAPHIC_OPTIONS.find(opt => opt.value === val) || { value: val, label: val }),
-                      null, 
-                      2 // Tăng maxItemsToShow cho Select
-                    )}
-                  </Box>
-                )}
-                MenuProps={MenuProps}
-              >
-                {PUBLICATION_DEMOGRAPHIC_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    <Checkbox checked={(localFilters.publicationDemographicsFilter || []).indexOf(option.value) > -1} />
-                    <ListItemText primary={option.label} />
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
-            <TextField
-              label="Năm"
-              variant="outlined"
+            <Autocomplete
+              multiple
+              options={availableAuthors}
+              getOptionLabel={(option) => option.name}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              value={
+                (localFilters.authors && availableAuthors.length > 0)
+                  ? availableAuthors.filter(a => localFilters.authors.includes(a.id))
+                  : []
+              }
+              onChange={(event, newValue) => {
+                handleLocalFilterChange('authors', newValue.map(item => item.id));
+              }}
+              renderInput={(params) => <TextField {...params} label="Lọc theo Tác giả" variant="outlined" />}
               fullWidth
-              type="number"
-              value={localFilters.yearFilter || ''}
-              onChange={(e) => handleLocalFilterChange('yearFilter', e.target.value === '' ? null : parseInt(e.target.value, 10))}
-              inputProps={{ min: 1000, max: new Date().getFullYear() + 5, step: 1 }}
             />
           </Grid>
           <Grid
             size={{
               xs: 12,
-              sm: 6,
-              md: 4
+              sm: 6
             }}>
             <Autocomplete
               multiple
@@ -353,138 +378,101 @@ function MangaListPage() {
               fullWidth
             />
           </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
-            <Autocomplete
-              multiple
-              options={availableAuthors}
-              getOptionLabel={(option) => option.name}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              value={
-                (localFilters.authors && availableAuthors.length > 0)
-                  ? availableAuthors.filter(a => localFilters.authors.includes(a.id))
-                  : []
-              }
-              onChange={(event, newValue) => {
-                handleLocalFilterChange('authors', newValue.map(item => item.id));
-              }}
-              renderInput={(params) => <TextField {...params} label="Lọc theo Tác giả" variant="outlined" />}
-              // Bỏ renderTags để MUI tự xử lý hiển thị chip
-              fullWidth
-            />
+
+          {/* Dòng 5: Tags Phải Có */}
+          <Grid size={12}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>Tags Phải Có</Typography>
+            <Grid container spacing={2}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 8
+                }}>
+                <Autocomplete
+                  multiple
+                  options={availableTags}
+                  getOptionLabel={(option) => option.name}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  value={
+                    (localFilters.includedTags && availableTags.length > 0)
+                      ? availableTags.filter(t => localFilters.includedTags.includes(t.id))
+                      : []
+                  }
+                  onChange={(event, newValue) => {
+                    handleLocalFilterChange('includedTags', newValue.map(item => item.id));
+                  }}
+                  renderInput={(params) => <TextField {...params} label="Chọn tags" variant="outlined" />}
+                  fullWidth
+                />
+              </Grid>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 4
+                }}>
+                <TextField
+                  select
+                  label="Chế độ Tags Phải Có"
+                  variant="outlined"
+                  fullWidth
+                  value={localFilters.includedTagsMode || 'AND'}
+                  onChange={(e) => handleLocalFilterChange('includedTagsMode', e.target.value)}
+                  disabled={!localFilters.includedTags || localFilters.includedTags.length === 0}
+                >
+                  <MenuItem value="AND">VÀ (Tất cả)</MenuItem>
+                  <MenuItem value="OR">HOẶC (Bất kỳ)</MenuItem>
+                </TextField>
+              </Grid>
+            </Grid>
           </Grid>
 
-          {/* Dòng 4: Tags Phải Có, Chế độ Tags Phải Có */}
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
-             <Autocomplete
-              multiple
-              options={availableTags}
-              getOptionLabel={(option) => option.name}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              value={
-                (localFilters.includedTags && availableTags.length > 0)
-                  ? availableTags.filter(t => localFilters.includedTags.includes(t.id))
-                  : []
-              }
-              onChange={(event, newValue) => {
-                handleLocalFilterChange('includedTags', newValue.map(item => item.id));
-              }}
-              renderInput={(params) => <TextField {...params} label="Tags Phải Có" variant="outlined" />}
-              // Bỏ renderTags để MUI tự xử lý hiển thị chip
-              fullWidth
-            />
-          </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
-            <TextField
-              select
-              label="Chế độ Tags Phải Có"
-              variant="outlined"
-              fullWidth
-              value={localFilters.includedTagsMode || 'AND'}
-              onChange={(e) => handleLocalFilterChange('includedTagsMode', e.target.value)}
-              disabled={!localFilters.includedTags || localFilters.includedTags.length === 0}
-            >
-              <MenuItem value="AND">VÀ (Tất cả)</MenuItem>
-              <MenuItem value="OR">HOẶC (Bất kỳ)</MenuItem>
-            </TextField>
-          </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
-            {/* Để trống cho cân đối hoặc thêm filter khác nếu cần */}
-          </Grid>
-
-
-          {/* Dòng 5: Tags Không Có, Chế độ Tags Không Có */}
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
-            <Autocomplete
-              multiple
-              options={availableTags}
-              getOptionLabel={(option) => option.name}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              value={
-                (localFilters.excludedTags && availableTags.length > 0)
-                  ? availableTags.filter(t => localFilters.excludedTags.includes(t.id))
-                  : []
-              }
-              onChange={(event, newValue) => {
-                handleLocalFilterChange('excludedTags', newValue.map(item => item.id));
-              }}
-              renderInput={(params) => <TextField {...params} label="Tags Không Có" variant="outlined" />}
-              // Bỏ renderTags để MUI tự xử lý hiển thị chip
-              fullWidth
-            />
-          </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
-            <TextField
-              select
-              label="Chế độ Tags Không Có"
-              variant="outlined"
-              fullWidth
-              value={localFilters.excludedTagsMode || 'OR'}
-              onChange={(e) => handleLocalFilterChange('excludedTagsMode', e.target.value)}
-              disabled={!localFilters.excludedTags || localFilters.excludedTags.length === 0}
-            >
-              <MenuItem value="OR">HOẶC (Bất kỳ)</MenuItem>
-            </TextField>
-          </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4
-            }}>
-            {/* Để trống cho cân đối hoặc thêm filter khác nếu cần */}
+          {/* Dòng 6: Tags Không Có */}
+          <Grid size={12}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>Tags Không Có</Typography>
+            <Grid container spacing={2}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 8
+                }}>
+                <Autocomplete
+                  multiple
+                  options={availableTags}
+                  getOptionLabel={(option) => option.name}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  value={
+                    (localFilters.excludedTags && availableTags.length > 0)
+                      ? availableTags.filter(t => localFilters.excludedTags.includes(t.id))
+                      : []
+                  }
+                  onChange={(event, newValue) => {
+                    handleLocalFilterChange('excludedTags', newValue.map(item => item.id));
+                  }}
+                  renderInput={(params) => <TextField {...params} label="Chọn tags" variant="outlined" />}
+                  fullWidth
+                />
+              </Grid>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 4
+                }}>
+                <TextField
+                  select
+                  label="Chế độ Tags Không Có"
+                  variant="outlined"
+                  fullWidth
+                  value={localFilters.excludedTagsMode || 'OR'}
+                  onChange={(e) => handleLocalFilterChange('excludedTagsMode', e.target.value)}
+                  disabled={!localFilters.excludedTags || localFilters.excludedTags.length === 0}
+                >
+                  <MenuItem value="OR">HOẶC (Bất kỳ)</MenuItem>
+                </TextField>
+              </Grid>
+            </Grid>
           </Grid>
           
-          {/* Dòng 6: Các nút bấm */}
+          {/* Dòng 7: Các nút bấm */}
           <Grid
             sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 1 }}
             size={12}>

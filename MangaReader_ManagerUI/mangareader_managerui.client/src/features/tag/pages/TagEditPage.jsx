@@ -1,5 +1,5 @@
 import { Box, CircularProgress, Typography } from '@mui/material'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom'
 import tagApi from '../../../api/tagApi'
 import { showSuccessToast } from '../../../components/common/Notification'

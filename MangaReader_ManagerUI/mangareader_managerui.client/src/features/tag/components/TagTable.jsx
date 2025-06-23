@@ -1,7 +1,7 @@
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import { Box, IconButton, Tooltip } from '@mui/material'
-import React from 'react'
+import { useState } from 'react';
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import DataTableMUI from '../../../components/common/DataTableMUI'
 import { formatDate } from '../../../utils/dateUtils'
@@ -40,8 +40,8 @@ function TagTable({
   onEdit,
   isLoading,
 }) {
-  const [openConfirm, setOpenConfirm] = React.useState(false)
-  const [tagToDeleteId, setTagToDeleteId] = React.useState(null)
+  const [openConfirm, setOpenConfirm] = useState(false)
+  const [tagToDeleteId, setTagToDeleteId] = useState(null)
 
   const handleDeleteClick = (id) => {
     setTagToDeleteId(id)

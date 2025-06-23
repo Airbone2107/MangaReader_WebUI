@@ -1,6 +1,6 @@
 import AddIcon from '@mui/icons-material/Add'
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom'
 import translatedMangaApi from '../../../api/translatedMangaApi'
 import { showSuccessToast } from '../../../components/common/Notification'

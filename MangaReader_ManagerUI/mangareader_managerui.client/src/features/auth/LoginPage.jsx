@@ -1,5 +1,4 @@
 import { Box, Typography } from '@mui/material'
-import React from 'react'
 
 // Placeholder for login page, will be implemented in later steps
 function LoginPage() {

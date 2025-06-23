@@ -1,5 +1,5 @@
 import { Box, CircularProgress, Tab, Tabs, Typography } from '@mui/material'
-import React, { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import mangaApi from '../../../api/mangaApi'
 import { showSuccessToast } from '../../../components/common/Notification'

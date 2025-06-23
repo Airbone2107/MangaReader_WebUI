@@ -1,5 +1,4 @@
 import { Box, Typography } from '@mui/material'
-import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import authorApi from '../../../api/authorApi'
 import { showSuccessToast } from '../../../components/common/Notification'

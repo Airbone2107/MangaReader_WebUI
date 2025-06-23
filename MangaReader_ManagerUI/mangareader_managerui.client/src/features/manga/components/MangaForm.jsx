@@ -1,6 +1,6 @@
 import { Add as AddIcon, CheckBox as CheckBoxIcon, CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import { Autocomplete, Box, Button, Checkbox, Chip, FormControlLabel, Grid, Paper, Switch, TextField, Typography } from '@mui/material'
-import React, { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react';
 import authorApi from '../../../api/authorApi'
 import tagApi from '../../../api/tagApi'
 import FormInput from '../../../components/common/FormInput'
@@ -406,19 +406,6 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
             }}
             isOptionEqualToValue={(option, value) => option.id === value.id}
             
-            PaperComponent={({ children, ...other }) => (
-                <Paper 
-                    {...other}
-                    sx={{
-                        ...other.sx,
-                        maxHeight: 400,
-                        overflow: 'auto',
-                    }} 
-                >
-                    {children}
-                </Paper>
-            )}
-            
             renderGroup={(params) => (
               <Box component="li" {...params} sx={{ p: 0, m: 0, width: '100%' }}>
                 <Typography 
@@ -492,6 +479,7 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
                 helperText={errors.tagIds ? errors.tagIds.message : null}
               />
             )}
+            
             renderTags={(value, getTagProps) =>
               value.map((option, index) => (
                 <Chip
@@ -504,6 +492,20 @@ function MangaForm({ initialData, onSubmit, isEditMode }) {
               ))
             }
             fullWidth
+            slots={{
+              paper: ({ children, ...other }) => (
+                  <Paper 
+                      {...other}
+                      sx={{
+                          ...other.sx,
+                          maxHeight: 400,
+                          overflow: 'auto',
+                      }} 
+                  >
+                      {children}
+                  </Paper>
+              )
+            }}
           />
         </Grid>
         

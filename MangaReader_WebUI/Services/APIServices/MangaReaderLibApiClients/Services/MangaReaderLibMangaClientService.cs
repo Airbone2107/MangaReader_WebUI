@@ -27,7 +27,7 @@ namespace MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Servic
         }
 
         public Task<ApiResponse<ResourceObject<MangaAttributesDto>>?> GetMangaByIdAsync(
-            Guid mangaId, 
+            Guid mangaId,
             List<string>? includes = null,
             CancellationToken cancellationToken = default)
         {
@@ -42,29 +42,32 @@ namespace MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Servic
         }
 
         public Task<ApiCollectionResponse<ResourceObject<MangaAttributesDto>>?> GetMangasAsync(
-            int? offset = null, 
-            int? limit = null, 
-            string? titleFilter = null, 
-            string? statusFilter = null, 
+            int? offset = null,
+            int? limit = null,
+            string? titleFilter = null,
+            string? statusFilter = null,
             string? contentRatingFilter = null,
             List<PublicationDemographic>? publicationDemographicsFilter = null,
-            string? originalLanguageFilter = null, 
+            string? originalLanguageFilter = null,
             int? yearFilter = null,
-            List<Guid>? authorIdsFilter = null,
+            List<Guid>? authors = null,
+            List<Guid>? artists = null,
+            List<string>? availableTranslatedLanguage = null,
             List<Guid>? includedTags = null,
             string? includedTagsMode = null,
             List<Guid>? excludedTags = null,
             string? excludedTagsMode = null,
-            string? orderBy = null, 
+            string? orderBy = null,
             bool? ascending = null,
             List<string>? includes = null,
             CancellationToken cancellationToken = default)
         {
             _wrapperLogger.LogInformation("MangaReaderLibMangaClientService (Wrapper): Getting mangas with title filter {TitleFilter}", titleFilter);
             return _innerReader.GetMangasAsync(
-                offset, limit, titleFilter, statusFilter, contentRatingFilter, 
-                publicationDemographicsFilter, originalLanguageFilter, yearFilter, 
-                authorIdsFilter, includedTags, includedTagsMode, excludedTags, excludedTagsMode,
+                offset, limit, titleFilter, statusFilter, contentRatingFilter,
+                publicationDemographicsFilter, originalLanguageFilter, yearFilter,
+                authors, artists, availableTranslatedLanguage,
+                includedTags, includedTagsMode, excludedTags, excludedTagsMode,
                 orderBy, ascending, includes, cancellationToken);
         }
 
@@ -74,4 +77,4 @@ namespace MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Servic
             return _innerReader.GetMangaTranslationsAsync(mangaId, offset, limit, orderBy, ascending, cancellationToken);
         }
     }
-} 
+}

@@ -97,7 +97,7 @@
                                         <input type="text" class="form-control author-search-input" placeholder="Tìm tên tác giả...">
                                     </div>
                                     <div class="author-search-results"></div>
-                                    <input type="hidden" name="authors" value="@(Model.SortOptions.AuthorIds != null ? string.Join(",", Model.SortOptions.AuthorIds) : "")" />
+                                    <input type="hidden" name="authors" value="@(Model.SortOptions.Authors != null ? string.Join(",", Model.SortOptions.Authors) : "")" />
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -108,7 +108,7 @@
                                         <input type="text" class="form-control author-search-input" placeholder="Tìm tên họa sĩ...">
                                     </div>
                                     <div class="author-search-results"></div>
-                                    <input type="hidden" name="artists" value="" />
+                                    <input type="hidden" name="artists" value="@(Model.SortOptions.Artists != null ? string.Join(",", Model.SortOptions.Artists) : "")" />
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -278,36 +278,23 @@
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <label class="filter-dropdown-label">Ngôn ngữ gốc</label>
+                                <label class="filter-dropdown-label">Ngôn ngữ có sẵn</label>
                                 <div class="filter-dropdown">
                                     <button type="button" class="filter-toggle-btn">
                                         <span class="selected-text">
-                                            @(Model.SortOptions.OriginalLanguage != null && Model.SortOptions.OriginalLanguage.Any() ? 
-                                              string.Join(", ", Model.SortOptions.OriginalLanguage.Select(l => 
-                                                l == "ja" ? "Tiếng Nhật" : 
-                                                l == "en" ? "Tiếng Anh" : 
-                                                l == "ko" ? "Tiếng Hàn" : 
-                                                l == "zh" ? "Tiếng Trung" : l.ToUpper())) : "Tất cả")
+                                            @(Model.SortOptions.AvailableTranslatedLanguage != null && Model.SortOptions.AvailableTranslatedLanguage.Any() ? string.Join(", ", Model.SortOptions.AvailableTranslatedLanguage.Select(l => l.ToUpper())) : "Tất cả")
                                         </span>
                                         <span class="toggle-icon"></span>
                                     </button>
                                     <div class="filter-menu-content">
                                         <div class="filter-menu-padding">
                                             <div class="filter-option">
-                                                <input class="filter-check-input" type="checkbox" name="originalLanguage" id="langJa" value="ja" @(Model.SortOptions.OriginalLanguage != null && Model.SortOptions.OriginalLanguage.Contains("ja") ? "checked" : "")>
-                                                <label class="filter-option-label" for="langJa">Tiếng Nhật</label>
+                                                <input class="filter-check-input" type="checkbox" name="availableTranslatedLanguage" id="langVi" value="vi" @(Model.SortOptions.AvailableTranslatedLanguage != null && Model.SortOptions.AvailableTranslatedLanguage.Contains("vi") ? "checked" : "")>
+                                                <label class="filter-option-label" for="langVi">Tiếng Việt</label>
                                             </div>
                                             <div class="filter-option">
-                                                <input class="filter-check-input" type="checkbox" name="originalLanguage" id="langEn" value="en" @(Model.SortOptions.OriginalLanguage != null && Model.SortOptions.OriginalLanguage.Contains("en") ? "checked" : "")>
-                                                <label class="filter-option-label" for="langEn">Tiếng Anh</label>
-                                            </div>
-                                            <div class="filter-option">
-                                                <input class="filter-check-input" type="checkbox" name="originalLanguage" id="langKo" value="ko" @(Model.SortOptions.OriginalLanguage != null && Model.SortOptions.OriginalLanguage.Contains("ko") ? "checked" : "")>
-                                                <label class="filter-option-label" for="langKo">Tiếng Hàn</label>
-                                            </div>
-                                            <div class="filter-option">
-                                                <input class="filter-check-input" type="checkbox" name="originalLanguage" id="langZh" value="zh" @(Model.SortOptions.OriginalLanguage != null && Model.SortOptions.OriginalLanguage.Contains("zh") ? "checked" : "")>
-                                                <label class="filter-option-label" for="langZh">Tiếng Trung</label>
+                                                <input class="filter-check-input" type="checkbox" name="availableTranslatedLanguage" id="langEnAvail" value="en" @(Model.SortOptions.AvailableTranslatedLanguage != null && Model.SortOptions.AvailableTranslatedLanguage.Contains("en") ? "checked" : "")>
+                                                <label class="filter-option-label" for="langEnAvail">Tiếng Anh</label>
                                             </div>
                                         </div>
                                     </div>

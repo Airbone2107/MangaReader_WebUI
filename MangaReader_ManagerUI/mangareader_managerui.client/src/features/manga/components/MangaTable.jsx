@@ -3,7 +3,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import TranslateIcon from '@mui/icons-material/Translate'
 import { Box, Chip, IconButton, Tooltip, Typography } from '@mui/material'
-import React from 'react'
+import { useState } from 'react';
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import DataTableMUI from '../../../components/common/DataTableMUI'
 import { CLOUDINARY_BASE_URL, MANGA_STATUS_OPTIONS, CONTENT_RATING_OPTIONS, PUBLICATION_DEMOGRAPHIC_OPTIONS, RELATIONSHIP_TYPES } from '../../../constants/appConstants'
@@ -51,8 +51,8 @@ function MangaTable({
   onViewTranslations,
   isLoading,
 }) {
-  const [openConfirm, setOpenConfirm] = React.useState(false)
-  const [mangaToDeleteId, setMangaToDeleteId] = React.useState(null)
+  const [openConfirm, setOpenConfirm] = useState(false)
+  const [mangaToDeleteId, setMangaToDeleteId] = useState(null)
 
   const handleDeleteClick = (id) => {
     setMangaToDeleteId(id)

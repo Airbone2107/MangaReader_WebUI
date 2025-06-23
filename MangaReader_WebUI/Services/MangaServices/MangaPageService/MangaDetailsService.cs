@@ -47,7 +47,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                     return new MangaDetailViewModel { Manga = new MangaViewModel { Id = id, Title = "ID Manga không hợp lệ" } };
                 }
 
-                var includes = new List<string> { "author", "cover_art" };
+                var includes = new List<string> { "author", "artist", "cover_art" };
                 _logger.LogInformation("[LOGGING] Chuẩn bị gọi GetMangaByIdAsync cho ID: {MangaId} với includes: {Includes}", id, string.Join(", ", includes));
                 
                 var mangaResponse = await _mangaClient.GetMangaByIdAsync(mangaGuid, includes);
@@ -70,7 +70,9 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                 }
 
                 var mangaData = mangaResponse.Data;
-                var chapterViewModels = await GetChaptersAsync(id);
+                
+                // Lấy tất cả các chapter có sẵn
+                var chapterViewModels = await GetChaptersAsync(id, mangaData.Attributes.AvailableTranslatedLanguages);
 
                 _logger.LogInformation("[LOGGING] Bắt đầu quá trình mapping dữ liệu cho manga ID: {MangaId}", id);
                 var mangaDetailViewModel = await _mangaDetailViewModelMapper.MapToMangaDetailViewModelAsync(mangaData, chapterViewModels);
@@ -99,18 +101,20 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
         /// <summary>
         /// Lấy danh sách chapters của manga
         /// </summary>
-        private async Task<List<ChapterViewModel>> GetChaptersAsync(string mangaId)
+        private async Task<List<ChapterViewModel>> GetChaptersAsync(string mangaId, List<string>? availableLanguages)
         {
             try
             {
-                var chapterViewModels = await _chapterService.GetChaptersAsync(mangaId, "vi,en");
+                // Truyền danh sách ngôn ngữ có sẵn vào ChapterService
+                var chapterViewModels = await _chapterService.GetChaptersAsync(mangaId, availableLanguages);
+
                 var httpContext = _httpContextAccessor.HttpContext;
                 if (httpContext != null && chapterViewModels.Any())
                 {
                     var chaptersByLanguage = _chapterService.GetChaptersByLanguage(chapterViewModels);
                     foreach (var kvp in chaptersByLanguage)
                     {
-                        httpContext.Session.SetString($"Manga_{mangaId}_Chapters_{kvp.Key}", JsonSerializer.Serialize(kvp.Value));
+                        httpContext.Session.SetString($"Manga_{mangaId}_Chapters_{kvp.Key.ToLower()}", JsonSerializer.Serialize(kvp.Value));
                     }
                 }
                 return chapterViewModels;

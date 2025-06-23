@@ -2,7 +2,7 @@ import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import { Box, IconButton, Tooltip } from '@mui/material'
-import React from 'react'
+import { useState } from 'react';
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import DataTableMUI from '../../../components/common/DataTableMUI'
 import { formatDate } from '../../../utils/dateUtils'
@@ -44,8 +44,8 @@ function TranslatedMangaTable({
   onViewChapters,
   isLoading,
 }) {
-  const [openConfirm, setOpenConfirm] = React.useState(false)
-  const [translatedMangaToDeleteId, setTranslatedMangaToDeleteId] = React.useState(null)
+  const [openConfirm, setOpenConfirm] = useState(false)
+  const [translatedMangaToDeleteId, setTranslatedMangaToDeleteId] = useState(null)
 
   const handleDeleteClick = (id) => {
     setTranslatedMangaToDeleteId(id)

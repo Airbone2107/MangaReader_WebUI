@@ -60,12 +60,13 @@ namespace MangaReader.WebUI.Services.MangaServices
 
                         if (mangaInfo == null)
                         {
-                             _logger.LogWarning("Không thể lấy thông tin cơ bản cho manga ID: {MangaId}. Bỏ qua.", mangaId);
-                             continue; 
+                            _logger.LogWarning("Không thể lấy thông tin cơ bản cho manga ID: {MangaId}. Bỏ qua.", mangaId);
+                            continue;
                         }
 
                         await Task.Delay(_rateLimitDelay);
-                        var latestChapters = await _chapterService.GetLatestChaptersAsync(mangaId, 3, "vi,en");
+                        // SỬA LỖI: Chuyển đổi chuỗi "vi,en" thành List<string>
+                        var latestChapters = await _chapterService.GetLatestChaptersAsync(mangaId, 3, new List<string> { "vi", "en" });
 
                         var followedMangaViewModel = _followedMangaMapper.MapToFollowedMangaViewModel(mangaInfo, latestChapters ?? new List<SimpleChapterInfoViewModel>());
                         followedMangaList.Add(followedMangaViewModel);
@@ -88,4 +89,4 @@ namespace MangaReader.WebUI.Services.MangaServices
             }
         }
     }
-} 
+}

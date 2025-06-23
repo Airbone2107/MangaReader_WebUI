@@ -2,7 +2,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'; // For Chapter Pages
 import { Box, IconButton, Tooltip } from '@mui/material'
-import React from 'react'
+import { useState } from 'react';
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import DataTableMUI from '../../../components/common/DataTableMUI'
 import { formatDate } from '../../../utils/dateUtils'
@@ -43,8 +43,8 @@ function ChapterTable({
   onViewPages,
   isLoading,
 }) {
-  const [openConfirm, setOpenConfirm] = React.useState(false)
-  const [chapterToDeleteId, setChapterToDeleteId] = React.useState(null)
+  const [openConfirm, setOpenConfirm] = useState(false)
+  const [chapterToDeleteId, setChapterToDeleteId] = useState(null)
 
   const handleDeleteClick = (id) => {
     setChapterToDeleteId(id)

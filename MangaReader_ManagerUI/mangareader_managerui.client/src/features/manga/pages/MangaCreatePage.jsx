@@ -1,5 +1,4 @@
 import { Box, Typography } from '@mui/material'
-import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import mangaApi from '../../../api/mangaApi'
 import { showSuccessToast } from '../../../components/common/Notification'
