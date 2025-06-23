@@ -6,6 +6,7 @@ import React from 'react'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import DataTableMUI from '../../../components/common/DataTableMUI'
 import { formatDate } from '../../../utils/dateUtils'
+import { translateLanguageCode } from '../../../utils/translationUtils'
 
 /**
  * @typedef {import('../../../types/manga').TranslatedManga} TranslatedManga
@@ -64,7 +65,13 @@ function TranslatedMangaTable({
 
   const columns = [
     { id: 'title', label: 'Tiêu đề bản dịch', minWidth: 150, sortable: true },
-    { id: 'languageKey', label: 'Ngôn ngữ', minWidth: 80, sortable: true },
+    { 
+      id: 'languageKey', 
+      label: 'Ngôn ngữ', 
+      minWidth: 80, 
+      sortable: true, 
+      format: (value) => translateLanguageCode(value)
+    },
     { id: 'description', label: 'Mô tả', minWidth: 200, sortable: false },
     {
       id: 'updatedAt',

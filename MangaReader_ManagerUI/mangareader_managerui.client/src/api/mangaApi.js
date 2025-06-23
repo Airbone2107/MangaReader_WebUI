@@ -8,6 +8,7 @@ import apiClient from './apiClient';
  * @typedef {import('../types/manga').CreateMangaRequest} CreateMangaRequest
  * @typedef {import('../types/manga').UpdateMangaRequest} UpdateMangaRequest
  * @typedef {import('../types/manga').UploadCoverArtRequest} UploadCoverArtRequest
+ * @typedef {import('../types/manga').GetMangasParams} GetMangasParams
  */
 
 const BASE_URL = '/Mangas';
@@ -15,22 +16,11 @@ const BASE_URL = '/Mangas';
 const mangaApi = {
   /**
    * Lấy danh sách manga.
-   * @param {object} params - Tham số truy vấn.
-   * @param {number} [params.offset]
-   * @param {number} [params.limit]
-   * @param {string} [params.titleFilter]
-   * @param {string} [params.statusFilter]
-   * @param {string} [params.contentRatingFilter]
-   * @param {string} [params.demographicFilter]
-   * @param {string} [params.originalLanguageFilter]
-   * @param {number} [params.yearFilter]
-   * @param {string[]} [params.tagIdsFilter] - array of GUIDs
-   * @param {string[]} [params.authorIdsFilter] - array of GUIDs
-   * @param {string} [params.orderBy]
-   * @param {boolean} [params.ascending]
+   * @param {GetMangasParams} params - Tham số truy vấn.
    * @returns {Promise<MangaCollectionResponse>}
    */
   getMangas: async (params) => {
+    // Axios tự động xử lý params object, bao gồm cả mảng (ví dụ: includes[]=value1&includes[]=value2)
     const response = await apiClient.get(BASE_URL, { params });
     return response.data;
   },
@@ -38,10 +28,11 @@ const mangaApi = {
   /**
    * Lấy thông tin manga theo ID.
    * @param {string} id - ID của manga.
+   * @param {object} [queryParams] - Các tham số query, ví dụ: { includes: ['author'] }
    * @returns {Promise<MangaSingleResponse>}
    */
-  getMangaById: async (id) => {
-    const response = await apiClient.get(`${BASE_URL}/${id}`);
+  getMangaById: async (id, queryParams) => {
+    const response = await apiClient.get(`${BASE_URL}/${id}`, { params: queryParams });
     return response.data;
   },
 

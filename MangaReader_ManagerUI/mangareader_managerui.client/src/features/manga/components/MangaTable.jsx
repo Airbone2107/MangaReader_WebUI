@@ -2,15 +2,19 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import TranslateIcon from '@mui/icons-material/Translate'
-import { Box, Chip, IconButton, Tooltip } from '@mui/material'
+import { Box, Chip, IconButton, Tooltip, Typography } from '@mui/material'
 import React from 'react'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import DataTableMUI from '../../../components/common/DataTableMUI'
-import { CLOUDINARY_BASE_URL, MANGA_STATUS_OPTIONS, CONTENT_RATING_OPTIONS, PUBLICATION_DEMOGRAPHIC_OPTIONS } from '../../../constants/appConstants'
+import { CLOUDINARY_BASE_URL, MANGA_STATUS_OPTIONS, CONTENT_RATING_OPTIONS, PUBLICATION_DEMOGRAPHIC_OPTIONS, RELATIONSHIP_TYPES } from '../../../constants/appConstants'
 import { formatDate } from '../../../utils/dateUtils'
+import { translateLanguageCode } from '../../../utils/translationUtils'
 
 /**
  * @typedef {import('../../../types/manga').Manga} Manga
+ * @typedef {import('../../../types/api').AuthorInRelationshipAttributes} AuthorInRelationshipAttributes
+ * @typedef {import('../../../types/manga').TagInMangaAttributesDto} TagInMangaAttributesDto
+ * @typedef {import('../../../types/api').ResourceObject} ResourceObject
  */
 
 /**
@@ -56,7 +60,9 @@ function MangaTable({
   }
 
   const handleConfirmDelete = () => {
-    onDelete(mangaToDeleteId)
+    if (mangaToDeleteId) { // Kiểm tra null trước khi gọi onDelete
+        onDelete(mangaToDeleteId)
+    }
     setOpenConfirm(false)
     setMangaToDeleteId(null)
   }
@@ -76,28 +82,33 @@ function MangaTable({
     {
       id: 'title',
       label: 'Tiêu đề',
-      minWidth: 180,
+      minWidth: 220,
       sortable: true,
       format: (value, row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           {row.coverArtPublicId ? (
             <img
-              src={`${CLOUDINARY_BASE_URL}w_40,h_60,c_fill/${row.coverArtPublicId}`}
+              src={`${CLOUDINARY_BASE_URL}w_50,h_75,c_fill/${row.coverArtPublicId}`}
               alt="Cover"
-              style={{ width: 40, height: 60, objectFit: 'cover', borderRadius: 4 }}
+              style={{ width: 50, height: 75, objectFit: 'cover', borderRadius: 4, border: '1px solid #eee' }}
+              loading="lazy"
             />
           ) : (
-            <img
-              src="https://via.placeholder.com/40x60?text=No+Cover"
-              alt="No Cover"
-              style={{ width: 40, height: 60, objectFit: 'cover', borderRadius: 4, border: '1px solid #ddd' }}
-            />
+            <Box sx={{ width: 50, height: 75, backgroundColor: '#f0f0f0', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ddd' }}>
+              <ImageOutlinedIcon sx={{ color: '#ccc' }} />
+            </Box>
           )}
-          <span>{value}</span>
+          <Typography variant="body2" component="span" sx={{ fontWeight: 500 }}>{value}</Typography>
         </Box>
       )
     },
-    { id: 'originalLanguage', label: 'Ngôn ngữ gốc', minWidth: 100, sortable: true },
+    { 
+      id: 'originalLanguage', 
+      label: 'Ngôn ngữ', 
+      minWidth: 90, 
+      sortable: true,
+      format: (value) => translateLanguageCode(value)
+    },
     {
       id: 'status',
       label: 'Trạng thái',
@@ -106,11 +117,11 @@ function MangaTable({
       // Sử dụng hàm getEnumLabel để hiển thị nhãn thân thiện
       format: (value) => getEnumLabel(value, MANGA_STATUS_OPTIONS),
     },
-    { id: 'year', label: 'Năm', minWidth: 70, sortable: true },
+    { id: 'year', label: 'Năm', minWidth: 60, sortable: true, align: 'center' },
     {
       id: 'contentRating',
-      label: 'Đánh giá',
-      minWidth: 80,
+      label: 'Rating',
+      minWidth: 90,
       sortable: true,
       // Sử dụng hàm getEnumLabel để hiển thị nhãn thân thiện
       format: (value) => getEnumLabel(value, CONTENT_RATING_OPTIONS),
@@ -119,24 +130,57 @@ function MangaTable({
     { 
         id: 'publicationDemographic', 
         label: 'Đối tượng', 
-        minWidth: 100, 
+        minWidth: 90, 
         sortable: true,
         format: (value) => value ? getEnumLabel(value, PUBLICATION_DEMOGRAPHIC_OPTIONS) : 'N/A', // Xử lý trường hợp null/None
     },
     {
-      id: 'relationships',
-      label: 'Tags',
+      id: 'authors', 
+      label: 'Tác giả/Họa sĩ',
       minWidth: 150,
+      sortable: false, 
+      format: (value, row) => {
+        const staff = row.relationships
+          ?.filter(rel => (rel.type === RELATIONSHIP_TYPES.AUTHOR || rel.type === RELATIONSHIP_TYPES.ARTIST) && rel.attributes)
+          .map(rel => {
+            /** @type {AuthorInRelationshipAttributes | undefined} */
+            const staffAttrs = rel.attributes;
+            return `${staffAttrs?.name || 'N/A'} (${rel.type === RELATIONSHIP_TYPES.AUTHOR ? 'T.giả' : 'H.sĩ'})`;
+          }) || [];
+        
+        if (staff.length === 0) return <Typography variant="caption" color="textSecondary">N/A</Typography>;
+        
+        return (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2 }}>
+            {staff.slice(0, 2).map((s, i) => (
+              <Chip key={i} label={s} size="small" variant="outlined" sx={{ maxWidth: '100%' }}/>
+            ))}
+            {staff.length > 2 && (
+              <Chip label={`+${staff.length - 2} khác`} size="small" />
+            )}
+          </Box>
+        );
+      },
+    },
+    {
+      id: 'tags', 
+      label: 'Tags',
+      minWidth: 170,
       sortable: false,
-      format: (value) => {
-        const tags = value?.filter((rel) => rel.type === 'tag') || []
+      format: (value, row) => {
+        /** @type {ResourceObject<TagInMangaAttributesDto>[]} */
+        const tagResources = value || []; // `value` (tức là row.tags) đã là mảng các ResourceObject
+        const tagNames = tagResources.map(tagResource => tagResource.attributes.name);
+
+        if (tagNames.length === 0) return <Typography variant="caption" color="textSecondary">N/A</Typography>;
+
         return (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-            {tags.slice(0, 2).map((tag) => (
-              <Chip key={tag.id} label={tag.name || 'Tag'} size="small" />
+            {tagNames.slice(0, 3).map((tagName) => (
+              <Chip key={tagName} label={tagName} size="small" variant="outlined" />
             ))}
-            {tags.length > 2 && (
-              <Chip label={`+${tags.length - 2}`} size="small" />
+            {tagNames.length > 3 && (
+              <Chip label={`+${tagNames.length - 3}`} size="small" />
             )}
           </Box>
         )
@@ -144,36 +188,36 @@ function MangaTable({
     },
     {
       id: 'updatedAt',
-      label: 'Cập nhật cuối',
-      minWidth: 150,
+      label: 'Cập nhật',
+      minWidth: 120,
       sortable: true,
       format: (value) => formatDate(value),
     },
     {
       id: 'actions',
       label: 'Hành động',
-      minWidth: 150,
+      minWidth: 150, 
       align: 'center',
       format: (value, row) => (
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}> 
           <Tooltip title="Chỉnh sửa">
-            <IconButton color="primary" onClick={() => onEdit(row.id)}>
-              <EditIcon />
+            <IconButton size="small" color="primary" onClick={() => onEdit(row.id)}>
+              <EditIcon fontSize="small"/>
             </IconButton>
           </Tooltip>
           <Tooltip title="Quản lý Ảnh bìa">
-            <IconButton color="default" onClick={() => onViewCovers(row.id)}>
-              <ImageOutlinedIcon />
+            <IconButton size="small" color="default" onClick={() => onViewCovers(row.id)}>
+              <ImageOutlinedIcon fontSize="small"/>
             </IconButton>
           </Tooltip>
           <Tooltip title="Quản lý Bản dịch">
-            <IconButton color="default" onClick={() => onViewTranslations(row.id)}>
-              <TranslateIcon />
+            <IconButton size="small" color="default" onClick={() => onViewTranslations(row.id)}>
+              <TranslateIcon fontSize="small"/>
             </IconButton>
           </Tooltip>
           <Tooltip title="Xóa">
-            <IconButton color="secondary" onClick={() => handleDeleteClick(row.id)}>
-              <DeleteIcon />
+            <IconButton size="small" color="secondary" onClick={() => handleDeleteClick(row.id)}>
+              <DeleteIcon fontSize="small"/>
             </IconButton>
           </Tooltip>
         </Box>
@@ -214,7 +258,7 @@ function MangaTable({
         onClose={handleCloseConfirm}
         onConfirm={handleConfirmDelete}
         title="Xác nhận xóa Manga"
-        message="Bạn có chắc chắn muốn xóa manga này? Thao tác này không thể hoàn tác và sẽ xóa tất cả các bản dịch, chapter, và ảnh bìa liên quan."
+        message={`Bạn có chắc chắn muốn xóa manga "${mangaToDeleteId ? mangas.find(m => m.id === mangaToDeleteId)?.attributes?.title : ''}" này? Thao tác này không thể hoàn tác và sẽ xóa tất cả các bản dịch, chapter, và ảnh bìa liên quan.`}
       />
     </>
   )

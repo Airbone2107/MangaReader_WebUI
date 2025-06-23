@@ -12,6 +12,8 @@ function FormInput({ name, control, label, type = 'text', options, ...props }) {
   })
 
   if (type === 'select' && options) {
+    const selectValue = field.value === null ? '' : field.value;
+
     return (
       <FormControl fullWidth margin="normal" error={!!error}>
         <InputLabel id={`${name}-label`}>{label}</InputLabel>
@@ -19,9 +21,15 @@ function FormInput({ name, control, label, type = 'text', options, ...props }) {
           labelId={`${name}-label`}
           id={name}
           {...field}
+          value={selectValue}
           label={label}
           {...props}
         >
+          {(name === 'publicationDemographic' || name === 'year') && (
+            <MenuItem value="">
+              <em>Không chọn / Để trống</em>
+            </MenuItem>
+          )}
           {options.map((option) => (
             <MenuItem key={option.value} value={option.value}>
               {option.label}

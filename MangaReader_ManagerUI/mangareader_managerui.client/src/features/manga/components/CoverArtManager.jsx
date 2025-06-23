@@ -25,6 +25,7 @@ import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import { showSuccessToast } from '../../../components/common/Notification'
 import { CLOUDINARY_BASE_URL } from '../../../constants/appConstants'
 import { uploadCoverArtSchema } from '../../../schemas/mangaSchema'
+import useMangaStore from '../../../stores/mangaStore'
 import { handleApiError } from '../../../utils/errorUtils'
 
 /**
@@ -44,6 +45,8 @@ function CoverArtManager({ mangaId }) {
   const [openUploadDialog, setOpenUploadDialog] = useState(false)
   const [openConfirmDelete, setOpenConfirmDelete] = useState(false)
   const [coverArtToDelete, setCoverArtToDelete] = useState(null)
+
+  const fetchMangasGlobal = useMangaStore((state) => state.fetchMangas)
 
   const {
     register,
@@ -85,7 +88,8 @@ function CoverArtManager({ mangaId }) {
         description: data.description,
       })
       showSuccessToast('Tải ảnh bìa thành công!')
-      fetchCovers()
+      await fetchCovers()
+      fetchMangasGlobal()
       setOpenUploadDialog(false)
       reset()
     } catch (error) {
@@ -104,7 +108,8 @@ function CoverArtManager({ mangaId }) {
       try {
         await coverArtApi.deleteCoverArt(coverArtToDelete.id)
         showSuccessToast('Xóa ảnh bìa thành công!')
-        fetchCovers()
+        await fetchCovers()
+        fetchMangasGlobal()
       } catch (error) {
         console.error('Failed to delete cover art:', error)
         handleApiError(error, 'Không thể xóa ảnh bìa.')
@@ -132,7 +137,6 @@ function CoverArtManager({ mangaId }) {
           Tải ảnh bìa mới
         </Button>
       </Box>
-
       {loadingCovers ? (
         <Box
           sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}
@@ -146,7 +150,9 @@ function CoverArtManager({ mangaId }) {
       ) : (
         <Grid container spacing={2} className="cover-art-grid" columns={{ xs: 4, sm: 6, md: 12, lg: 12 }}>
           {covers.map((cover) => (
-            <Grid item key={cover.id} sx={{ gridColumn: { xs: 'span 4', sm: 'span 3', md: 'span 4', lg: 'span 3' } }}>
+            <Grid
+              key={cover.id}
+              sx={{ gridColumn: { xs: 'span 4', sm: 'span 3', md: 'span 4', lg: 'span 3' } }}>
               <Card className="cover-art-card">
                 <CardMedia
                   component="img"
@@ -175,7 +181,6 @@ function CoverArtManager({ mangaId }) {
           ))}
         </Grid>
       )}
-
       {/* Upload Dialog */}
       <Dialog open={openUploadDialog} onClose={() => setOpenUploadDialog(false)}>
         <DialogTitle>Tải ảnh bìa mới</DialogTitle>
@@ -225,7 +230,6 @@ function CoverArtManager({ mangaId }) {
           </DialogActions>
         </Box>
       </Dialog>
-
       <ConfirmDialog
         open={openConfirmDelete}
         onClose={handleCloseConfirmDelete}
@@ -234,7 +238,7 @@ function CoverArtManager({ mangaId }) {
         message={`Bạn có chắc chắn muốn xóa ảnh bìa này (Volume: ${coverArtToDelete?.attributes?.volume || 'N/A'})?`}
       />
     </Box>
-  )
+  );
 }
 
 export default CoverArtManager 

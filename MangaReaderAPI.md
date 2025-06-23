@@ -160,7 +160,10 @@ Tất cả các phản hồi JSON đều tuân theo một cấu trúc thống nh
     "relationships": [
       {
         "id": "string (GUID của entity liên quan)",
-        "type": "string (loại của MỐI QUAN HỆ hoặc VAI TRÒ, ví dụ: 'author', 'artist', 'tag', 'cover_art')"
+        "type": "string (loại của MỐI QUAN HỆ hoặc VAI TRÒ, ví dụ: 'author', 'artist', 'cover_art')",
+        "attributes": { // (Tùy chọn)
+            // Thuộc tính chi tiết của thực thể liên quan, chỉ xuất hiện nếu được yêu cầu qua tham số `includes[]`.
+        }
       }
       // ... các relationships khác ...
     ]
@@ -173,7 +176,8 @@ Tất cả các phản hồi JSON đều tuân theo một cấu trúc thống nh
 *   **`data.attributes`**: Một đối tượng JSON chứa tất cả các thuộc tính của tài nguyên, trừ `id` và các mối quan hệ (tương ứng với các `*AttributesDto`).
 *   **`data.relationships`**: (Tùy chọn, có thể không có nếu không có mối quan hệ nào được trả về hoặc không liên quan) Một mảng các đối tượng `RelationshipObject`.
     *   **`id`**: Định danh duy nhất (GUID) của thực thể liên quan.
-    *   **`type`**: Mô tả vai trò hoặc bản chất của mối quan hệ đó đối với thực thể gốc (ví dụ: `"author"` cho tác giả, `"artist"` cho họa sĩ, `"tag"` cho thẻ, `"cover_art"` cho ảnh bìa).
+    *   **`type`**: Mô tả vai trò hoặc bản chất của mối quan hệ đó đối với thực thể gốc.
+    *   **`attributes`**: (Tùy chọn) Một đối tượng JSON chứa các thuộc tính chi tiết của thực thể liên quan. Trường này chỉ xuất hiện khi client yêu cầu thông qua tham số query `includes[]` (ví dụ: `?includes[]=author`).
 
 ### 5.2. Response Thành Công - Danh Sách Đối Tượng (`ApiCollectionResponse<TData>`)
 
@@ -475,8 +479,58 @@ Tài nguyên Manga đại diện cho các tác phẩm truyện tranh (manga, man
 *   **Mô tả:** Lấy thông tin chi tiết của một manga bằng ID.
 *   **Request Parameters:**
     *   `id`: (Path Parameter, GUID, Bắt buộc) Định danh duy nhất của manga.
+*   **Request Parameters (Query):**
+    *   `includes[]`: (Chuỗi, Tùy chọn) Một mảng các thông tin bổ sung muốn bao gồm trong kết quả. Các giá trị được hỗ trợ:
+        *   `author`: Trả về thông tin đầy đủ (`attributes`) của các tác giả (`author`) và họa sĩ (`artist`) trong mảng `relationships`.
+        *   `cover_art`: Trả về thông tin đầy đủ (`attributes`) của tất cả ảnh bìa (`cover_art`) liên quan trong mảng `relationships`.
 *   **Responses:**
-    *   `200 OK` (Ví dụ tương tự response `201 Created` ở trên)
+    *   `200 OK`
+        ```json
+        // Ví dụ response cho GET /Mangas/{id}?includes[]=author&includes[]=cover_art
+        {
+          "result": "ok",
+          "response": "entity",
+          "data": {
+            "id": "123e4567-e89b-12d3-a456-426614174000",
+            "type": "manga",
+            "attributes": { /* các thuộc tính của manga */ },
+            "relationships": [
+              { 
+                "id": "author-guid-1", 
+                "type": "author",
+                "attributes": {
+                  "name": "Eiichiro Oda",
+                  "biography": "...",
+                  "createdAt": "...",
+                  "updatedAt": "..."
+                }
+              },
+              {
+                "id": "cover-art-guid-1",
+                "type": "cover_art",
+                "attributes": {
+                  "volume": "1",
+                  "publicId": "mangas_v2/manga-guid/covers/...",
+                  "description": "Cover for volume 1",
+                  "createdAt": "...",
+                  "updatedAt": "..."
+                }
+              },
+              {
+                "id": "cover-art-guid-2",
+                "type": "cover_art",
+                "attributes": {
+                  "volume": "2",
+                  "publicId": "mangas_v2/manga-guid/covers/...",
+                  "description": "Cover for volume 2",
+                  "createdAt": "...",
+                  "updatedAt": "..."
+                }
+              }
+            ]
+          }
+        }
+        ```
     *   `404 Not Found`
 
 #### 6.2.3. `GET /Mangas`
@@ -495,6 +549,9 @@ Tài nguyên Manga đại diện cho các tác phẩm truyện tranh (manga, man
     *   `authorIdsFilter`: (Danh sách GUID, Tùy chọn) Lọc manga chứa **BẤT KỲ** tác giả/họa sĩ nào trong danh sách cung cấp.
     *   `orderBy`: (Chuỗi, Tùy chọn, mặc định: `UpdatedAt`) Tên trường để sắp xếp (`Title`, `Year`, `CreatedAt`, `UpdatedAt`).
     *   `ascending`: (Boolean, Tùy chọn, mặc định: `false`) `true` cho tăng dần, `false` cho giảm dần (mặc định giảm dần cho `UpdatedAt`).
+    *   `includes[]`: (Chuỗi, Tùy chọn) Một mảng các thông tin bổ sung muốn bao gồm trong kết quả. Các giá trị được hỗ trợ:
+        *   `author`: Trả về thông tin đầy đủ (`attributes`) của các tác giả (`author`) và họa sĩ (`artist`) trong mảng `relationships`.
+        *   `cover_art`: Trả về thông tin đầy đủ (`attributes`) của ảnh bìa **chính** (mới nhất) trong mảng `relationships`. ID của mối quan hệ này là `CoverId` (GUID).
 *   **Responses:**
     *   `200 OK` (Trả về `ApiCollectionResponse` với danh sách `ResourceObject<MangaAttributesDto>`)
 
@@ -1173,5 +1230,4 @@ Thay đổi này được thực hiện để:
 * Kiểm tra và cập nhật tất cả các nơi trong code Frontend đang gửi hoặc nhận các trường Enum liên quan.
 * Đảm bảo các model hoặc interface ở Frontend được cập nhật để phản ánh rằng các trường này giờ đây là `string` thay vì `number`.
 * Thực hiện kiểm thử kỹ lưỡng các luồng dữ liệu liên quan đến Manga và các thực thể có sử dụng Enum.
-
 ```

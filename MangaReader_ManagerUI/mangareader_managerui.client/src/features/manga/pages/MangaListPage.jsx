@@ -10,6 +10,12 @@ import {
     MenuItem,
     TextField,
     Typography,
+    FormControl,
+    InputLabel,
+    Select,
+    OutlinedInput,
+    Checkbox,
+    ListItemText,
 } from '@mui/material'
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -27,9 +33,9 @@ import { handleApiError } from '../../../utils/errorUtils'
 import MangaTable from '../components/MangaTable'
 
 /**
- * @typedef {import('../../../types/manga').Author} Author
- * @typedef {import('../../../types/manga').Tag} Tag
- * @typedef {import('../../../types/manga').SelectedRelationship} SelectedRelationship
+ * @typedef {import('../../../types/manga').Author} AuthorForFilter
+ * @typedef {import('../../../types/manga').Tag} TagForFilter
+ * @typedef {import('../../../types/manga').PublicationDemographicType} PublicationDemographicType
  */
 
 function MangaListPage() {
@@ -39,8 +45,8 @@ function MangaListPage() {
     totalMangas,
     page,
     rowsPerPage,
-    filters = {},
-    sort = {},
+    filters,
+    sort,
     fetchMangas,
     setPage,
     setRowsPerPage,
@@ -48,28 +54,33 @@ function MangaListPage() {
     applyFilters,
     resetFilters,
     deleteManga,
-    setFilter,
   } = useMangaStore()
 
   const isLoading = useUiStore(state => state.isLoading);
 
+  /** @type {[AuthorForFilter[], React.Dispatch<React.SetStateAction<AuthorForFilter[]>>]} */
   const [availableAuthors, setAvailableAuthors] = useState([])
+  /** @type {[TagForFilter[], React.Dispatch<React.SetStateAction<TagForFilter[]>>]} */
   const [availableTags, setAvailableTags] = useState([])
+  
+  const [localFilters, setLocalFilters] = useState(filters);
 
   useEffect(() => {
-    // Initial fetch of mangas when component mounts
-    fetchMangas(true); // Reset pagination on initial load
+    setLocalFilters(filters); 
+  }, [filters]);
+
+  useEffect(() => {
+    fetchMangas(true); 
   }, [fetchMangas]);
 
-  // Fetch available authors and tags for filters
   useEffect(() => {
     const fetchFilterOptions = async () => {
       try {
         const authorsResponse = await authorApi.getAuthors({ limit: 1000 });
-        setAvailableAuthors(authorsResponse.data.map(a => ({ id: a.id, name: a.attributes.name })));
+        setAvailableAuthors(authorsResponse.data.map(a => ({ id: a.id, name: a.attributes.name, type: 'author' })))
 
         const tagsResponse = await tagApi.getTags({ limit: 1000 });
-        setAvailableTags(tagsResponse.data.map(t => ({ id: t.id, name: t.attributes.name })));
+        setAvailableTags(tagsResponse.data.map(t => ({ id: t.id, name: t.attributes.name, type: 'tag' })));
       } catch (error) {
         handleApiError(error, 'Không thể tải tùy chọn lọc.');
       }
@@ -77,52 +88,110 @@ function MangaListPage() {
     fetchFilterOptions();
   }, []);
 
-  const handleApplyFilters = () => {
-    // Gọi applyFilters với các filter hiện tại trong store.
-    // Hành động applyFilters trong store đã được cấu hình để reset page và fetch.
-    applyFilters({
-      titleFilter: filters.titleFilter,
-      statusFilter: filters.statusFilter,
-      contentRatingFilter: filters.contentRatingFilter,
-      demographicFilter: filters.demographicFilter,
-      originalLanguageFilter: filters.originalLanguageFilter,
-      yearFilter: filters.yearFilter,
-      tagIdsFilter: filters.tagIdsFilter,
-      authorIdsFilter: filters.authorIdsFilter,
-    });
-    fetchMangas(true);
+  const handleLocalFilterChange = (filterName, value) => {
+    setLocalFilters(prev => ({ ...prev, [filterName]: value }));
+  };
+
+  const handleApplyLocalFilters = () => {
+    applyFilters(localFilters); 
+    fetchMangas(true); 
   }
 
-  const handleResetFilters = () => {
-    resetFilters();
+  const handleResetLocalFilters = () => {
+    resetFilters(); 
+    setLocalFilters(useMangaStore.getState().filters); 
   }
+
+  const ITEM_HEIGHT = 48;
+  const ITEM_PADDING_TOP = 8;
+  const MenuProps = {
+    PaperProps: {
+      style: {
+        maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+        width: 250,
+      },
+    },
+  };
+  
+  const renderMultiSelectDisplay = (selectedItems, getTagProps, maxItemsToShow = 2) => {
+    const numItems = selectedItems.length;
+    const itemsToRender = selectedItems.slice(0, maxItemsToShow);
+    
+    let displayChips = itemsToRender.map((item, index) => {
+      const label = typeof item === 'object' ? (item.name || item.label) : item;
+      const key = typeof item === 'object' ? (item.id || item.value || index) : item;
+
+      return (
+        <Chip 
+          variant="outlined" 
+          label={label}
+          size="small" 
+          {...(getTagProps ? getTagProps({ index }) : {})} 
+          key={key} 
+          sx={{ 
+            maxWidth: '120px', 
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            mr: 0.5, 
+            '&:last-child': {
+                mr: (numItems <= maxItemsToShow && index === itemsToRender.length -1) ? 0 : 0.5,
+            }
+          }}
+        />
+      );
+    });
+
+    if (numItems > maxItemsToShow) {
+      displayChips.push(
+        <Chip 
+          variant="outlined" 
+          label={`+${numItems - maxItemsToShow}`} 
+          size="small" 
+          key="more-items" 
+        />
+      );
+    }
+    return displayChips;
+  };
+
 
   return (
     <Box className="manga-list-page">
       <Typography variant="h4" component="h1" gutterBottom className="page-header">
         Quản lý Manga
       </Typography>
-
-      {/* Filter Section */}
       <Box className="filter-section">
-        <Grid container spacing={2} alignItems="flex-end" columns={{ xs: 4, sm: 6, md: 12 }}>
-          <Grid item xs={4} sm={3} md={3}>
+        <Grid 
+          container 
+          spacing={2} 
+          alignItems="stretch" // Đảm bảo các item trong Grid cùng chiều cao nếu cần
+        >
+          {/* Dòng 1: Lọc theo tiêu đề */}
+          <Grid size={12}>
             <TextField
               label="Lọc theo Tiêu đề"
               variant="outlined"
               fullWidth
-              value={filters.titleFilter || ''}
-              onChange={(e) => setFilter('titleFilter', e.target.value)}
+              value={localFilters.titleFilter || ''}
+              onChange={(e) => handleLocalFilterChange('titleFilter', e.target.value)}
             />
           </Grid>
-          <Grid item xs={4} sm={3} md={2}>
+
+          {/* Dòng 2: Trạng thái, Đánh Giá, Ngôn Ngữ Gốc */}
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
             <TextField
               select
               label="Trạng thái"
               variant="outlined"
               fullWidth
-              value={filters.statusFilter || ''}
-              onChange={(e) => setFilter('statusFilter', e.target.value)}
+              value={localFilters.statusFilter || ''}
+              onChange={(e) => handleLocalFilterChange('statusFilter', e.target.value)}
             >
               <MenuItem value="">Tất cả</MenuItem>
               {MANGA_STATUS_OPTIONS.map((option) => (
@@ -132,14 +201,19 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={4} sm={3} md={2}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
             <TextField
               select
               label="Đánh giá"
               variant="outlined"
               fullWidth
-              value={filters.contentRatingFilter || ''}
-              onChange={(e) => setFilter('contentRatingFilter', e.target.value)}
+              value={localFilters.contentRatingFilter || ''}
+              onChange={(e) => handleLocalFilterChange('contentRatingFilter', e.target.value)}
             >
               <MenuItem value="">Tất cả</MenuItem>
               {CONTENT_RATING_OPTIONS.map((option) => (
@@ -149,31 +223,19 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={4} sm={3} md={2}>
-            <TextField
-              select
-              label="Đối tượng"
-              variant="outlined"
-              fullWidth
-              value={filters.demographicFilter || ''}
-              onChange={(e) => setFilter('demographicFilter', e.target.value)}
-            >
-              <MenuItem value="">Tất cả</MenuItem>
-              {PUBLICATION_DEMOGRAPHIC_OPTIONS.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid item xs={4} sm={3} md={2}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
             <TextField
               select
               label="Ngôn ngữ gốc"
               variant="outlined"
               fullWidth
-              value={filters.originalLanguageFilter || ''}
-              onChange={(e) => setFilter('originalLanguageFilter', e.target.value)}
+              value={localFilters.originalLanguageFilter || ''}
+              onChange={(e) => handleLocalFilterChange('originalLanguageFilter', e.target.value)}
             >
               <MenuItem value="">Tất cả</MenuItem>
               {ORIGINAL_LANGUAGE_OPTIONS.map((option) => (
@@ -183,86 +245,214 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={4} sm={3} md={1}>
+
+          {/* Dòng 3: Đối Tượng, Năm, Lọc Theo Tác Giả */}
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
+            <FormControl fullWidth variant="outlined">
+              <InputLabel id="publication-demographics-filter-label">Đối tượng</InputLabel>
+              <Select
+                labelId="publication-demographics-filter-label"
+                multiple
+                value={localFilters.publicationDemographicsFilter || []}
+                onChange={(e) => handleLocalFilterChange('publicationDemographicsFilter', e.target.value)}
+                input={<OutlinedInput label="Đối tượng" />}
+                renderValue={(selected) => ( 
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {renderMultiSelectDisplay(
+                      selected.map(val => PUBLICATION_DEMOGRAPHIC_OPTIONS.find(opt => opt.value === val) || { value: val, label: val }),
+                      null, 
+                      2 // Tăng maxItemsToShow cho Select
+                    )}
+                  </Box>
+                )}
+                MenuProps={MenuProps}
+              >
+                {PUBLICATION_DEMOGRAPHIC_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    <Checkbox checked={(localFilters.publicationDemographicsFilter || []).indexOf(option.value) > -1} />
+                    <ListItemText primary={option.label} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
             <TextField
               label="Năm"
               variant="outlined"
               fullWidth
               type="number"
-              value={filters.yearFilter || ''}
-              onChange={(e) => setFilter('yearFilter', e.target.value === '' ? null : parseInt(e.target.value, 10))}
-              inputProps={{ min: 1000, max: new Date().getFullYear(), step: 1 }}
+              value={localFilters.yearFilter || ''}
+              onChange={(e) => handleLocalFilterChange('yearFilter', e.target.value === '' ? null : parseInt(e.target.value, 10))}
+              inputProps={{ min: 1000, max: new Date().getFullYear() + 5, step: 1 }}
             />
           </Grid>
-          <Grid item xs={4} sm={3} md={3}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
             <Autocomplete
               multiple
               options={availableAuthors}
               getOptionLabel={(option) => option.name}
               isOptionEqualToValue={(option, value) => option.id === value.id}
               value={
-                filters.authorIdsFilter && availableAuthors.length > 0
-                  ? availableAuthors.filter(a => filters.authorIdsFilter.includes(a.id))
+                (localFilters.authorIdsFilter && availableAuthors.length > 0)
+                  ? availableAuthors.filter(a => localFilters.authorIdsFilter.includes(a.id))
                   : []
               }
               onChange={(event, newValue) => {
-                setFilter('authorIdsFilter', newValue.map(item => item.id));
+                handleLocalFilterChange('authorIdsFilter', newValue.map(item => item.id));
               }}
-              renderInput={(params) => <TextField {...params} label="Lọc theo Tác giả" />}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip label={option.name} {...getTagProps({ index })} />
-                ))
-              }
+              renderInput={(params) => <TextField {...params} label="Lọc theo Tác giả" variant="outlined" />}
+              // Bỏ renderTags để MUI tự xử lý hiển thị chip
+              fullWidth
             />
           </Grid>
-          <Grid item xs={4} sm={3} md={3}>
+
+          {/* Dòng 4: Tags Phải Có, Chế độ Tags Phải Có */}
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
+             <Autocomplete
+              multiple
+              options={availableTags}
+              getOptionLabel={(option) => option.name}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              value={
+                (localFilters.includedTags && availableTags.length > 0)
+                  ? availableTags.filter(t => localFilters.includedTags.includes(t.id))
+                  : []
+              }
+              onChange={(event, newValue) => {
+                handleLocalFilterChange('includedTags', newValue.map(item => item.id));
+              }}
+              renderInput={(params) => <TextField {...params} label="Tags Phải Có" variant="outlined" />}
+              // Bỏ renderTags để MUI tự xử lý hiển thị chip
+              fullWidth
+            />
+          </Grid>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
+            <TextField
+              select
+              label="Chế độ Tags Phải Có"
+              variant="outlined"
+              fullWidth
+              value={localFilters.includedTagsMode || 'AND'}
+              onChange={(e) => handleLocalFilterChange('includedTagsMode', e.target.value)}
+              disabled={!localFilters.includedTags || localFilters.includedTags.length === 0}
+            >
+              <MenuItem value="AND">VÀ (Tất cả)</MenuItem>
+              <MenuItem value="OR">HOẶC (Bất kỳ)</MenuItem>
+            </TextField>
+          </Grid>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
+            {/* Để trống cho cân đối hoặc thêm filter khác nếu cần */}
+          </Grid>
+
+
+          {/* Dòng 5: Tags Không Có, Chế độ Tags Không Có */}
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
             <Autocomplete
               multiple
               options={availableTags}
               getOptionLabel={(option) => option.name}
               isOptionEqualToValue={(option, value) => option.id === value.id}
               value={
-                filters.tagIdsFilter && availableTags.length > 0
-                  ? availableTags.filter(t => filters.tagIdsFilter.includes(t.id))
+                (localFilters.excludedTags && availableTags.length > 0)
+                  ? availableTags.filter(t => localFilters.excludedTags.includes(t.id))
                   : []
               }
               onChange={(event, newValue) => {
-                setFilter('tagIdsFilter', newValue.map(item => item.id));
+                handleLocalFilterChange('excludedTags', newValue.map(item => item.id));
               }}
-              renderInput={(params) => <TextField {...params} label="Lọc theo Tags" />}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip label={option.name} {...getTagProps({ index })} />
-                ))
-              }
+              renderInput={(params) => <TextField {...params} label="Tags Không Có" variant="outlined" />}
+              // Bỏ renderTags để MUI tự xử lý hiển thị chip
+              fullWidth
             />
           </Grid>
-          <Grid item xs={4} sm={3} md={2}>
-            <Button
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
+            <TextField
+              select
+              label="Chế độ Tags Không Có"
+              variant="outlined"
+              fullWidth
+              value={localFilters.excludedTagsMode || 'OR'}
+              onChange={(e) => handleLocalFilterChange('excludedTagsMode', e.target.value)}
+              disabled={!localFilters.excludedTags || localFilters.excludedTags.length === 0}
+            >
+              <MenuItem value="OR">HOẶC (Bất kỳ)</MenuItem>
+            </TextField>
+          </Grid>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
+            {/* Để trống cho cân đối hoặc thêm filter khác nếu cần */}
+          </Grid>
+          
+          {/* Dòng 6: Các nút bấm */}
+          <Grid
+            sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 1 }}
+            size={12}>
+             <Button
               variant="contained"
               color="primary"
               startIcon={<SearchIcon />}
-              onClick={handleApplyFilters}
-              fullWidth
+              onClick={handleApplyLocalFilters}
+              sx={{ height: '56px' }}  
             >
               Áp dụng
             </Button>
-          </Grid>
-          <Grid item xs={4} sm={3} md={2}>
             <Button
               variant="outlined"
               color="inherit"
               startIcon={<ClearIcon />}
-              onClick={handleResetFilters}
-              fullWidth
+              onClick={handleResetLocalFilters}
+              sx={{ height: '56px' }} 
             >
               Đặt lại
             </Button>
           </Grid>
         </Grid>
       </Box>
-
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, mt: 3 }}>
         <Button
           variant="contained"
@@ -273,15 +463,14 @@ function MangaListPage() {
           Thêm Manga mới
         </Button>
       </Box>
-
       <MangaTable
         mangas={mangas}
         totalMangas={totalMangas}
         page={page}
         rowsPerPage={rowsPerPage}
-        onPageChange={setPage}
-        onRowsPerPageChange={setRowsPerPage}
-        onSort={setSort}
+        onPageChange={(event, newPageVal) => setPage(event, newPageVal)}
+        onRowsPerPageChange={(event) => setRowsPerPage(event)}
+        onSort={(orderBy, orderDir) => setSort(orderBy, orderDir)}
         orderBy={sort.orderBy}
         order={sort.ascending ? 'asc' : 'desc'}
         onDelete={deleteManga}
@@ -291,7 +480,7 @@ function MangaListPage() {
         isLoading={isLoading}
       />
     </Box>
-  )
+  );
 }
 
-export default MangaListPage 
+export default MangaListPage

@@ -1,4 +1,4 @@
-using MangaReader.WebUI.Services.MangaServices.Models;
+using MangaReader.WebUI.Models.ViewModels.History;
 
 namespace MangaReader.WebUI.Services.MangaServices
 {
@@ -10,4 +10,4 @@ namespace MangaReader.WebUI.Services.MangaServices
         /// <returns>Danh sách các manga đã đọc gần đây</returns>
         Task<List<LastReadMangaViewModel>> GetReadingHistoryAsync();
     }
-} 
+}

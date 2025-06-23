@@ -1,4 +1,4 @@
-@model MangaReader.WebUI.Models.ProfileViewModel
+@model MangaReader.WebUI.Models.ViewModels.Auth.ProfileViewModel
 @{
     ViewData["Title"] = "Trang cá nhân";
 }
@@ -45,7 +45,6 @@
 
 @section Scripts {
     <script>
-        // Khởi tạo toast
         let toastElement = document.getElementById('notificationToast');
         let toast = toastElement ? new bootstrap.Toast(toastElement, { delay: 3000 }) : null;
         

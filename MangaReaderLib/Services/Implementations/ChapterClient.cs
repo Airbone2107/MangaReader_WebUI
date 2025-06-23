@@ -3,6 +3,11 @@ using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Text;
+using System.Net.Http;
+using System.Text.Json;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace MangaReaderLib.Services.Implementations
 {
@@ -10,11 +15,16 @@ namespace MangaReaderLib.Services.Implementations
     {
         private readonly IApiClient _apiClient;
         private readonly ILogger<ChapterClient> _logger;
+        private readonly JsonSerializerOptions _jsonSerializerOptions;
 
         public ChapterClient(IApiClient apiClient, ILogger<ChapterClient> logger)
         {
             _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _jsonSerializerOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            };
         }
         
         private string BuildQueryString(string baseUri, Dictionary<string, List<string>> queryParams)
@@ -101,6 +111,72 @@ namespace MangaReaderLib.Services.Implementations
         {
             _logger.LogInformation("Deleting chapter with ID: {ChapterId}", chapterId);
             await _apiClient.DeleteAsync($"Chapters/{chapterId}", cancellationToken);
+        }
+
+        public async Task<ApiResponse<List<ChapterPageAttributesDto>>?> BatchUploadChapterPagesAsync(
+            Guid chapterId,
+            IEnumerable<(Stream stream, string fileName, string contentType)> files,
+            IEnumerable<int> pageNumbers,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Batch uploading pages for Chapter ID: {ChapterId}", chapterId);
+            using var formData = new MultipartFormDataContent();
+
+            if (files == null || !files.Any())
+            {
+                throw new ArgumentException("Files collection cannot be null or empty.", nameof(files));
+            }
+            if (pageNumbers == null || !pageNumbers.Any())
+            {
+                throw new ArgumentException("PageNumbers collection cannot be null or empty.", nameof(pageNumbers));
+            }
+            if (files.Count() != pageNumbers.Count())
+            {
+                throw new ArgumentException("The number of files must match the number of page numbers.");
+            }
+
+            foreach (var fileTuple in files)
+            {
+                var streamContent = new StreamContent(fileTuple.stream);
+                streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(fileTuple.contentType);
+                formData.Add(streamContent, "files", fileTuple.fileName);
+            }
+
+            foreach (var pageNumber in pageNumbers)
+            {
+                formData.Add(new StringContent(pageNumber.ToString()), "pageNumbers");
+            }
+
+            return await _apiClient.PostAsync<ApiResponse<List<ChapterPageAttributesDto>>>(
+                $"Chapters/{chapterId}/pages/batch", formData, cancellationToken);
+        }
+
+        public async Task<ApiResponse<List<ChapterPageAttributesDto>>?> SyncChapterPagesAsync(
+            Guid chapterId,
+            string pageOperationsJson, 
+            IDictionary<string, (Stream stream, string fileName, string contentType)>? files,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Syncing pages for Chapter ID: {ChapterId}", chapterId);
+            using var formData = new MultipartFormDataContent();
+
+            formData.Add(new StringContent(pageOperationsJson, Encoding.UTF8, "application/json"), "pageOperationsJson");
+
+            if (files != null)
+            {
+                foreach (var fileEntry in files)
+                {
+                    var fileIdentifier = fileEntry.Key;
+                    var (stream, fileName, contentType) = fileEntry.Value;
+
+                    var streamContent = new StreamContent(stream);
+                    streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+                    formData.Add(streamContent, fileIdentifier, fileName);
+                }
+            }
+            
+            return await _apiClient.PutAsync<ApiResponse<List<ChapterPageAttributesDto>>>(
+                $"Chapters/{chapterId}/pages", formData, cancellationToken);
         }
     }
 } 

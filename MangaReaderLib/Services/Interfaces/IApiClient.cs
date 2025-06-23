@@ -69,6 +69,16 @@ namespace MangaReaderLib.Services.Interfaces
         Task PutAsync<TRequest>(string requestUri, TRequest content, CancellationToken cancellationToken = default) where TRequest : class;
 
         /// <summary>
+        /// Thực hiện HTTP PUT request với nội dung là HttpContent (MultipartFormDataContent, StringContent, etc.)
+        /// </summary>
+        /// <typeparam name="TResponse">Kiểu dữ liệu của đối tượng trả về</typeparam>
+        /// <param name="requestUri">URI endpoint, không bao gồm base URL</param>
+        /// <param name="content">HttpContent để gửi đi (ví dụ: MultipartFormDataContent cho upload file)</param>
+        /// <param name="cancellationToken">Token để hủy thao tác</param>
+        /// <returns>Đối tượng đã được deserialize từ JSON response</returns>
+        Task<TResponse?> PutAsync<TResponse>(string requestUri, HttpContent content, CancellationToken cancellationToken = default) where TResponse : class;
+
+        /// <summary>
         /// Thực hiện HTTP DELETE request
         /// </summary>
         /// <param name="requestUri">URI endpoint, không bao gồm base URL</param>

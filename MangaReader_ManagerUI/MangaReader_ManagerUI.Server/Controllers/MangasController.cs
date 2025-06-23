@@ -6,6 +6,7 @@ using MangaReaderLib.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using MangaReaderLib.Services.Exceptions;
 using System.Net;
+using MangaReaderLib.Enums;
 
 namespace MangaReader_ManagerUI.Server.Controllers
 {
@@ -30,21 +31,39 @@ namespace MangaReader_ManagerUI.Server.Controllers
             [FromQuery] string? titleFilter,
             [FromQuery] string? statusFilter, 
             [FromQuery] string? contentRatingFilter, 
-            [FromQuery] string? demographicFilter, 
+            [FromQuery(Name = "publicationDemographicsFilter[]")] List<PublicationDemographic>? publicationDemographicsFilter,
             [FromQuery] string? originalLanguageFilter,
             [FromQuery] int? yearFilter,
-            [FromQuery(Name = "tagIdsFilter[]")] List<Guid>? tagIdsFilter, 
+            [FromQuery(Name = "includedTags[]")] List<Guid>? includedTags,
+            [FromQuery] string? includedTagsMode,
+            [FromQuery(Name = "excludedTags[]")] List<Guid>? excludedTags,
+            [FromQuery] string? excludedTagsMode,
             [FromQuery(Name = "authorIdsFilter[]")] List<Guid>? authorIdsFilter,
             [FromQuery] string? orderBy, 
-            [FromQuery] bool? ascending)
+            [FromQuery] bool? ascending,
+            [FromQuery(Name = "includes[]")] List<string>? includes)
         {
             _logger.LogInformation("API: Requesting list of mangas.");
             try
             {
-                var result = await _mangaClient.GetMangasAsync(offset, limit, titleFilter, 
-                    statusFilter, contentRatingFilter, demographicFilter, originalLanguageFilter,
-                    yearFilter, tagIdsFilter, authorIdsFilter,
-                    orderBy, ascending, HttpContext.RequestAborted);
+                var result = await _mangaClient.GetMangasAsync(
+                    offset, 
+                    limit, 
+                    titleFilter, 
+                    statusFilter, 
+                    contentRatingFilter, 
+                    publicationDemographicsFilter, 
+                    originalLanguageFilter,
+                    yearFilter, 
+                    authorIdsFilter,
+                    includedTags,
+                    includedTagsMode,
+                    excludedTags,
+                    excludedTagsMode,
+                    orderBy, 
+                    ascending,
+                    includes,
+                    HttpContext.RequestAborted);
                 
                 if (result == null)
                 {
@@ -82,12 +101,12 @@ namespace MangaReader_ManagerUI.Server.Controllers
         [ProducesResponseType(typeof(ApiResponse<ResourceObject<MangaAttributesDto>>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetMangaById(Guid mangaId)
+        public async Task<IActionResult> GetMangaById(Guid mangaId, [FromQuery(Name = "includes[]")] List<string>? includes)
         {
             _logger.LogInformation("API: Requesting manga by ID: {MangaId}", mangaId);
             try
             {
-                var result = await _mangaClient.GetMangaByIdAsync(mangaId, HttpContext.RequestAborted);
+                var result = await _mangaClient.GetMangaByIdAsync(mangaId, includes, HttpContext.RequestAborted);
                 if (result == null || result.Data == null)
                 {
                     return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", $"Manga with ID {mangaId} not found.")));

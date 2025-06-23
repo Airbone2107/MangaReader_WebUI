@@ -110,11 +110,17 @@ const useChapterPageStore = create(persistStore((set, get) => ({
     });
   },
 
+  /** 
+   * Các hàm dưới đây không còn cần thiết nữa vì đã được thay thế bằng syncChapterPages
+   * Giữ lại code để tham khảo trong trường hợp cần
+   */
+
   /**
    * Create a chapter page entry.
    * @param {string} chapterId - The ID of the chapter.
    * @param {CreateChapterPageEntryRequest} data - Page entry data.
    * @returns {Promise<string | null>} - The pageId if successful, null otherwise.
+   * @deprecated Sử dụng syncChapterPages thay thế
    */
   createPageEntry: async (chapterId, data) => {
     try {
@@ -134,8 +140,9 @@ const useChapterPageStore = create(persistStore((set, get) => ({
    * @param {string} pageId - The ID of the chapter page entry.
    * @param {File} file - The image file to upload.
    * @param {string} chapterId - The ID of the chapter to re-fetch pages.
+   * @deprecated Sử dụng syncChapterPages thay thế
    */
-  uploadPageImage: async (pageId, file, chapterId) => { // Thêm chapterId vào đây
+  uploadPageImage: async (pageId, file, chapterId) => { 
     try {
       await chapterPageApi.uploadChapterPageImage(pageId, file);
       showSuccessToast('Tải ảnh trang chương thành công!');
@@ -150,6 +157,7 @@ const useChapterPageStore = create(persistStore((set, get) => ({
    * Delete a chapter page.
    * @param {string} pageId - ID of the chapter page to delete.
    * @param {string} chapterId - ID of the chapter to refetch list.
+   * @deprecated Sử dụng syncChapterPages thay thế
    */
   deleteChapterPage: async (pageId, chapterId) => {
     try {

@@ -1,17 +1,20 @@
-using MangaReader.WebUI.Services.APIServices.Interfaces;
+using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Interfaces;
 
 namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
     public class ChapterLanguageServices
     {
-        private readonly IChapterApiService _chapterApiService;
+        private readonly IMangaReaderLibChapterClient _chapterClient;
+        private readonly IMangaReaderLibTranslatedMangaClient _translatedMangaClient;
         private readonly ILogger<ChapterLanguageServices> _logger;
 
         public ChapterLanguageServices(
-            IChapterApiService chapterApiService,
+            IMangaReaderLibChapterClient chapterClient,
+            IMangaReaderLibTranslatedMangaClient translatedMangaClient,
             ILogger<ChapterLanguageServices> logger)
         {
-            _chapterApiService = chapterApiService;
+            _chapterClient = chapterClient;
+            _translatedMangaClient = translatedMangaClient;
             _logger = logger;
         }
 
@@ -22,35 +25,42 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
         /// <returns>Mã ngôn ngữ (ví dụ: 'vi', 'en', 'jp',...) nếu tìm thấy, null nếu không tìm thấy</returns>
         public async Task<string> GetChapterLanguageAsync(string chapterId)
         {
-            if (string.IsNullOrEmpty(chapterId))
+            if (string.IsNullOrEmpty(chapterId) || !Guid.TryParse(chapterId, out var chapterGuid))
             {
-                _logger.LogWarning("ChapterId không được cung cấp khi gọi GetChapterLanguageAsync");
-                throw new ArgumentNullException(nameof(chapterId), "ChapterId không được để trống");
+                _logger.LogWarning("ChapterId không hợp lệ khi gọi GetChapterLanguageAsync: {ChapterId}", chapterId);
+                throw new ArgumentException("ChapterId không hợp lệ", nameof(chapterId));
             }
 
-            _logger.LogInformation($"Đang lấy thông tin ngôn ngữ cho Chapter: {chapterId}");
+            _logger.LogInformation("Đang lấy thông tin ngôn ngữ cho Chapter: {ChapterId}", chapterId);
 
             try
             {
-                // Gọi API service mới
-                var chapterResponse = await _chapterApiService.FetchChapterInfoAsync(chapterId);
+                var chapterResponse = await _chapterClient.GetChapterByIdAsync(chapterGuid);
+                if (chapterResponse?.Data?.Relationships == null)
+                {
+                     _logger.LogError("Không lấy được thông tin hoặc relationships cho chapter {ChapterId}.", chapterId);
+                    throw new InvalidOperationException($"Không thể lấy thông tin cho chapter {chapterId}");
+                }
 
-                if (chapterResponse?.Result == "ok" && chapterResponse.Data?.Attributes?.TranslatedLanguage != null)
+                var tmRelationship = chapterResponse.Data.Relationships.FirstOrDefault(r => r.Type.Equals("translated_manga", StringComparison.OrdinalIgnoreCase));
+                if (tmRelationship != null && Guid.TryParse(tmRelationship.Id, out var tmGuid))
                 {
-                    string language = chapterResponse.Data.Attributes.TranslatedLanguage;
-                    _logger.LogInformation($"Đã lấy được ngôn ngữ: {language} cho Chapter: {chapterId}");
-                    return language;
+                    var tmDetails = await _translatedMangaClient.GetTranslatedMangaByIdAsync(tmGuid);
+                    if (!string.IsNullOrEmpty(tmDetails?.Data?.Attributes?.LanguageKey))
+                    {
+                        string lang = tmDetails.Data.Attributes.LanguageKey;
+                        _logger.LogInformation("Đã lấy được ngôn ngữ: {Language} cho Chapter: {ChapterId}", lang, chapterId);
+                        return lang;
+                    }
                 }
-                else
-                {
-                    _logger.LogError($"Không lấy được thông tin ngôn ngữ cho chapter {chapterId}. Response: {chapterResponse?.Result}");
-                    throw new InvalidOperationException($"Không thể lấy ngôn ngữ cho chapter {chapterId}");
-                }
+
+                _logger.LogWarning("Không thể xác định ngôn ngữ cho chapter {ChapterId}, trả về 'en' mặc định.", chapterId);
+                return "en"; // Fallback
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Lỗi khi lấy ngôn ngữ cho chapter {chapterId}");
-                throw; // Ném lại lỗi để lớp gọi xử lý
+                _logger.LogError(ex, "Lỗi khi lấy ngôn ngữ cho chapter {ChapterId}", chapterId);
+                throw;
             }
         }
     }

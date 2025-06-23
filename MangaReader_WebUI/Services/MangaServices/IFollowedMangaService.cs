@@ -1,4 +1,4 @@
-using MangaReader.WebUI.Services.MangaServices.Models;
+using MangaReader.WebUI.Models.ViewModels.Manga;
 
 namespace MangaReader.WebUI.Services.MangaServices
 {

@@ -88,10 +88,10 @@ function TagForm({ initialData, onSubmit, isEditMode }) {
     <Paper sx={{ p: 3, mt: 3 }}>
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
         <Grid container spacing={2} columns={12}>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <FormInput control={control} name="name" label="Tên tag" />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <FormInput
               control={control}
               name="tagGroupId"
@@ -102,7 +102,7 @@ function TagForm({ initialData, onSubmit, isEditMode }) {
               // disabled={isEditMode}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <Button type="submit" variant="contained" color="primary" sx={{ mt: 2 }}>
               {isEditMode ? 'Cập nhật Tag' : 'Tạo Tag'}
             </Button>
@@ -110,7 +110,7 @@ function TagForm({ initialData, onSubmit, isEditMode }) {
         </Grid>
       </Box>
     </Paper>
-  )
+  );
 }
 
 export default TagForm 

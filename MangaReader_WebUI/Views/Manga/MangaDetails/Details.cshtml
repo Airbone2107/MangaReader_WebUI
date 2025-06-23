@@ -1,9 +1,22 @@
-@model MangaReader.WebUI.Models.MangaDetailViewModel
+@model MangaReader.WebUI.Models.ViewModels.Manga.MangaDetailViewModel
+@inject ILogger<Program> Logger
+
 @{
     ViewData["Title"] = Model.Manga?.Title ?? "Chi tiết manga";
+    
+    // LOGGING DỮ LIỆU TẠI VIEW
+    if (Model?.Manga != null)
+    {
+        Logger.LogInformation("[LOGGING - VIEW] Dữ liệu nhận được tại Details.cshtml: Author='{Author}', Artist='{Artist}', Status='{Status}'", 
+            Model.Manga.Author, Model.Manga.Artist, Model.Manga.Status);
+    }
+    else
+    {
+        Logger.LogWarning("[LOGGING - VIEW] Model.Manga là null tại Details.cshtml.");
+    }
 }
-<!-- Background div riêng biệt -->
-<div class="details-manga-header-background" style="background-image: url('@Model.Manga.CoverUrl')"></div>
+
+<div class="details-manga-header-background" style="background-image: url('@Model.Manga?.CoverUrl')"></div>
 <div class="details-manga-details-container">
     @if (ViewBag.ErrorMessage != null)
     {
@@ -12,22 +25,16 @@
     
     @if (Model.Manga != null)
     {
-
-        
         <div class="details-manga-header-container">
-            <!-- Row 1: Ảnh bìa và thông tin cơ bản -->
             <div class="details-manga-header">
                 <div class="container py-4">
                     <div class="row">
-                        <!-- Column 1: Ảnh bìa -->
                         <div class="col-md-3">
                             <div class="detail-manga-cover-container">
                                 <img src="@Model.Manga.CoverUrl" class="detail-manga-cover" alt="@Model.Manga.Title" data-bs-toggle="modal" data-bs-target="#coverModal">
                             </div>
                         </div>
-                        <!-- Column 2: Thông tin manga -->
                         <div class="col-md-9 theme-text ps-md-0">
-                            <!-- Row 2.1: Tên manga, tác giả, họa sĩ -->
                             <div class="details-manga-info-row details-manga-info-title">
                                 <h1 class="details-manga-title mb-2">@Model.Manga.Title</h1>
                                 @if (!string.IsNullOrEmpty(Model.Manga.AlternativeTitles))
@@ -46,24 +53,20 @@
                                 </div>
                             </div>
                             
-                            <!-- Row 2.2: Các thành phần còn lại -->
                             <div class="details-manga-info-row details-manga-info-meta">
                                 <div class="d-flex gap-2 mb-3">
                                     @if (Model.Chapters.Any())
                                     {
-                                        // Sắp xếp chương theo ngôn ngữ ưu tiên (Việt Nam -> Anh)
                                         var chapters = Model.Chapters.OrderBy(c => c.Number).ToList();
                                         var vietnameseChapters = chapters.Where(c => c.Language == "vi").ToList();
                                         var englishChapters = chapters.Where(c => c.Language == "en").ToList();
                                         
-                                        // Ưu tiên tiếng Việt, sau đó đến tiếng Anh, cuối cùng là các ngôn ngữ khác
                                         var firstChapterId = vietnameseChapters.Any() 
                                             ? vietnameseChapters.First().Id 
                                             : englishChapters.Any() 
                                                 ? englishChapters.First().Id 
                                                 : chapters.First().Id;
                                             
-                                        // Tương tự cho chương mới nhất
                                         var newestChapters = Model.Chapters.OrderByDescending(c => double.TryParse(c.Number, out var num) ? num : 0).ToList();
                                         var newestVietnameseChapter = newestChapters.FirstOrDefault(c => c.Language == "vi");
                                         var newestEnglishChapter = newestChapters.FirstOrDefault(c => c.Language == "en");
@@ -95,7 +98,7 @@
                                     </button>
                                 </div>
                                 <div class="mb-3">
-                                    <span class="badge bg-primary me-2">@TranslateStatus(Model.Manga.Status)</span>
+                                    <span class="badge bg-primary me-2">@Model.Manga.Status</span>
                                     @foreach (var tag in Model.Manga.Tags)
                                     {
                                         <span class="badge details-manga-tag me-2 mb-1">@tag</span>
@@ -107,7 +110,6 @@
                 </div>
             </div>
             
-            <!-- Row 2: Mô tả -->
             @if (!string.IsNullOrEmpty(Model.Manga.Description))
             {
                 <div class="details-manga-description-section">
@@ -126,7 +128,6 @@
             }
         </div>
         
-        <!-- Modal hiển thị ảnh -->
         <div class="modal fade" id="coverModal" tabindex="-1" aria-labelledby="coverModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
@@ -166,12 +167,10 @@
                     </div>
                     
                     @{
-                        // Nhóm chapters theo ngôn ngữ
                         var chaptersByLanguage = Model.Chapters
                             .GroupBy(c => c.Language)
                             .ToDictionary(g => g.Key, g => g.ToList());
                         
-                        // Sắp xếp ngôn ngữ: Tiếng Việt lên đầu, sau đó là tiếng Anh và các ngôn ngữ khác
                         var sortedLanguages = chaptersByLanguage.Keys
                             .OrderBy(lang => lang == "vi" ? 0 : lang == "en" ? 1 : 2)
                             .ThenBy(lang => lang)
@@ -183,21 +182,20 @@
                         {
                             var langChapters = chaptersByLanguage[language];
                             var langId = $"lang-{language}";
-                            
-                            // Tìm chương mới nhất
                             var newestChapter = langChapters.OrderByDescending(c => {
-                                _ = double.TryParse(c.Number, out double num);
+                                _ = double.TryParse(c.Number, out var num);
                                 return num;
                             }).FirstOrDefault();
-                            
                             var newestChapterNumber = newestChapter != null ? newestChapter.Number : "N/A";
-                            
-                            // Nhóm chapters theo tập (volume) và đảo ngược thứ tự (giảm dần)
                             var chaptersByVolume = langChapters
-                                .GroupBy(c => GetVolumeFromChapterNumber(c.Number))
-                                .OrderByDescending(g => int.TryParse(g.Key, out int volNum) ? volNum : 0)
+                                .GroupBy(c => c.Volume ?? "Không rõ")
+                                .OrderByDescending(g => 
+                                {
+                                    if (g.Key == "Không rõ") return int.MinValue;
+                                    return int.TryParse(g.Key, out int volNum) ? volNum : int.MinValue;
+                                })
                                 .ToDictionary(g => g.Key, g => g.OrderByDescending(c => {
-                                    _ = double.TryParse(c.Number, out double num);
+                                    _ = double.TryParse(c.Number, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double num);
                                     return num;
                                 }).ToList());
                             
@@ -211,29 +209,31 @@
                                     </div>
                                     <i class="bi bi-chevron-down language-toggle-icon"></i>
                                 </div>
-                                
                                 <div class="custom-language-content" id="lang-content-@langId">
                                     <div class="custom-volumes-container">
-                                        @foreach (var volume in chaptersByVolume.Keys)
+                                        @foreach (var volumeKey in chaptersByVolume.Keys)
                                         {
-                                            var volumeChapters = chaptersByVolume[volume];
-                                            var volumeId = $"{langId}-vol-{volume.Replace(".", "-")}";
+                                            var volumeChapters = chaptersByVolume[volumeKey];
+                                            var volumeIdSafe = $"{langId}-vol-{System.Text.RegularExpressions.Regex.Replace(volumeKey, @"[^a-zA-Z0-9\-_]", "-")}"; 
+                                            var minChapterNum = volumeChapters.LastOrDefault()?.Number ?? "?";
+                                            var maxChapterNum = volumeChapters.FirstOrDefault()?.Number ?? "?";
                                             
-                                            // Tìm số chương nhỏ nhất và lớn nhất trong volume
-                                            var minChapter = volumeChapters.Last().Number;
-                                            var maxChapter = volumeChapters.First().Number;
-                                            
-                                            <div class="custom-volume-dropdown" id="volume-@volumeId">
-                                                <div class="custom-volume-header" data-volume-id="@volumeId">
+                                            <div class="custom-volume-dropdown" id="volume-@volumeIdSafe">
+                                                <div class="custom-volume-header" data-volume-id="@volumeIdSafe">
                                                     <div class="custom-volume-title">
-                                                        <i class="bi bi-journal-bookmark me-2"></i>Tập @volume
+                                                        <i class="bi bi-journal-bookmark me-2"></i>
+                                                        @(volumeKey == "Không rõ" ? "Tập không rõ" : $"Tập {volumeKey}")
                                                     </div>
                                                     <div class="custom-volume-chapters-info">
-                                                        Chương @minChapter - @maxChapter
+                                                        @if (minChapterNum != "?" && maxChapterNum != "?" && minChapterNum != maxChapterNum) {
+                                                            @($"Chương {minChapterNum} - {maxChapterNum}")
+                                                        } else if (maxChapterNum != "?") {
+                                                            @($"Chương {maxChapterNum}")
+                                                        }
                                                     </div>
                                                     <i class="bi bi-chevron-down volume-toggle-icon"></i>
                                                 </div>
-                                                <div class="custom-volume-chapters" id="chapters-@volumeId">
+                                                <div class="custom-volume-chapters" id="chapters-@volumeIdSafe">
                                                     @foreach (var chapter in volumeChapters)
                                                     {
                                                         <a asp-controller="Chapter" asp-action="Read" 
@@ -257,13 +257,11 @@
                         }
                     </div>
                 </div>
-                
                 <div class="tab-pane fade" id="info" role="tabpanel" aria-labelledby="info-tab">
                     <div class="card details-manga-details-card">
                         <div class="card-body">
                             <h5 class="card-title mb-3">Mô tả đầy đủ</h5>
                             <p class="card-text details-manga-description">@Model.Manga.Description</p>
-                            
                             <h5 class="card-title mt-4 mb-3">Thông tin chi tiết</h5>
                             <ul class="list-group list-group-flush theme-aware-list">
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -279,7 +277,7 @@
                                 }
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <span><i class="bi bi-flag-fill me-2"></i>Trạng thái</span>
-                                    <span class="badge bg-primary">@TranslateStatus(Model.Manga.Status)</span>
+                                    <span class="badge bg-primary">@Model.Manga.Status</span>
                                 </li>
                                 @if (!string.IsNullOrEmpty(Model.Manga.OriginalLanguage))
                                 {
@@ -326,7 +324,6 @@
                                     </li>
                                 }
                             </ul>
-                            
                             <h5 class="card-title mt-4 mb-3">Thể loại</h5>
                             <div class="details-manga-tags">
                                 @foreach (var tag in Model.Manga.Tags)
@@ -334,13 +331,11 @@
                                     <span class="badge details-manga-tag me-2 mb-2">@tag</span>
                                 }
                             </div>
-                            
                             @if (Model.AlternativeTitlesByLanguage != null && Model.AlternativeTitlesByLanguage.Any())
                             {
                                 <h5 class="card-title mt-4 mb-3">Tên khác</h5>
                                 <div class="card-text details-manga-alt-titles">
                                     @{
-                                        // Sử dụng trực tiếp từ Model
                                         var altTitleLangs = Model.AlternativeTitlesByLanguage.Keys
                                             .OrderBy(lang => lang == "vi" ? 0 : (lang == "en" ? 1 : 2))
                                             .ThenBy(lang => lang)
@@ -449,19 +444,5 @@
             "pornographic" => "Người lớn",
             _ => rating
         };
-    }
-    
-    // Tách volume từ số chapter, ví dụ: "12.5" -> "12"
-    public string GetVolumeFromChapterNumber(string chapterNumber)
-    {
-        // Nếu không thể parse số chapter, trả về "Không xác định"
-        if (string.IsNullOrEmpty(chapterNumber) || !double.TryParse(chapterNumber, out double number))
-        {
-            return "Không xác định";
-        }
-        
-        // Ví dụ: Chapter 1-10 thuộc tập 1, Chapter 11-20 thuộc tập 2, v.v.
-        int volume = (int)(Math.Floor(number) / 10) + 1;
-        return volume.ToString();
     }
 } 

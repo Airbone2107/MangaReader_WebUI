@@ -1,4 +1,4 @@
-@model MangaReader.WebUI.Models.MangaListViewModel
+@model MangaReader.WebUI.Models.ViewModels.Manga.MangaListViewModel
 
 @if (Model.MaxPages > 1)
 {
@@ -6,10 +6,7 @@
         <nav aria-label="Page navigation">
             <ul class="pagination">
                 @{
-                    // Sử dụng MaxPages đã được tính toán sẵn từ controller
                     var totalPages = Model.MaxPages;
-                    
-                    // Tính toán phạm vi trang hiển thị
                     var startPage = Math.Max(2, Model.CurrentPage - 2);
                     var endPage = Math.Min(totalPages - 1, Model.CurrentPage + 2);
                 }
@@ -20,17 +17,16 @@
                            page = Math.Max(1, Model.CurrentPage - 1), 
                            title = Model.SortOptions.Title, 
                            status = Model.SortOptions.Status, 
-                           publicationDemographic = Model.SortOptions.Demographic,
+                           publicationDemographic = Model.SortOptions.PublicationDemographic,
                            contentRating = Model.SortOptions.ContentRating,
                            sortBy = Model.SortOptions.SortBy, 
-                           authors = string.Join(",", Model.SortOptions.Authors ?? new List<string>()),
-                           artists = string.Join(",", Model.SortOptions.Artists ?? new List<string>()),
+                           authors = string.Join(",", Model.SortOptions.AuthorIds ?? new List<string>()),
                            year = Model.SortOptions.Year,
                            includedTagsMode = Model.SortOptions.IncludedTagsMode,
                            excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
                            pageSize = Model.PageSize,
-                           includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
-                           excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
+                           includedTagsStr = Model.SortOptions.IncludedTagsStr,
+                           excludedTagsStr = Model.SortOptions.ExcludedTagsStr
                        })" 
                        hx-target="#search-results-and-pagination" 
                        hx-push-url="true" 
@@ -39,24 +35,22 @@
                     </a>
                 </li>
                 
-                <!-- Trang đầu -->
                 <li class="page-item @(Model.CurrentPage == 1 ? "active" : "")">
                     <a class="page-link" 
                        hx-get="@Url.Action("Search", "Manga", new { 
                            page = 1, 
                            title = Model.SortOptions.Title, 
                            status = Model.SortOptions.Status, 
-                           publicationDemographic = Model.SortOptions.Demographic,
+                           publicationDemographic = Model.SortOptions.PublicationDemographic,
                            contentRating = Model.SortOptions.ContentRating,
                            sortBy = Model.SortOptions.SortBy, 
-                           authors = string.Join(",", Model.SortOptions.Authors ?? new List<string>()),
-                           artists = string.Join(",", Model.SortOptions.Artists ?? new List<string>()),
+                           authors = string.Join(",", Model.SortOptions.AuthorIds ?? new List<string>()),
                            year = Model.SortOptions.Year,
                            includedTagsMode = Model.SortOptions.IncludedTagsMode,
                            excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
                            pageSize = Model.PageSize,
-                           includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
-                           excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
+                           includedTagsStr = Model.SortOptions.IncludedTagsStr,
+                           excludedTagsStr = Model.SortOptions.ExcludedTagsStr
                        })" 
                        hx-target="#search-results-and-pagination" 
                        hx-push-url="true">
@@ -64,7 +58,6 @@
                     </a>
                 </li>
                 
-                <!-- Dấu ba chấm bên trái nếu cần -->
                 @if (startPage > 2)
                 {
                     <li class="page-item">
@@ -72,7 +65,6 @@
                     </li>
                 }
                 
-                <!-- Các trang ở giữa -->
                 @for (var i = startPage; i <= endPage; i++)
                 {
                     <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
@@ -81,17 +73,16 @@
                                page = i, 
                                title = Model.SortOptions.Title, 
                                status = Model.SortOptions.Status, 
-                               publicationDemographic = Model.SortOptions.Demographic,
+                               publicationDemographic = Model.SortOptions.PublicationDemographic,
                                contentRating = Model.SortOptions.ContentRating,
                                sortBy = Model.SortOptions.SortBy, 
-                               authors = string.Join(",", Model.SortOptions.Authors ?? new List<string>()),
-                               artists = string.Join(",", Model.SortOptions.Artists ?? new List<string>()),
+                               authors = string.Join(",", Model.SortOptions.AuthorIds ?? new List<string>()),
                                year = Model.SortOptions.Year,
                                includedTagsMode = Model.SortOptions.IncludedTagsMode,
                                excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
                                pageSize = Model.PageSize,
-                               includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
-                               excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
+                               includedTagsStr = Model.SortOptions.IncludedTagsStr,
+                               excludedTagsStr = Model.SortOptions.ExcludedTagsStr
                            })" 
                            hx-target="#search-results-and-pagination" 
                            hx-push-url="true">
@@ -100,7 +91,6 @@
                     </li>
                 }
                 
-                <!-- Dấu ba chấm bên phải nếu cần -->
                 @if (endPage < totalPages - 1)
                 {
                     <li class="page-item">
@@ -108,7 +98,6 @@
                     </li>
                 }
                 
-                <!-- Trang cuối -->
                 @if (totalPages > 1)
                 {
                     <li class="page-item @(Model.CurrentPage == totalPages ? "active" : "")">
@@ -117,17 +106,16 @@
                                page = totalPages, 
                                title = Model.SortOptions.Title, 
                                status = Model.SortOptions.Status, 
-                               publicationDemographic = Model.SortOptions.Demographic,
+                               publicationDemographic = Model.SortOptions.PublicationDemographic,
                                contentRating = Model.SortOptions.ContentRating,
                                sortBy = Model.SortOptions.SortBy, 
-                               authors = string.Join(",", Model.SortOptions.Authors ?? new List<string>()),
-                               artists = string.Join(",", Model.SortOptions.Artists ?? new List<string>()),
+                               authors = string.Join(",", Model.SortOptions.AuthorIds ?? new List<string>()),
                                year = Model.SortOptions.Year,
                                includedTagsMode = Model.SortOptions.IncludedTagsMode,
                                excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
                                pageSize = Model.PageSize,
-                               includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
-                               excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
+                               includedTagsStr = Model.SortOptions.IncludedTagsStr,
+                               excludedTagsStr = Model.SortOptions.ExcludedTagsStr
                            })" 
                            hx-target="#search-results-and-pagination" 
                            hx-push-url="true">
@@ -142,17 +130,16 @@
                            page = Math.Min(totalPages, Model.CurrentPage + 1), 
                            title = Model.SortOptions.Title, 
                            status = Model.SortOptions.Status, 
-                           publicationDemographic = Model.SortOptions.Demographic,
+                           publicationDemographic = Model.SortOptions.PublicationDemographic,
                            contentRating = Model.SortOptions.ContentRating,
                            sortBy = Model.SortOptions.SortBy, 
-                           authors = string.Join(",", Model.SortOptions.Authors ?? new List<string>()),
-                           artists = string.Join(",", Model.SortOptions.Artists ?? new List<string>()),
+                           authors = string.Join(",", Model.SortOptions.AuthorIds ?? new List<string>()),
                            year = Model.SortOptions.Year,
                            includedTagsMode = Model.SortOptions.IncludedTagsMode,
                            excludedTagsMode = Model.SortOptions.ExcludedTagsMode,
                            pageSize = Model.PageSize,
-                           includedTagsStr = string.Join(",", Model.SortOptions.IncludedTags ?? new List<string>()),
-                           excludedTagsStr = string.Join(",", Model.SortOptions.ExcludedTags ?? new List<string>())
+                           includedTagsStr = Model.SortOptions.IncludedTagsStr,
+                           excludedTagsStr = Model.SortOptions.ExcludedTagsStr
                        })" 
                        hx-target="#search-results-and-pagination" 
                        hx-push-url="true" 

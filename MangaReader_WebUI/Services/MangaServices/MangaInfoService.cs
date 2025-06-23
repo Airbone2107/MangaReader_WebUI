@@ -1,42 +1,43 @@
-using MangaReader.WebUI.Services.APIServices.Interfaces;
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
-using MangaReader.WebUI.Services.MangaServices.Models;
+using MangaReader.WebUI.Models.ViewModels.Manga;
+using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Interfaces;
+using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
 
 namespace MangaReader.WebUI.Services.MangaServices
 {
     public class MangaInfoService : IMangaInfoService
     {
-        private readonly IMangaApiService _mangaApiService;
+        private readonly IMangaReaderLibMangaClient _mangaClient;
         private readonly ILogger<MangaInfoService> _logger;
-        private readonly IMangaToInfoViewModelMapper _mangaToInfoViewModelMapper;
+        private readonly IMangaReaderLibToMangaInfoViewModelMapper _mangaToInfoViewModelMapper;
 
         public MangaInfoService(
-            IMangaApiService mangaApiService,
+            IMangaReaderLibMangaClient mangaClient,
             ILogger<MangaInfoService> logger,
-            IMangaToInfoViewModelMapper mangaToInfoViewModelMapper)
+            IMangaReaderLibToMangaInfoViewModelMapper mangaToInfoViewModelMapper)
         {
-            _mangaApiService = mangaApiService;
+            _mangaClient = mangaClient;
             _logger = logger;
             _mangaToInfoViewModelMapper = mangaToInfoViewModelMapper;
         }
 
-        public async Task<MangaInfoViewModel> GetMangaInfoAsync(string mangaId)
+        public async Task<MangaInfoViewModel?> GetMangaInfoAsync(string mangaId)
         {
-            if (string.IsNullOrEmpty(mangaId))
+            if (string.IsNullOrEmpty(mangaId) || !Guid.TryParse(mangaId, out var mangaGuid))
             {
-                _logger.LogWarning("MangaId không được cung cấp khi gọi GetMangaInfoAsync.");
+                _logger.LogWarning("MangaId không hợp lệ khi gọi GetMangaInfoAsync: {MangaId}", mangaId);
                 return null;
             }
 
             try
             {
-                _logger.LogInformation($"Bắt đầu lấy thông tin cơ bản cho manga ID: {mangaId}");
+                _logger.LogInformation("Bắt đầu lấy thông tin cơ bản cho manga ID: {MangaId}", mangaId);
 
-                var mangaResponse = await _mangaApiService.FetchMangaDetailsAsync(mangaId);
+                // Yêu cầu include cover_art để có publicId
+                var mangaResponse = await _mangaClient.GetMangaByIdAsync(mangaGuid, new List<string> { "cover_art" });
 
-                if (mangaResponse?.Result != "ok" || mangaResponse.Data == null)
+                if (mangaResponse?.Data == null)
                 {
-                    _logger.LogWarning($"Không thể lấy chi tiết manga {mangaId} trong MangaInfoService. Response: {mangaResponse?.Result}");
+                    _logger.LogWarning("Không thể lấy chi tiết manga {MangaId} trong MangaInfoService. API trả về null hoặc không có dữ liệu.", mangaId);
                     return new MangaInfoViewModel
                     {
                         MangaId = mangaId,
@@ -47,12 +48,12 @@ namespace MangaReader.WebUI.Services.MangaServices
 
                 var mangaInfoViewModel = _mangaToInfoViewModelMapper.MapToMangaInfoViewModel(mangaResponse.Data);
                 
-                _logger.LogInformation($"Lấy thông tin cơ bản thành công cho manga ID: {mangaId}");
+                _logger.LogInformation("Lấy thông tin cơ bản thành công cho manga ID: {MangaId}", mangaId);
                 return mangaInfoViewModel;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Lỗi khi lấy thông tin cơ bản cho manga ID: {mangaId}");
+                _logger.LogError(ex, "Lỗi khi lấy thông tin cơ bản cho manga ID: {MangaId}", mangaId);
                 return new MangaInfoViewModel
                 {
                     MangaId = mangaId,

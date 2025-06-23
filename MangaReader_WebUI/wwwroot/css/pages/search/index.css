@@ -9,6 +9,7 @@
 @import url("./manga-card.css");
 @import url("./tag-base.css");
 @import url("./list-view.css");
+@import url("./author-search.css");
 
 /* Thành phần tương tác */
 @import url("./dropdown.css");

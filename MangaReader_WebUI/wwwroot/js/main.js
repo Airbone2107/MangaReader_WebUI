@@ -8,13 +8,13 @@ import { initCustomDropdowns } from './modules/custom-dropdown.js';
 import { initErrorHandling } from './modules/error-handling.js';
 import { initHtmxHandlers, reinitializeAfterHtmxLoad } from './modules/htmx-handlers.js';
 import { initMangaDetailsPage } from './modules/manga-details.js';
-import { initTagsInSearchForm } from './modules/manga-tags.js';
 import { initReadPage } from './modules/read-page.js';
 import { initReadingState } from './modules/reading-state.js';
 import SearchModule from './modules/search.js';
 import { initSidebar } from './modules/sidebar.js';
-import { initCustomThemeSwitcher } from './modules/theme.js';
+import { initUIToggles } from './modules/ui-toggles.js';
 import { initToasts } from './modules/toast.js';
+import { createAuthorSearch } from './modules/author-search.js';
 import {
     adjustFooterPosition,
     adjustMangaTitles,
@@ -70,13 +70,21 @@ document.addEventListener('DOMContentLoaded', function() {
     initLazyLoading();
     
     // Khởi tạo module tìm kiếm
-    // Luôn khởi tạo module để đăng ký các hàm và sự kiện cần thiết
     SearchModule.init();
     console.log('Search module registered');
     
     // Khởi tạo module quản lý thẻ manga
-    initTagsInSearchForm();
-    console.log('Manga tags module registered');
+    if (window.initSearchTagsDropdown) {
+        window.initSearchTagsDropdown();
+        console.log('Search tags dropdown module registered');
+    }
+    
+    // Khởi tạo các component tìm kiếm tác giả
+    if (document.getElementById('searchForm')) {
+        createAuthorSearch('authorSearchContainer');
+        createAuthorSearch('artistSearchContainer');
+        console.log('Author search components initialized');
+    }
     
     // Tạo ảnh mặc định nếu chưa có
     createDefaultImage();
@@ -95,8 +103,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initCustomDropdowns();
     console.log('Custom dropdowns initialized');
     
-    // Khởi tạo chức năng chuyển đổi chế độ tối/sáng tùy chỉnh
-    initCustomThemeSwitcher();
+    // Khởi tạo chức năng chuyển đổi chế độ tối/sáng và nguồn truyện tùy chỉnh
+    initUIToggles();
     
     // Khởi tạo nút back-to-top
     initBackToTop();

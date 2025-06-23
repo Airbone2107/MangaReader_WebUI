@@ -1,252 +1,155 @@
-# TODO: Khắc phục lỗi tải ảnh bìa Manga
+Chào bạn,
 
-Việc hiển thị ảnh bìa cho danh sách Manga đang gặp vấn đề do hiểu sai trường `id` trong `relationships` của API. Trường `id` cho `cover_art` là GUID của bản ghi `CoverArt`, không phải `publicId` trực tiếp trên Cloudinary. Cần thực hiện thêm một request `GET /CoverArts/{id}` để lấy `publicId` thực sự.
+Tôi đã xem xét lại vấn đề và bạn đã phân tích rất chính xác! Lỗi nằm ở chỗ `MuiDrawer-root` vẫn chiếm không gian layout ngay cả khi thuộc tính `open` của nó là `false`. Tôi xin lỗi vì đã cung cấp giải pháp chưa triệt để ở lần trước.
 
-## 1. Cập nhật cấu trúc dữ liệu Manga ở Frontend
+Nguyên nhân chính là do cách chúng ta áp dụng style cho `Drawer` và `Box` nội dung chính chưa đúng với cách hoạt động của `variant="persistent"` trong Material-UI. Component `Drawer` khi đóng không bị loại khỏi cây DOM, mà nó được dịch chuyển ra khỏi màn hình, và phần nội dung chính cần phải được điều chỉnh để lấp vào khoảng trống đó.
 
-**File:** `MangaReader_ManagerUI\mangareader_managerui.client\src\types\manga.ts`
+Dưới đây là phiên bản `TODO.md` đã được sửa lại hoàn toàn để khắc phục triệt để vấn đề này. Bạn chỉ cần cập nhật 2 file: `AdminLayout.jsx` và `Sidebar.jsx`.
 
-Chúng ta sẽ thêm một trường `coverArtPublicId` kiểu `string` vào interface `Manga` để lưu trữ `publicId` của ảnh bìa sau khi được fetch.
+---
 
-```typescript
-// MangaReader_ManagerUI\mangareader_managerui.client\src\types\manga.ts
-// ... (các import và interface khác)
+```markdown
+# TODO - Sửa Lỗi Giao Diện Co Giãn Khi Đóng/Mở Sidebar (Phiên bản cuối)
 
-export interface Manga {
-  id: string
-  type: 'manga'
-  attributes: MangaAttributes
-  relationships?: RelationshipObject[]
-  // Thêm trường mới để lưu trữ publicId của ảnh bìa sau khi được xử lý ở frontend
-  coverArtPublicId?: string // <-- DÒNG NÀY ĐÃ ĐƯỢC THÊM
+Tài liệu này hướng dẫn cách sửa lỗi layout khiến nội dung chính không co giãn đúng cách khi đóng/mở sidebar. Lỗi này xảy ra do `MuiDrawer-root` vẫn chiếm không gian layout khi bị ẩn.
+
+### Bước 1: Cập nhật `Sidebar.jsx`
+
+Đây là bước quan trọng nhất để sửa lỗi. Chúng ta sẽ **loại bỏ** việc set `width` cho thẻ `Drawer` gốc và chỉ áp dụng `width` cho phần "giấy" (`MuiDrawer-paper`) bên trong nó. Điều này cho phép MUI tự quản lý việc ẩn/hiện của component gốc.
+
+Đồng thời, chúng ta sẽ thêm logic để trên màn hình di động, sidebar sẽ có `variant="temporary"` (trượt ra và che phủ), còn trên máy tính sẽ là `variant="persistent"` (đẩy nội dung).
+
+```jsx
+// MangaReader_ManagerUI\mangareader_managerui.client\src\components\layout\Sidebar.jsx
+import CategoryIcon from '@mui/icons-material/Category';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import PersonIcon from '@mui/icons-material/Person';
+import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, useMediaQuery, useTheme } from '@mui/material';
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import useUiStore from '../../stores/uiStore';
+
+function Sidebar() {
+  const { isSidebarOpen, setSidebarOpen } = useUiStore();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const sidebarWidth = '240px';
+
+  const menuItems = [
+    { text: 'Manga', icon: <MenuBookIcon />, path: '/mangas' },
+    { text: 'Authors', icon: <PersonIcon />, path: '/authors' },
+    { text: 'Tags', icon: <LocalOfferIcon />, path: '/tags' },
+    { text: 'Tag Groups', icon: <CategoryIcon />, path: '/taggroups' },
+  ];
+
+  const drawerContent = (
+    <List className="sidebar-list" sx={{ pt: 2 }}>
+      {menuItems.map((item) => (
+        <ListItem key={item.text} disablePadding className="sidebar-list-item">
+          <ListItemButton
+            component={NavLink}
+            to={item.path}
+            className={({ isActive }) => (isActive ? 'Mui-selected' : '')}
+            onClick={isMobile ? () => setSidebarOpen(false) : undefined} // Đóng sidebar khi click trên mobile
+          >
+            <ListItemIcon>{item.icon}</ListItemIcon>
+            <ListItemText primary={item.text} />
+          </ListItemButton>
+        </ListItem>
+      ))}
+    </List>
+  );
+
+  return (
+    <Drawer
+      variant={isMobile ? "temporary" : "persistent"}
+      anchor="left"
+      open={isSidebarOpen}
+      onClose={() => setSidebarOpen(false)} // Cần cho variant="temporary"
+      sx={{
+        flexShrink: 0,
+        // Chỉ định style cho phần .MuiDrawer-paper bên trong
+        [`& .MuiDrawer-paper`]: {
+          width: sidebarWidth,
+          boxSizing: 'border-box',
+          marginTop: { xs: '56px', sm: '64px' }, // Điều chỉnh theo chiều cao AppBar responsive
+          height: { xs: 'calc(100% - 56px)', sm: 'calc(100% - 64px)' },
+          borderRight: '1px solid rgba(0, 0, 0, 0.12)',
+        },
+      }}
+      ModalProps={{
+        keepMounted: true, // Tốt hơn cho SEO và hiệu năng trên mobile
+      }}
+    >
+      {drawerContent}
+    </Drawer>
+  );
 }
 
-// ... (các interface Request DTOs và SelectedRelationship khác)
+export default Sidebar;
 ```
 
-## 2. Sửa đổi logic fetch Manga trong `useMangaStore.js`
+### Bước 2: Cập nhật `AdminLayout.jsx`
 
-**File:** `MangaReader_ManagerUI\mangareader_managerui.client\src\stores\mangaStore.js`
+Bây giờ `Sidebar` đã hoạt động đúng, chúng ta sẽ cập nhật `AdminLayout` để `Box` chứa nội dung chính phản ứng chính xác với trạng thái của sidebar. Logic sẽ là: chỉ khi **không phải mobile** VÀ **sidebar đang mở**, thì mới đẩy nội dung sang phải.
 
-Logic fetch manga cần được điều chỉnh để sau khi nhận được danh sách manga từ `mangaApi.getMangas()`, chúng ta sẽ duyệt qua từng manga. Nếu có mối quan hệ `cover_art`, chúng ta sẽ thực hiện một request riêng biệt đến `coverArtApi.getCoverArtById(CoverArtId)` để lấy `publicId` và cập nhật vào đối tượng `manga` trong state.
+```jsx
+// MangaReader_ManagerUI\mangareader_managerui.client\src\components\layout\AdminLayout.jsx
+import { Box, useMediaQuery, useTheme } from '@mui/material';
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+import useUiStore from '../../stores/uiStore';
+import LoadingSpinner from '../common/LoadingSpinner';
+import Navbar from './Navbar';
+import Sidebar from './Sidebar';
 
-```javascript
-// MangaReader_ManagerUI\mangareader_managerui.client\src\stores\mangaStore.js
-import { create } from 'zustand'
-import { persistStore } from '../utils/zustandPersist'
-import mangaApi from '../api/mangaApi'
-import coverArtApi from '../api/coverArtApi' // <-- IMPORT THÊM DÒNG NÀY
-import { showSuccessToast } from '../components/common/Notification'
-import { DEFAULT_PAGE_LIMIT, RELATIONSHIP_TYPES } from '../constants/appConstants' // <-- IMPORT THÊM RELATIONSHIP_TYPES
+function AdminLayout() {
+  const isSidebarOpen = useUiStore((state) => state.isSidebarOpen);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const sidebarWidth = '240px';
 
-/**
- * @typedef {import('../types/manga').Manga} Manga
- * @typedef {import('../types/api').ApiCollectionResponse<Manga>} MangaCollectionResponse
- */
-
-const useMangaStore = create(persistStore((set, get) => ({
-  /** @type {Manga[]} */
-  mangas: [],
-  totalMangas: 0,
-  page: 0,
-  rowsPerPage: DEFAULT_PAGE_LIMIT,
-  filters: {
-    titleFilter: '',
-    statusFilter: '',
-    contentRatingFilter: '',
-    demographicFilter: '',
-    originalLanguageFilter: '',
-    yearFilter: null,
-    tagIdsFilter: [],
-    authorIdsFilter: [],
-  },
-  sort: {
-    orderBy: 'updatedAt',
-    ascending: false, // Default to descending for updatedAt
-  },
-
-  /**
-   * Fetch mangas from API.
-   * @param {boolean} [resetPagination=false] - Whether to reset page and offset.
-   */
-  fetchMangas: async (resetPagination = false) => {
-    const { page, rowsPerPage, filters, sort } = get()
-    const offset = resetPagination ? 0 : page * rowsPerPage
-
-    const queryParams = {
-      offset: offset,
-      limit: rowsPerPage,
-      titleFilter: filters.titleFilter || undefined,
-      statusFilter: filters.statusFilter || undefined,
-      contentRatingFilter: filters.contentRatingFilter || undefined,
-      demographicFilter: filters.demographicFilter || undefined,
-      originalLanguageFilter: filters.originalLanguageFilter || undefined,
-      yearFilter: filters.yearFilter || undefined,
-      orderBy: sort.orderBy,
-      ascending: sort.ascending,
-    }
-
-    // Handle array filters explicitly for Axios (Axios params will stringify arrays correctly)
-    if (filters.tagIdsFilter && filters.tagIdsFilter.length > 0) {
-      queryParams['tagIdsFilter[]'] = filters.tagIdsFilter;
-    }
-    if (filters.authorIdsFilter && filters.authorIdsFilter.length > 0) {
-      queryParams['authorIdsFilter[]'] = filters.authorIdsFilter;
-    }
-
-    try {
-      /** @type {MangaCollectionResponse} */
-      const response = await mangaApi.getMangas(queryParams)
-      
-      // Bắt đầu logic mới để fetch publicId cho ảnh bìa
-      const mangasWithCovers = await Promise.all(
-        response.data.map(async (manga) => {
-          const coverArtRelationship = manga.relationships?.find(
-            (rel) => rel.type === RELATIONSHIP_TYPES.COVER_ART
-          )
-
-          if (coverArtRelationship) {
-            try {
-              // Lấy CoverArtId từ mối quan hệ
-              const coverArtId = coverArtRelationship.id
-              // Thực hiện request GET /CoverArts/{id} để lấy đối tượng CoverArt đầy đủ
-              const coverArtResponse = await coverArtApi.getCoverArtById(coverArtId)
-              // Trích xuất publicId và thêm vào đối tượng manga
-              if (coverArtResponse && coverArtResponse.data?.attributes?.publicId) {
-                return { ...manga, coverArtPublicId: coverArtResponse.data.attributes.publicId }
-              }
-            } catch (coverError) {
-              console.warn(
-                `Failed to fetch cover art publicId for manga ${manga.id}. CoverArtId: ${coverArtRelationship.id}`,
-                coverError
-              )
-              // Nếu có lỗi khi lấy publicId, vẫn trả về manga gốc nhưng không có coverArtPublicId
-              return manga 
-            }
-          }
-          return manga // Trả về manga gốc nếu không có mối quan hệ cover_art hoặc có lỗi
-        })
-      )
-      // Kết thúc logic mới
-
-      set({
-        mangas: mangasWithCovers, // Cập nhật state với danh sách manga đã có publicId
-        totalMangas: response.total,
-        page: resetPagination ? 0 : response.offset / response.limit,
-      })
-    } catch (error) {
-      console.error('Failed to fetch mangas:', error)
-      set({ mangas: [], totalMangas: 0 }) // Clear data on error
-    }
-  },
-
-  // ... (các hàm setPage, setRowsPerPage, setSort, setFilter, applyFilters, resetFilters, deleteManga giữ nguyên)
-})) // Tên duy nhất cho persistence
-
-export default useMangaStore
-```
-
-**Lưu ý về `RELATIONSHIP_TYPES`**: Tôi đã thêm `RELATIONSHIP_TYPES` vào `constants/appConstants.js` để tránh các chuỗi cố định ('magic strings') trong code. Hãy đảm bảo bạn có `RELATIONSHIP_TYPES` trong file đó:
-
-```javascript
-// MangaReader_ManagerUI\mangareader_managerui.client\src\constants\appConstants.js
-export const MANGA_STATUS_OPTIONS = [
-  // ...
-]
-
-// Các loại mối quan hệ (type) trong API Response
-export const RELATIONSHIP_TYPES = {
-  AUTHOR: 'author',
-  ARTIST: 'artist',
-  TAG: 'tag',
-  TAG_GROUP: 'tag_group',
-  COVER_ART: 'cover_art', // <-- Đảm bảo dòng này có
-  MANGA: 'manga',
-  USER: 'user',
-  CHAPTER: 'chapter',
-  CHAPTER_PAGE: 'chapter_page',
-  TRANSLATED_MANGA: 'translated_manga',
+  return (
+    <Box sx={{ display: 'flex', height: '100vh' }}>
+      <Navbar />
+      <Sidebar />
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: 3,
+          transition: theme.transitions.create('margin', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
+          // Chỉ đẩy nội dung khi ở màn hình lớn VÀ sidebar đang mở
+          marginLeft: !isMobile && isSidebarOpen ? sidebarWidth : 0,
+          // Chiều cao AppBar khác nhau trên mobile và desktop
+          marginTop: { xs: '56px', sm: '64px' }, 
+          height: { xs: 'calc(100vh - 56px)', sm: 'calc(100vh - 64px)' },
+          overflowY: 'auto',
+        }}
+      >
+        <Outlet />
+      </Box>
+      <LoadingSpinner />
+    </Box>
+  );
 }
 
-// Other constants
-// ...
+export default AdminLayout;
 ```
 
-## 3. Điều chỉnh hiển thị ảnh bìa trong `MangaTable.jsx`
+### Giải thích thay đổi
 
-**File:** `MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaTable.jsx`
+1.  **`Sidebar.jsx`**:
+    *   **Loại bỏ `width` khỏi `sx` gốc**: Thay vì `sx={{ width: sidebarWidth, ... }}`, chúng ta nhắm thẳng vào class nội bộ `& .MuiDrawer-paper` để set `width`. Điều này để `Drawer` gốc tự co lại khi `open={false}`.
+    *   **Responsive `variant`**: Sử dụng `useMediaQuery` để chuyển `variant` của `Drawer` thành `"temporary"` trên màn hình nhỏ. Nó sẽ hoạt động như một menu trượt ra và che phủ nội dung, đây là hành vi người dùng mong đợi trên di động.
+    *   **`onClose` và `onClick`**: Thêm `onClose` cho `Drawer` và `onClick` cho `ListItemButton` để tự động đóng sidebar khi người dùng chọn một mục trên di động.
 
-Thay đổi cách truy cập `publicId` để sử dụng trường `coverArtPublicId` mới đã được xử lý trong store.
+2.  **`AdminLayout.jsx`**:
+    *   **Logic `marginLeft` được đơn giản hóa**: `marginLeft` của nội dung chính giờ đây chỉ phụ thuộc vào 2 điều kiện: `!isMobile` và `isSidebarOpen`. Nếu cả hai đều đúng, nội dung bị đẩy sang phải. Trong mọi trường hợp khác (đang ở mobile hoặc sidebar đã đóng), `marginLeft` là `0`, cho phép nội dung chiếm toàn bộ không gian.
+    *   **Chiều cao và `marginTop` Responsive**: Chiều cao `AppBar` trên mobile thường thấp hơn, nên `marginTop` và `height` của nội dung chính cũng được điều chỉnh tương ứng.
 
-```javascript
-// MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\components\MangaTable.jsx
-// ... (các import khác)
-
-import { CLOUDINARY_BASE_URL, MANGA_STATUS_OPTIONS, CONTENT_RATING_OPTIONS, PUBLICATION_DEMOGRAPHIC_OPTIONS } from '../../../constants/appConstants'
-
-/**
- * @typedef {import('../../../types/manga').Manga} Manga
- */
-
-// ... (các props và state khác)
-
-  const columns = [
-    {
-      id: 'title',
-      label: 'Tiêu đề',
-      minWidth: 180,
-      sortable: true,
-      format: (value, row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {row.coverArtPublicId ? ( // <-- THAY ĐỔI TẠI ĐÂY
-            <img
-              src={`${CLOUDINARY_BASE_URL}w_40,h_60,c_fill/${row.coverArtPublicId}`} // <-- THAY ĐỔI TẠI ĐÂY
-              alt="Cover"
-              style={{ width: 40, height: 60, objectFit: 'cover', borderRadius: 4 }}
-            />
-          ) : ( // Thêm placeholder nếu không có ảnh bìa
-            <img
-              src="https://via.placeholder.com/40x60?text=No+Cover"
-              alt="No Cover"
-              style={{ width: 40, height: 60, objectFit: 'cover', borderRadius: 4, border: '1px solid #ddd' }}
-            />
-          )}
-          <span>{value}</span>
-        </Box>
-      )
-    },
-    // ... (các cột khác giữ nguyên)
-  ]
-
-  // Format data for DataTableMUI
-  const formatMangaDataForTable = (mangasData) => {
-    if (!mangasData) return [];
-    return mangasData.map(manga => {
-      // Logic để thêm `coverArtPublicId` đã được chuyển vào useMangaStore.js,
-      // nên ở đây chỉ cần đảm bảo nó được truyền qua `row`.
-      return {
-        ...manga.attributes,
-        id: manga.id, 
-        relationships: manga.relationships, // Vẫn giữ relationships nếu các cột khác cần
-        coverArtPublicId: manga.coverArtPublicId, // <-- ĐẢM BẢO TRƯỜNG NÀY ĐƯỢC CHUYỂN QUA TỪ STORE
-      };
-    });
-  };
-
-  // ... (phần render giữ nguyên)
-```
-
-## Các bước triển khai:
-
-1.  **Cập nhật `src/types/manga.ts`**: Thêm `coverArtPublicId?: string;` vào interface `Manga`.
-2.  **Cập nhật `src/constants/appConstants.js`**: Đảm bảo `RELATIONSHIP_TYPES.COVER_ART` đã được định nghĩa.
-3.  **Cập nhật `src/stores/mangaStore.js`**:
-    *   Import `coverArtApi`.
-    *   Thêm logic `Promise.all` và duyệt qua `response.data` để gọi `coverArtApi.getCoverArtById` cho mỗi manga có mối quan hệ `cover_art`.
-    *   Cập nhật đối tượng manga với `coverArtPublicId` trước khi `set` state `mangas`.
-4.  **Cập nhật `src/features/manga/components/MangaTable.jsx`**:
-    *   Thay đổi phần `format` của cột `title` để sử dụng `row.coverArtPublicId` thay vì tìm kiếm trong `relationships`.
-    *   Thêm xử lý placeholder nếu không có ảnh bìa (`coverArtPublicId` là null/undefined).
-    *   Trong hàm `formatMangaDataForTable`, đảm bảo `manga.coverArtPublicId` được truyền vào đối tượng trả về cho `DataTableMUI`.
-
-Sau khi hoàn thành các bước này, ảnh bìa cho danh sách manga sẽ được tải chính xác theo luồng API đã mô tả.
+Sau khi áp dụng 2 thay đổi này, layout của bạn sẽ hoạt động chính xác như mong đợi. Tôi rất xin lỗi vì sự nhầm lẫn trước đó.

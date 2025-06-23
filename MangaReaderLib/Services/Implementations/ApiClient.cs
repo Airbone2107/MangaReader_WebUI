@@ -134,6 +134,22 @@ namespace MangaReaderLib.Services.Implementations
             }
         }
 
+        public async Task<TResponse?> PutAsync<TResponse>(string requestUri, HttpContent content, CancellationToken cancellationToken = default)
+            where TResponse : class
+        {
+            try
+            {
+                _logger.LogInformation("Executing PUT request with HttpContent to {RequestUri}", requestUri);
+                var response = await _httpClient.PutAsync(requestUri, content, cancellationToken);
+                return await HandleResponseAsync<TResponse>(response, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not HttpRequestException)
+            {
+                _logger.LogError(ex, "Error during PUT request with HttpContent to {RequestUri}", requestUri);
+                throw;
+            }
+        }
+
         public async Task DeleteAsync(string requestUri, CancellationToken cancellationToken = default)
         {
             try

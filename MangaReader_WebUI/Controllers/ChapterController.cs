@@ -1,11 +1,14 @@
-using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Models.ViewModels.Chapter;
 using MangaReader.WebUI.Services.AuthServices;
 using MangaReader.WebUI.Services.MangaServices.ChapterServices;
 using MangaReader.WebUI.Services.UtilityServices;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace MangaReader.WebUI.Controllers
 {
