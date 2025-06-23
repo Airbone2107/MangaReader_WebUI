@@ -34,11 +34,13 @@ namespace MangaReader_ManagerUI.Server.Controllers
             [FromQuery(Name = "publicationDemographicsFilter[]")] List<PublicationDemographic>? publicationDemographicsFilter,
             [FromQuery] string? originalLanguageFilter,
             [FromQuery] int? yearFilter,
+            [FromQuery(Name = "authors[]")] List<Guid>? authors, // THAY ĐỔI
+            [FromQuery(Name = "artists[]")] List<Guid>? artists, // THÊM MỚI
+            [FromQuery(Name = "availableTranslatedLanguage[]")] List<string>? availableTranslatedLanguage, // THÊM MỚI
             [FromQuery(Name = "includedTags[]")] List<Guid>? includedTags,
             [FromQuery] string? includedTagsMode,
             [FromQuery(Name = "excludedTags[]")] List<Guid>? excludedTags,
             [FromQuery] string? excludedTagsMode,
-            [FromQuery(Name = "authorIdsFilter[]")] List<Guid>? authorIdsFilter,
             [FromQuery] string? orderBy, 
             [FromQuery] bool? ascending,
             [FromQuery(Name = "includes[]")] List<string>? includes)
@@ -55,7 +57,9 @@ namespace MangaReader_ManagerUI.Server.Controllers
                     publicationDemographicsFilter, 
                     originalLanguageFilter,
                     yearFilter, 
-                    authorIdsFilter,
+                    authors, // THAY ĐỔI
+                    artists, // THÊM MỚI
+                    availableTranslatedLanguage, // THÊM MỚI
                     includedTags,
                     includedTagsMode,
                     excludedTags,

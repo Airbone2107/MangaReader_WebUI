@@ -1,3 +1,152 @@
+Tài liệu này hướng dẫn chi tiết các bước cần thực hiện để cập nhật các dự án frontend (`MangaReaderLib`, `MangaReader_ManagerUI`, `MangaReader_WebUI`) nhằm phù hợp với các thay đổi mới từ API Backend.
+
+Các thay đổi chính bao gồm:
+1.  **Cập nhật `MangaReaderLib`:** Đồng bộ DTOs và các phương thức gọi API với đặc tả mới.
+2.  **Mở rộng chức năng tìm kiếm:** Cho phép tìm kiếm manga theo Tác giả, Họa sĩ và Ngôn ngữ dịch có sẵn.
+3.  **Hiển thị Ngôn ngữ dịch:** Hiển thị danh sách các ngôn ngữ có sẵn cho một manga trên trang chi tiết.
+
+---
+
+## Phần 1: Cập nhật Thư viện `MangaReaderLib`
+
+Đây là bước quan trọng nhất, tạo nền tảng cho các thay đổi ở các lớp giao diện người dùng.
+
+### Bước 1.1: Cập nhật DTOs
+
+Cập nhật `MangaAttributesDto` để bao gồm trường `AvailableTranslatedLanguages`.
+
+<br/>
+
+<details>
+<summary>Nội dung file `MangaReaderLib\DTOs\Mangas\MangaAttributesDto.cs`</summary>
+
+```csharp
+// MangaReaderLib\DTOs\Mangas\MangaAttributesDto.cs
+using MangaReaderLib.Enums;
+using MangaReaderLib.DTOs.Common;
+using MangaReaderLib.DTOs.Tags;
+
+namespace MangaReaderLib.DTOs.Mangas
+{
+    public class MangaAttributesDto
+    {
+        public string Title { get; set; } = string.Empty;
+        public List<string>? AvailableTranslatedLanguages { get; set; } // THÊM DÒNG NÀY
+        public string OriginalLanguage { get; set; } = string.Empty;
+        public PublicationDemographic? PublicationDemographic { get; set; }
+        public MangaStatus Status { get; set; }
+        public int? Year { get; set; }
+        public ContentRating ContentRating { get; set; }
+        public bool IsLocked { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        
+        public List<ResourceObject<TagInMangaAttributesDto>>? Tags { get; set; }
+    }
+}
+```
+
+</details>
+
+<br/>
+
+### Bước 1.2: Cập nhật Interface `IMangaReader`
+
+Thay đổi phương thức `GetMangasAsync` để chấp nhận các tham số tìm kiếm mới (`authors`, `artists`, `availableTranslatedLanguage`) và loại bỏ tham số cũ `authorIdsFilter`.
+
+<br/>
+
+<details>
+<summary>Nội dung file `MangaReaderLib\Services\Interfaces\IMangaReader.cs`</summary>
+
+```csharp
+// MangaReaderLib\Services\Interfaces\IMangaReader.cs
+using MangaReaderLib.DTOs.Common;
+using MangaReaderLib.DTOs.CoverArts;
+using MangaReaderLib.DTOs.Mangas;
+using MangaReaderLib.DTOs.TranslatedMangas;
+using MangaReaderLib.Enums;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace MangaReaderLib.Services.Interfaces
+{
+    /// <summary>
+    /// Read-only client for Manga endpoints.
+    /// </summary>
+    public interface IMangaReader : IReadClient
+    {
+        /// <summary>
+        /// Lấy danh sách manga với các tùy chọn lọc và phân trang
+        /// </summary>
+        Task<ApiCollectionResponse<ResourceObject<MangaAttributesDto>>?> GetMangasAsync(
+            int? offset = null, 
+            int? limit = null, 
+            string? titleFilter = null, 
+            string? statusFilter = null, 
+            string? contentRatingFilter = null, 
+            List<PublicationDemographic>? publicationDemographicsFilter = null,
+            string? originalLanguageFilter = null,
+            int? yearFilter = null,
+            List<Guid>? authors = null, // THAY ĐỔI: từ authorIdsFilter thành authors
+            List<Guid>? artists = null, // THÊM MỚI
+            List<string>? availableTranslatedLanguage = null, // THÊM MỚI
+            List<Guid>? includedTags = null,
+            string? includedTagsMode = null,
+            List<Guid>? excludedTags = null,
+            string? excludedTagsMode = null,
+            string? orderBy = null, 
+            bool? ascending = null,
+            List<string>? includes = null,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Lấy thông tin chi tiết của một manga dựa trên ID
+        /// </summary>
+        Task<ApiResponse<ResourceObject<MangaAttributesDto>>?> GetMangaByIdAsync(
+            Guid mangaId,
+            List<string>? includes = null,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Lấy danh sách bìa của một manga
+        /// </summary>
+        Task<ApiCollectionResponse<ResourceObject<CoverArtAttributesDto>>?> GetMangaCoversAsync(
+            Guid mangaId, 
+            int? offset = null, 
+            int? limit = null, 
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Lấy danh sách các bản dịch của một manga
+        /// </summary>
+        Task<ApiCollectionResponse<ResourceObject<TranslatedMangaAttributesDto>>?> GetMangaTranslationsAsync(
+            Guid mangaId, 
+            int? offset = null, 
+            int? limit = null,
+            string? orderBy = null, 
+            bool? ascending = null,
+            CancellationToken cancellationToken = default);
+    }
+} 
+```
+</details>
+
+<br/>
+
+### Bước 1.3: Cập nhật Implementation `MangaClient`
+
+Cập nhật logic trong `GetMangasAsync` để xây dựng chuỗi query string đúng với các tham số mới.
+
+<br/>
+
+<details>
+<summary>Nội dung file `MangaReaderLib\Services\Implementations\MangaClient.cs`</summary>
+
+```csharp
+// MangaReaderLib\Services\Implementations\MangaClient.cs
 using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.DTOs.CoverArts;
 using MangaReaderLib.DTOs.Mangas;
@@ -80,9 +229,9 @@ namespace MangaReaderLib.Services.Implementations
             string? statusFilter = null, string? contentRatingFilter = null,
             List<PublicationDemographic>? publicationDemographicsFilter = null,
             string? originalLanguageFilter = null, int? yearFilter = null,
-            List<Guid>? authors = null,
-            List<Guid>? artists = null,
-            List<string>? availableTranslatedLanguage = null,
+            List<Guid>? authors = null, // THAY ĐỔI
+            List<Guid>? artists = null, // THÊM MỚI
+            List<string>? availableTranslatedLanguage = null, // THÊM MỚI
             List<Guid>? includedTags = null,
             string? includedTagsMode = null,
             List<Guid>? excludedTags = null,
@@ -100,10 +249,9 @@ namespace MangaReaderLib.Services.Implementations
             AddQueryParam(queryParams, "statusFilter", statusFilter);
             AddQueryParam(queryParams, "contentRatingFilter", contentRatingFilter);
 
-            // Xử lý PublicationDemographicsFilter (List<Enum>)
             if (publicationDemographicsFilter != null && publicationDemographicsFilter.Any())
             {
-                 AddListQueryParam(queryParams, "publicationDemographicsFilter", publicationDemographicsFilter.Select(e => e.ToString()).ToList());
+                 AddListQueryParam(queryParams, "publicationDemographicsFilter[]", publicationDemographicsFilter.Select(e => e.ToString()).ToList());
             }
             
             AddQueryParam(queryParams, "originalLanguageFilter", originalLanguageFilter);
@@ -112,21 +260,20 @@ namespace MangaReaderLib.Services.Implementations
             // THÊM LOGIC MỚI
             if (authors != null && authors.Any())
             {
-                AddListQueryParam(queryParams, "authors", authors.Select(id => id.ToString()).ToList());
+                AddListQueryParam(queryParams, "authors[]", authors.Select(id => id.ToString()).ToList());
             }
             if (artists != null && artists.Any())
             {
-                AddListQueryParam(queryParams, "artists", artists.Select(id => id.ToString()).ToList());
+                AddListQueryParam(queryParams, "artists[]", artists.Select(id => id.ToString()).ToList());
             }
             if (availableTranslatedLanguage != null && availableTranslatedLanguage.Any())
             {
-                AddListQueryParam(queryParams, "availableTranslatedLanguage", availableTranslatedLanguage);
+                AddListQueryParam(queryParams, "availableTranslatedLanguage[]", availableTranslatedLanguage);
             }
-
-            // THÊM FILTERS TAG NÂNG CAO
+            
             if (includedTags != null && includedTags.Any())
             {
-                AddListQueryParam(queryParams, "includedTags", includedTags.Select(id => id.ToString()).ToList());
+                AddListQueryParam(queryParams, "includedTags[]", includedTags.Select(id => id.ToString()).ToList());
                 if (!string.IsNullOrEmpty(includedTagsMode))
                 {
                     AddQueryParam(queryParams, "includedTagsMode", includedTagsMode);
@@ -134,7 +281,7 @@ namespace MangaReaderLib.Services.Implementations
             }
             if (excludedTags != null && excludedTags.Any())
             {
-                 AddListQueryParam(queryParams, "excludedTags", excludedTags.Select(id => id.ToString()).ToList());
+                 AddListQueryParam(queryParams, "excludedTags[]", excludedTags.Select(id => id.ToString()).ToList());
                 if (!string.IsNullOrEmpty(excludedTagsMode))
                 {
                     AddQueryParam(queryParams, "excludedTagsMode", excludedTagsMode);
@@ -144,10 +291,9 @@ namespace MangaReaderLib.Services.Implementations
             AddQueryParam(queryParams, "orderBy", orderBy);
             AddQueryParam(queryParams, "ascending", ascending?.ToString().ToLower());
 
-            // THAY ĐỔI: Sửa key từ "includes[]" thành "includes"
             if (includes != null && includes.Any())
             {
-                AddListQueryParam(queryParams, "includes", includes);
+                AddListQueryParam(queryParams, "includes[]", includes);
             }
 
             string requestUri = BuildQueryString("Mangas", queryParams);
@@ -163,7 +309,7 @@ namespace MangaReaderLib.Services.Implementations
             var queryParams = new Dictionary<string, List<string>>();
             if (includes != null && includes.Any())
             {
-                AddListQueryParam(queryParams, "includes", includes);
+                AddListQueryParam(queryParams, "includes[]", includes);
             }
             string requestUri = BuildQueryString($"Mangas/{mangaId}", queryParams);
             return await _apiClient.GetAsync<ApiResponse<ResourceObject<MangaAttributesDto>>>(requestUri, cancellationToken);
@@ -226,4 +372,8 @@ namespace MangaReaderLib.Services.Implementations
             return await _apiClient.GetAsync<ApiCollectionResponse<ResourceObject<TranslatedMangaAttributesDto>>>(requestUri, cancellationToken);
         }
     }
-} 
+}
+```
+</details>
+
+---

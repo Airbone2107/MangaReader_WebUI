@@ -7,6 +7,7 @@ namespace MangaReaderLib.DTOs.Mangas
     public class MangaAttributesDto
     {
         public string Title { get; set; } = string.Empty;
+        public List<string>? AvailableTranslatedLanguages { get; set; }
         public string OriginalLanguage { get; set; } = string.Empty;
         public PublicationDemographic? PublicationDemographic { get; set; }
         public MangaStatus Status { get; set; }

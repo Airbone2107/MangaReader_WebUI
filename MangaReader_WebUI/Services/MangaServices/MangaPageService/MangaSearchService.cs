@@ -32,8 +32,9 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
         /// </summary>
         public SortManga CreateSortMangaFromParameters(
             string title, List<string>? status, string sortBy,
-            List<string>? authorIds, int? year,
+            List<string>? authors, List<string>? artists, int? year,
             List<string>? publicationDemographic, List<string>? contentRating,
+            List<string>? availableTranslatedLanguage,
             string includedTagsMode, string excludedTagsMode,
             string includedTagsStr, string excludedTagsStr)
         {
@@ -45,12 +46,14 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                 Year = year,
                 PublicationDemographic = publicationDemographic,
                 ContentRating = contentRating,
+                AvailableTranslatedLanguage = availableTranslatedLanguage,
                 IncludedTagsMode = includedTagsMode ?? "AND",
                 ExcludedTagsMode = excludedTagsMode ?? "OR",
                 IncludedTagsStr = includedTagsStr ?? string.Empty,
                 ExcludedTagsStr = excludedTagsStr ?? string.Empty,
-                AuthorIds = authorIds,
-                Ascending = sortBy == "title" // Chỉ title là sắp xếp tăng dần mặc định
+                Authors = authors,
+                Artists = artists,
+                Ascending = sortBy == "title"
             };
         }
 
@@ -72,16 +75,16 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
                     publicationDemographicsFilter: sortManga.GetPublicationDemographics(),
                     originalLanguageFilter: sortManga.GetFirstOriginalLanguage(),
                     yearFilter: sortManga.Year,
-                    authorIdsFilter: sortManga.AuthorIds?
-                                            .Where(s => Guid.TryParse(s, out _))
-                                            .Select(Guid.Parse).ToList(),
+                    authors: sortManga.GetAuthorGuids(),
+                    artists: sortManga.GetArtistGuids(),
+                    availableTranslatedLanguage: sortManga.AvailableTranslatedLanguage,
                     includedTags: sortManga.GetIncludedTags(),
                     includedTagsMode: sortManga.IncludedTagsMode,
                     excludedTags: sortManga.GetExcludedTags(),
                     excludedTagsMode: sortManga.ExcludedTagsMode,
                     orderBy: sortManga.SortBy,
                     ascending: sortManga.Ascending,
-                    includes: new List<string> { "cover_art", "author" }
+                    includes: new List<string> { "cover_art", "author", "artist" }
                 );
 
                 int totalCount = result?.Total ?? 0;

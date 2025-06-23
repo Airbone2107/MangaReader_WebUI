@@ -1675,13 +1675,34 @@
             }
           },
           {
-            "name": "AuthorIdsFilter",
+            "name": "Authors",
             "in": "query",
             "schema": {
               "type": "array",
               "items": {
                 "type": "string",
                 "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "Artists",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "AvailableTranslatedLanguage",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
               }
             }
           },
@@ -3604,6 +3625,13 @@
         "properties": {
           "title": {
             "type": "string",
+            "nullable": true
+          },
+          "availableTranslatedLanguages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
             "nullable": true
           },
           "originalLanguage": {

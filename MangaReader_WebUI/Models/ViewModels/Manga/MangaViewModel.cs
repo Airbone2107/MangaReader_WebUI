@@ -14,6 +14,7 @@ namespace MangaReader.WebUI.Models.ViewModels.Manga
         public string Author { get; set; } = string.Empty;
         public string Artist { get; set; } = string.Empty;
         public string OriginalLanguage { get; set; } = string.Empty;
+        public List<string> AvailableTranslatedLanguages { get; set; } = new List<string>();
         public string PublicationDemographic { get; set; } = string.Empty;
         public string ContentRating { get; set; } = string.Empty;
         public string AlternativeTitles { get; set; } = string.Empty;

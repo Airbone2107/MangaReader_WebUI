@@ -11,7 +11,9 @@ namespace MangaReader.WebUI.Models
         public List<string>? OriginalLanguage { get; set; }
         public int? Year { get; set; }
 
-        public List<string>? AuthorIds { get; set; } // Giữ lại để tìm theo ID tác giả/họa sĩ
+        public List<string>? Authors { get; set; } // Tìm theo ID tác giả
+        public List<string>? Artists { get; set; } // Tìm theo ID họa sĩ
+        public List<string>? AvailableTranslatedLanguage { get; set; } // Tìm theo ngôn ngữ có sẵn
 
         public string IncludedTagsStr { get; set; } = string.Empty;
         public string ExcludedTagsStr { get; set; } = string.Empty;
@@ -36,6 +38,12 @@ namespace MangaReader.WebUI.Models
                            .Select(guid => guid!.Value)
                            .ToList();
 
+        public List<Guid>? GetAuthorGuids() =>
+            Authors?.Where(id => Guid.TryParse(id, out _)).Select(Guid.Parse).ToList();
+
+        public List<Guid>? GetArtistGuids() =>
+            Artists?.Where(id => Guid.TryParse(id, out _)).Select(Guid.Parse).ToList();
+        
         public List<PublicationDemographic>? GetPublicationDemographics() =>
             PublicationDemographic?.Select(d => Enum.TryParse<PublicationDemographic>(d, true, out var demo) ? (PublicationDemographic?)demo : null)
                                 .Where(d => d.HasValue)

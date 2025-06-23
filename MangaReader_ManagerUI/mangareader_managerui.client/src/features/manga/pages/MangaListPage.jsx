@@ -245,6 +245,39 @@ function MangaListPage() {
               ))}
             </TextField>
           </Grid>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
+            <FormControl fullWidth variant="outlined">
+              <InputLabel id="available-language-filter-label">Ngôn ngữ dịch</InputLabel>
+              <Select
+                labelId="available-language-filter-label"
+                multiple
+                value={localFilters.availableTranslatedLanguage || []}
+                onChange={(e) => handleLocalFilterChange('availableTranslatedLanguage', e.target.value)}
+                input={<OutlinedInput label="Ngôn ngữ dịch" />}
+                renderValue={(selected) => ( 
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {renderMultiSelectDisplay(
+                      selected.map(val => ORIGINAL_LANGUAGE_OPTIONS.find(opt => opt.value === val) || { value: val, label: val }),
+                      null, 2
+                    )}
+                  </Box>
+                )}
+                MenuProps={MenuProps}
+              >
+                {ORIGINAL_LANGUAGE_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    <Checkbox checked={(localFilters.availableTranslatedLanguage || []).indexOf(option.value) > -1} />
+                    <ListItemText primary={option.label} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
           {/* Dòng 3: Đối Tượng, Năm, Lọc Theo Tác Giả */}
           <Grid
@@ -309,12 +342,35 @@ function MangaListPage() {
               getOptionLabel={(option) => option.name}
               isOptionEqualToValue={(option, value) => option.id === value.id}
               value={
-                (localFilters.authorIdsFilter && availableAuthors.length > 0)
-                  ? availableAuthors.filter(a => localFilters.authorIdsFilter.includes(a.id))
+                (localFilters.artists && availableAuthors.length > 0)
+                  ? availableAuthors.filter(a => localFilters.artists.includes(a.id))
                   : []
               }
               onChange={(event, newValue) => {
-                handleLocalFilterChange('authorIdsFilter', newValue.map(item => item.id));
+                handleLocalFilterChange('artists', newValue.map(item => item.id));
+              }}
+              renderInput={(params) => <TextField {...params} label="Lọc theo Họa sĩ" variant="outlined" />}
+              fullWidth
+            />
+          </Grid>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
+            <Autocomplete
+              multiple
+              options={availableAuthors}
+              getOptionLabel={(option) => option.name}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              value={
+                (localFilters.authors && availableAuthors.length > 0)
+                  ? availableAuthors.filter(a => localFilters.authors.includes(a.id))
+                  : []
+              }
+              onChange={(event, newValue) => {
+                handleLocalFilterChange('authors', newValue.map(item => item.id));
               }}
               renderInput={(params) => <TextField {...params} label="Lọc theo Tác giả" variant="outlined" />}
               // Bỏ renderTags để MUI tự xử lý hiển thị chip

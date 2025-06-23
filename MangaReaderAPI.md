@@ -1,4 +1,7 @@
-# EXTERNAL_API_GUIDE.md
+Chắc chắn rồi! Dưới đây là tệp `MangaReaderAPI.md` được viết lại hoàn toàn để phản ánh các thay đổi mới nhất về chức năng tìm kiếm và chi tiết manga. Phần "Cập nhật quan trọng" cũng đã được cập nhật để chỉ tập trung vào các thay đổi này.
+
+<!-- file path="MangaReaderAPI.md" -->
+```markdown
 # Hướng Dẫn Sử Dụng API MangaReader
 
 Tài liệu này cung cấp hướng dẫn toàn diện cho các nhà phát triển muốn tích hợp hoặc tương tác với API MangaReader. Nó bao gồm các quy ước API chung, cấu trúc dữ liệu, và chi tiết về từng endpoint, giúp bạn dễ dàng hiểu và sử dụng các dịch vụ của chúng tôi mà không cần kiểm tra mã nguồn dự án.
@@ -15,7 +18,7 @@ Tài liệu này cung cấp hướng dẫn toàn diện cho các nhà phát tri�
     *   [4.4. Filtering (Lọc) & Sorting (Sắp Xếp)](#44-filtering-lọc--sorting-sắp-xếp)
     *   [4.5. Định Dạng Enum](#45-định-dạng-enum)
 5.  [Cấu Trúc JSON Response](#5-cấu-trúc-json-response)
-    *   [5.1. Response Thành Công - Đối Tượng Đơn Lẻ (`ApiResponse<TData>`)](#51-response-thành-công---đối-tượng-đơn-lẻ-apirisponsetdata)
+    *   [5.1. Response Thành Công - Đối Tượng Đơn Lẻ (`ApiResponse<TData>`)](#51-response-thành-công---đối-tượng-đơn-lẻ-apiresponsetdata)
     *   [5.2. Response Thành Công - Danh Sách Đối Tượng (`ApiCollectionResponse<TData>`)](#52-response-thành-công---danh-sách-đối-tượng-apicollectionresponsetdata)
     *   [5.3. Response Lỗi (`ApiErrorResponse`)](#53-response-lỗi-apierrorresponse)
     *   [5.4. Các Loại `Relationship Type` Phổ Biến](#54-các-loại-relationship-type-phổ-biến)
@@ -28,13 +31,11 @@ Tài liệu này cung cấp hướng dẫn toàn diện cho các nhà phát tri�
     *   [6.6. Chapters (Chương)](#66-chapters-chương)
     *   [6.7. ChapterPages (Trang Chương)](#67-chapterpages-trang-chương)
     *   [6.8. CoverArts (Ảnh Bìa)](#68-coverarts-ảnh-bìa)
-7.  [Cập Nhật Quan Trọng: Thay Đổi Định Dạng Enum](#7-cập-nhật-quan-trọng-thay-đổi-định-dạng-enum)
+7.  [Cập Nhật Quan Trọng: Tìm Kiếm Nâng Cao & Chi Tiết Ngôn Ngữ Manga](#7-cập-nhật-quan-trọng-tìm-kiếm-nâng-cao--chi-tiết-ngôn-ngữ-manga)
     *   [7.1. Tóm Tắt Thay Đổi](#71-tóm-tắt-thay-đổi)
-    *   [7.2. So Sánh Định Dạng Cũ và Mới](#72-so-sánh-định-dạng-cũ-và-mới)
-    *   [7.3. Các Trường Enum Bị Ảnh Hưởng](#73-các-trường-enum-bị-ảnh-hưởng)
-    *   [7.4. Tác Động Đến Frontend](#74-tác-động-đến-frontend)
-    *   [7.5. Lý Do Thay Đổi](#75-lý-do-thay-đổi)
-    *   [7.6. Hành Động Đề Xuất Cho Frontend](#76-hành-động-đề-xuất-cho-frontend)
+    *   [7.2. Thay đổi tại `GET /mangas` (Lấy danh sách Manga)](#72-thay-đổi-tại-get-mangas-lấy-danh-sách-manga)
+    *   [7.3. Thay đổi tại `GET /mangas/{id}` (Lấy chi tiết Manga)](#73-thay-đổi-tại-get-mangasid-lấy-chi-tiết-manga)
+    *   [7.4. Hành Động Đề Xuất Cho Frontend](#74-hành-động-đề-xuất-cho-frontend)
 
 ---
 
@@ -123,7 +124,7 @@ Tất cả các trường dữ liệu kiểu Enum trong API (cả trong request 
 #### Ví dụ Request và Response
 
 ```json
-// Request và Response mới (định dạng hiện tại)
+// Request và Response
 {
   "status": "Ongoing",
   "contentRating": "Suggestive",
@@ -459,6 +460,7 @@ Tài nguyên Manga đại diện cho các tác phẩm truyện tranh (manga, man
               "year": 1997,
               "contentRating": "Safe",
               "isLocked": false,
+              "availableTranslatedLanguages": [], // Sẽ rỗng khi mới tạo
               "createdAt": "2023-10-27T10:00:00Z",
               "updatedAt": "2023-10-27T10:00:00Z"
             },
@@ -486,46 +488,31 @@ Tài nguyên Manga đại diện cho các tác phẩm truyện tranh (manga, man
 *   **Responses:**
     *   `200 OK`
         ```json
-        // Ví dụ response cho GET /Mangas/{id}?includes[]=author&includes[]=cover_art
+        // Ví dụ response cho GET /Mangas/{id}
         {
           "result": "ok",
           "response": "entity",
           "data": {
             "id": "123e4567-e89b-12d3-a456-426614174000",
             "type": "manga",
-            "attributes": { /* các thuộc tính của manga */ },
+            "attributes": { 
+              "title": "One Piece",
+              "availableTranslatedLanguages": ["EN", "VI"], // Ngôn ngữ có bản dịch và có ít nhất 1 chapter
+              "originalLanguage": "ja",
+              "publicationDemographic": "Shounen",
+              "status": "Ongoing",
+              "year": 1997,
+              "contentRating": "Safe",
+              "isLocked": false,
+              "createdAt": "...",
+              "updatedAt": "...",
+              "tags": [/* ... */]
+            },
             "relationships": [
               { 
                 "id": "author-guid-1", 
-                "type": "author",
-                "attributes": {
-                  "name": "Eiichiro Oda",
-                  "biography": "...",
-                  "createdAt": "...",
-                  "updatedAt": "..."
-                }
-              },
-              {
-                "id": "cover-art-guid-1",
-                "type": "cover_art",
-                "attributes": {
-                  "volume": "1",
-                  "publicId": "mangas_v2/manga-guid/covers/...",
-                  "description": "Cover for volume 1",
-                  "createdAt": "...",
-                  "updatedAt": "..."
-                }
-              },
-              {
-                "id": "cover-art-guid-2",
-                "type": "cover_art",
-                "attributes": {
-                  "volume": "2",
-                  "publicId": "mangas_v2/manga-guid/covers/...",
-                  "description": "Cover for volume 2",
-                  "createdAt": "...",
-                  "updatedAt": "..."
-                }
+                "type": "author"
+                // attributes của author sẽ có ở đây nếu includes[]=author
               }
             ]
           }
@@ -545,13 +532,19 @@ Tài nguyên Manga đại diện cho các tác phẩm truyện tranh (manga, man
     *   `demographicFilter`: (Chuỗi, Tùy chọn) Lọc theo đối tượng độc giả (`Shounen`, `Shoujo`, `Josei`, `Seinen`, `None`).
     *   `originalLanguageFilter`: (Chuỗi, Tùy chọn) Lọc theo ngôn ngữ gốc (mã ISO 639-1).
     *   `yearFilter`: (Số nguyên, Tùy chọn) Lọc theo năm xuất bản.
-    *   `tagIdsFilter`: (Danh sách GUID, Tùy chọn) Lọc manga chứa **BẤT KỲ** tag nào trong danh sách cung cấp. Ví dụ: `?tagIdsFilter=guid1&tagIdsFilter=guid2`.
-    *   `authorIdsFilter`: (Danh sách GUID, Tùy chọn) Lọc manga chứa **BẤT KỲ** tác giả/họa sĩ nào trong danh sách cung cấp.
+    *   **Mới:** `authors[]`: (Danh sách GUID, Tùy chọn) Lọc manga có **tác giả** (role `Author`) nằm trong danh sách ID cung cấp.
+    *   **Mới:** `artists[]`: (Danh sách GUID, Tùy chọn) Lọc manga có **họa sĩ** (role `Artist`) nằm trong danh sách ID cung cấp.
+    *   **Mới:** `availableTranslatedLanguage[]`: (Danh sách chuỗi, Tùy chọn) Lọc manga có ít nhất một chapter trong các ngôn ngữ được chỉ định (ví dụ: "en", "vi").
+    *   `includedTags[]`: (Danh sách GUID, Tùy chọn) Lọc manga chứa các tag được chỉ định.
+    *   `includedTagsMode`: (Chuỗi: "AND" | "OR", Tùy chọn) Chế độ cho `includedTags`. Mặc định "AND".
+    *   `excludedTags[]`: (Danh sách GUID, Tùy chọn) Loại trừ manga chứa các tag được chỉ định.
+    *   `excludedTagsMode`: (Chuỗi: "AND" | "OR", Tùy chọn) Chế độ cho `excludedTags`. Mặc định "OR".
     *   `orderBy`: (Chuỗi, Tùy chọn, mặc định: `UpdatedAt`) Tên trường để sắp xếp (`Title`, `Year`, `CreatedAt`, `UpdatedAt`).
     *   `ascending`: (Boolean, Tùy chọn, mặc định: `false`) `true` cho tăng dần, `false` cho giảm dần (mặc định giảm dần cho `UpdatedAt`).
     *   `includes[]`: (Chuỗi, Tùy chọn) Một mảng các thông tin bổ sung muốn bao gồm trong kết quả. Các giá trị được hỗ trợ:
-        *   `author`: Trả về thông tin đầy đủ (`attributes`) của các tác giả (`author`) và họa sĩ (`artist`) trong mảng `relationships`.
-        *   `cover_art`: Trả về thông tin đầy đủ (`attributes`) của ảnh bìa **chính** (mới nhất) trong mảng `relationships`. ID của mối quan hệ này là `CoverId` (GUID).
+        *   `author`: Trả về thông tin đầy đủ (`attributes`) của các tác giả (`author`) trong mảng `relationships`.
+        *   `artist`: Trả về thông tin đầy đủ (`attributes`) của các họa sĩ (`artist`) trong mảng `relationships`.
+        *   `cover_art`: Trả về thông tin đầy đủ (`attributes`) của ảnh bìa **chính** (mới nhất) trong mảng `relationships`.
 *   **Responses:**
     *   `200 OK` (Trả về `ApiCollectionResponse` với danh sách `ResourceObject<MangaAttributesDto>`)
 
@@ -1156,78 +1149,83 @@ Bạn có thể tìm thấy định nghĩa OpenAPI (Swagger) của API này tạ
 
 ---
 
-## 7. Cập Nhật Quan Trọng: Thay Đổi Định Dạng Enum
+## 7. Cập Nhật Quan Trọng: Tìm Kiếm Nâng Cao & Chi Tiết Ngôn Ngữ Manga
 
 ### 7.1. Tóm Tắt Thay Đổi
 
-Từ phiên bản hiện tại của API, tất cả các trường dữ liệu kiểu Enum trong **JSON request body** (khi gửi dữ liệu lên) và **JSON response body** (khi nhận dữ liệu về) đều sử dụng **tên chuỗi** (string name) thay vì giá trị số nguyên (integer value) như trước đây.
+Bản cập nhật này mang đến các tính năng mới cho việc tìm kiếm manga và làm phong phú thêm dữ liệu trả về, giúp frontend có thể xây dựng các bộ lọc mạnh mẽ hơn và hiển thị thông tin hữu ích hơn cho người dùng.
 
-### 7.2. So Sánh Định Dạng Cũ và Mới
+1.  **Tìm kiếm manga theo vai trò (Author/Artist):** Thay vì một bộ lọc tác giả chung, giờ đây bạn có thể tìm kiếm riêng biệt theo tác giả (người viết) và họa sĩ.
+2.  **Tìm kiếm manga theo ngôn ngữ dịch khả dụng:** Cho phép người dùng tìm các bộ manga có bản dịch tiếng Việt, tiếng Anh, v.v.
+3.  **Hiển thị các ngôn ngữ dịch khả dụng:** Trang chi tiết manga giờ đây sẽ trả về một danh sách các ngôn ngữ mà manga đó đã có bản dịch (và có ít nhất một chapter).
 
-#### Định dạng cũ (không còn được hỗ trợ)
+### 7.2. Thay đổi tại `GET /mangas` (Lấy danh sách Manga)
+
+Endpoint lấy danh sách manga đã được cập nhật với các tham số query mới để hỗ trợ tìm kiếm nâng cao.
+
+#### Tham số mới
+
+*   **`authors[]`** (Danh sách GUID, Tùy chọn): Thay thế cho `authorIdsFilter[]` cũ. Lọc các manga có **tác giả** (role `Author`) nằm trong danh sách ID được cung cấp.
+*   **`artists[]`** (Danh sách GUID, Tùy chọn): Lọc các manga có **họa sĩ** (role `Artist`) nằm trong danh sách ID được cung cấp.
+*   **`availableTranslatedLanguage[]`** (Danh sách chuỗi, Tùy chọn): Lọc các manga có ít nhất một chapter trong các ngôn ngữ được chỉ định. Giá trị là mã ngôn ngữ gồm 2 chữ cái (ví dụ: "en", "vi").
+
+#### Ví dụ sử dụng
+
+*   Tìm manga có tác giả là `guid1` VÀ họa sĩ là `guid2`:
+    ```
+    GET /mangas?authors[]=guid1&artists[]=guid2
+    ```
+*   Tìm manga có bản dịch tiếng Anh (`en`) HOẶC tiếng Việt (`vi`):
+    ```
+    GET /mangas?availableTranslatedLanguage[]=en&availableTranslatedLanguage[]=vi
+    ```
+*   Tìm manga của tác giả `guid1` VÀ có bản dịch tiếng Việt (`vi`):
+     ```
+    GET /mangas?authors[]=guid1&availableTranslatedLanguage[]=vi
+    ```
+
+### 7.3. Thay đổi tại `GET /mangas/{id}` (Lấy chi tiết Manga)
+
+Phản hồi từ endpoint lấy chi tiết manga giờ đây sẽ bao gồm một trường mới trong `attributes` để cho biết các ngôn ngữ mà manga này có bản dịch khả dụng.
+
+#### Trường mới trong Response
+
+*   **`availableTranslatedLanguages`** (Mảng chuỗi): Nằm trong đối tượng `attributes`. Chứa danh sách các mã ngôn ngữ (viết hoa, ví dụ: "EN", "VI") mà manga có ít nhất một chapter đã được dịch.
+
+#### Ví dụ Response
 
 ```json
-// Request hoặc Response cũ
 {
-  "status": 0, // 0 có thể là "Ongoing"
-  "contentRating": 1, // 1 có thể là "Suggestive"
-  "authors": [
-    {
-      "authorId": "...",
-      "role": 0 // 0 là "Author"
-    }
-  ]
+  "result": "ok",
+  "response": "entity",
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "type": "manga",
+    "attributes": {
+      "title": "Komi Can't Communicate",
+      "availableTranslatedLanguages": [ // <-- TRƯỜNG MỚI
+        "EN",
+        "VI"
+      ],
+      "originalLanguage": "ja",
+      "status": "Ongoing",
+      // ... các thuộc tính khác
+    },
+    "relationships": [
+      // ...
+    ]
+  }
 }
 ```
 
-#### Định dạng mới (hiện tại)
+### 7.4. Hành Động Đề Xuất Cho Frontend
 
-```json
-// Request và Response mới
-{
-  "status": "Ongoing",
-  "contentRating": "Suggestive",
-  "authors": [
-    {
-      "authorId": "...",
-      "role": "Author"
-    }
-  ]
-}
-```
+1.  **Cập nhật Form Tìm Kiếm:**
+    *   Tách bộ lọc "Author" thành hai bộ lọc riêng biệt: "Author" (Tác giả) và "Artist" (Họa sĩ).
+    *   Khi gửi request, sử dụng các tham số query `authors[]` và `artists[]` tương ứng.
+    *   Thêm một bộ lọc mới cho "Ngôn ngữ dịch khả dụng" (Available Translated Languages), cho phép người dùng chọn một hoặc nhiều ngôn ngữ. Gửi request với tham số `availableTranslatedLanguage[]`.
 
-### 7.3. Các Trường Enum Bị Ảnh Hưởng
-
-Các trường sau đây trong các DTO/Model sẽ bị ảnh hưởng bởi thay đổi này:
-
-#### Manga
-* `publicationDemographic`: Kiểu `PublicationDemographic` (ví dụ: "Shounen", "Shoujo", "Seinen", "Josei", "None")
-* `status`: Kiểu `MangaStatus` (ví dụ: "Ongoing", "Completed", "Hiatus", "Cancelled")
-* `contentRating`: Kiểu `ContentRating` (ví dụ: "Safe", "Suggestive", "Erotica", "Pornographic")
-
-#### MangaAuthorInputDto (khi tạo/cập nhật Manga)
-* `role`: Kiểu `MangaStaffRole` (ví dụ: "Author", "Artist")
-
-### 7.4. Tác Động Đến Frontend
-
-1. **Gửi dữ liệu (Requests):**
-   * Khi tạo hoặc cập nhật Manga, hoặc bất kỳ thao tác nào gửi DTO có chứa các trường Enum, Frontend cần gửi giá trị là **chuỗi tên Enum** thay vì số.
-   * Nếu gửi một chuỗi không hợp lệ (không phải là tên của bất kỳ giá trị nào trong Enum tương ứng), API sẽ trả về lỗi `400 Bad Request` với thông báo lỗi chi tiết.
-
-2. **Nhận dữ liệu (Responses):**
-   * Khi nhận dữ liệu từ API, Frontend cần đọc các trường Enum dưới dạng **chuỗi tên Enum**.
-   * Hãy đảm bảo logic parse JSON ở phía Frontend của bạn có thể xử lý các giá trị chuỗi này.
-
-### 7.5. Lý Do Thay Đổi
-
-Thay đổi này được thực hiện để:
-* **Tăng tính đọc hiểu của API:** Giá trị chuỗi rõ ràng hơn và dễ hiểu hơn cho cả người dùng và lập trình viên.
-* **Đồng nhất với các API tiêu chuẩn:** Nhiều API hiện đại sử dụng định dạng chuỗi cho Enum.
-* **Cải thiện validation:** Mặc dù hệ thống backend vẫn có validation mạnh mẽ, việc hiển thị và nhận chuỗi giúp dễ dàng phát hiện lỗi đầu vào hơn ở cả client và server.
-
-### 7.6. Hành Động Đề Xuất Cho Frontend
-
-* Kiểm tra và cập nhật tất cả các nơi trong code Frontend đang gửi hoặc nhận các trường Enum liên quan.
-* Đảm bảo các model hoặc interface ở Frontend được cập nhật để phản ánh rằng các trường này giờ đây là `string` thay vì `number`.
-* Thực hiện kiểm thử kỹ lưỡng các luồng dữ liệu liên quan đến Manga và các thực thể có sử dụng Enum.
+2.  **Cập nhật Trang Chi Tiết Manga:**
+    *   Trên trang chi tiết của một manga, đọc trường `data.attributes.availableTranslatedLanguages`.
+    *   Sử dụng danh sách này để hiển thị các "lá cờ" hoặc nhãn ngôn ngữ, cho người dùng biết manga này có thể đọc bằng những ngôn ngữ nào trên hệ thống.
 ```

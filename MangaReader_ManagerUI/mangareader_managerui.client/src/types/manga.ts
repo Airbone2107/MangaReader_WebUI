@@ -18,6 +18,7 @@ export interface MangaAttributes {
   createdAt: string
   updatedAt: string
   tags: ResourceObject<TagInMangaAttributesDto>[]
+  availableTranslatedLanguages?: string[] // THÊM DÒNG NÀY
 }
 
 export interface AuthorAttributes {
@@ -144,7 +145,9 @@ export interface GetMangasParams {
   publicationDemographicsFilter?: PublicationDemographicType[];
   originalLanguageFilter?: string;
   yearFilter?: number | null;
-  authorIdsFilter?: string[];
+  authors?: string[]; // THAY ĐỔI
+  artists?: string[]; // THÊM MỚI
+  availableTranslatedLanguage?: string[]; // THÊM MỚI
   includedTags?: string[];
   includedTagsMode?: 'AND' | 'OR';
   excludedTags?: string[];

@@ -28,7 +28,9 @@ const useMangaStore = create(persistStore((set, get) => ({
     includedTagsMode: 'AND',
     excludedTags: [],
     excludedTagsMode: 'OR',
-    authorIdsFilter: [],
+    authors: [], // THAY ĐỔI
+    artists: [], // THÊM MỚI
+    availableTranslatedLanguage: [], // THÊM MỚI
   },
   sort: {
     orderBy: 'updatedAt',
@@ -57,10 +59,12 @@ const useMangaStore = create(persistStore((set, get) => ({
       includedTagsMode: filters.includedTags?.length > 0 ? filters.includedTagsMode : undefined,
       excludedTags: filters.excludedTags?.length > 0 ? filters.excludedTags : undefined,
       excludedTagsMode: filters.excludedTags?.length > 0 ? filters.excludedTagsMode : undefined,
-      authorIdsFilter: filters.authorIdsFilter?.length > 0 ? filters.authorIdsFilter : undefined,
+      authors: filters.authors?.length > 0 ? filters.authors : undefined, // THAY ĐỔI
+      artists: filters.artists?.length > 0 ? filters.artists : undefined, // THÊM MỚI
+      availableTranslatedLanguage: filters.availableTranslatedLanguage?.length > 0 ? filters.availableTranslatedLanguage : undefined, // THÊM MỚI
       orderBy: sort.orderBy,
       ascending: sort.ascending,
-      includes: ['cover_art', 'author'],
+      includes: ['cover_art', 'author', 'artist'],
     }
     
     // Xóa các trường undefined để query string sạch hơn
@@ -168,7 +172,9 @@ const useMangaStore = create(persistStore((set, get) => ({
         includedTagsMode: 'AND',
         excludedTags: [],
         excludedTagsMode: 'OR',
-        authorIdsFilter: [],
+        authors: [], // THAY ĐỔI
+        artists: [], // THÊM MỚI
+        availableTranslatedLanguage: [], // THÊM MỚI
       },
       page: 0,
     });

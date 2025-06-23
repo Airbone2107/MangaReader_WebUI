@@ -27,7 +27,7 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
             _simpleChapterInfoMapper = simpleChapterInfoMapper;
         }
         
-        public async Task<List<ChapterViewModel>> GetChaptersAsync(string mangaId, string languages = "vi,en")
+        public async Task<List<ChapterViewModel>> GetChaptersAsync(string mangaId, List<string>? languages = null)
         {
             try
             {
@@ -37,29 +37,34 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
                     return new List<ChapterViewModel>();
                 }
 
-                var targetLanguages = languages.Split(',').Select(l => l.Trim().ToLowerInvariant()).Where(l => !string.IsNullOrEmpty(l)).ToList();
-                if (!targetLanguages.Any()) return new List<ChapterViewModel>();
-
-                var translations = await _mangaClient.GetMangaTranslationsAsync(mangaGuid);
-                if (translations?.Data == null || !translations.Data.Any())
+                var translationsResponse = await _mangaClient.GetMangaTranslationsAsync(mangaGuid);
+                if (translationsResponse?.Data == null || !translationsResponse.Data.Any())
                 {
                     _logger.LogWarning("Không tìm thấy bản dịch nào cho manga {MangaId}", mangaId);
                     return new List<ChapterViewModel>();
                 }
                 
                 var allChapterViewModels = new List<ChapterViewModel>();
+                var targetTranslations = translationsResponse.Data;
 
-                foreach(var lang in targetLanguages)
+                // Nếu có danh sách ngôn ngữ được chỉ định, lọc các bản dịch
+                if (languages != null && languages.Any())
                 {
-                    var translation = translations.Data.FirstOrDefault(t => t.Attributes.LanguageKey.Equals(lang, StringComparison.OrdinalIgnoreCase));
-                    if (translation != null && Guid.TryParse(translation.Id, out var tmGuid))
+                    targetTranslations = targetTranslations
+                        .Where(t => languages.Contains(t.Attributes.LanguageKey, StringComparer.OrdinalIgnoreCase))
+                        .ToList();
+                }
+
+                foreach(var translation in targetTranslations)
+                {
+                    if (Guid.TryParse(translation.Id, out var tmGuid))
                     {
-                        var chapterListResponse = await _chapterClient.GetChaptersByTranslatedMangaAsync(tmGuid, limit: 5000); // Lấy nhiều chapters
+                        var chapterListResponse = await _chapterClient.GetChaptersByTranslatedMangaAsync(tmGuid, limit: 5000);
                         if(chapterListResponse?.Data != null)
                         {
                             foreach (var chapterDto in chapterListResponse.Data)
                             {
-                                allChapterViewModels.Add(_chapterViewModelMapper.MapToChapterViewModel(chapterDto, lang));
+                                allChapterViewModels.Add(_chapterViewModelMapper.MapToChapterViewModel(chapterDto, translation.Attributes.LanguageKey));
                             }
                         }
                     }
@@ -103,9 +108,8 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
                 .ToList();
         }
 
-        public async Task<List<SimpleChapterInfoViewModel>> GetLatestChaptersAsync(string mangaId, int limit, string languages = "vi,en")
+        public async Task<List<SimpleChapterInfoViewModel>> GetLatestChaptersAsync(string mangaId, int limit, List<string>? languages = null)
         {
-            // Logic này có thể được tối ưu hóa, nhưng hiện tại lấy tất cả và sort
             var allChapters = await GetChaptersAsync(mangaId, languages);
             return allChapters
                 .OrderByDescending(c => c.PublishedAt)

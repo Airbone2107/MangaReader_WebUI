@@ -135,6 +135,7 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
                     Author = author,
                     Artist = artist,
                     OriginalLanguage = attributes.OriginalLanguage ?? "",
+                    AvailableTranslatedLanguages = attributes.AvailableTranslatedLanguages ?? new List<string>(),
                     PublicationDemographic = attributes.PublicationDemographic?.ToString() ?? "",
                     ContentRating = attributes.ContentRating.ToString() ?? "",
                     AlternativeTitles = "",
