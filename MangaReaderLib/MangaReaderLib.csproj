@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <Folder Include="DTOs\Common\" />
+    <Folder Include="Extensions\" />
     <Folder Include="Services\Interfaces\" />
     <Folder Include="Services\Implementations\" />
   </ItemGroup>

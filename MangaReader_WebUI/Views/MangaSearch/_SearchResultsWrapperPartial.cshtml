@@ -13,7 +13,7 @@ else
         </div>
     }
     
-    @if (!string.IsNullOrEmpty(Model.SortOptions.Title) || (Model.SortOptions.Status != null && Model.SortOptions.Status.Any()) || (Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Any()) || (Model.SortOptions.Genres != null && Model.SortOptions.Genres.Any()) || (Model.SortOptions.IncludedTags != null && Model.SortOptions.IncludedTags.Any()))
+    @if (!string.IsNullOrEmpty(Model.SortOptions.Title) || (Model.SortOptions.Status != null && Model.SortOptions.Status.Any()) || (Model.SortOptions.PublicationDemographic != null && Model.SortOptions.PublicationDemographic.Any()) || (Model.SortOptions.GetIncludedTags() != null && Model.SortOptions.GetIncludedTags().Any()))
     {
         <div class="d-flex align-items-center mb-4">
             <h5 class="mb-0 me-3">Kết quả tìm kiếm:</h5>
@@ -29,26 +29,16 @@ else
                         <span class="badge bg-info">Trạng thái: @TranslateStatus(status)</span>
                     }
                 }
-                @if (Model.SortOptions.Demographic != null && Model.SortOptions.Demographic.Any())
+                @if (Model.SortOptions.PublicationDemographic != null && Model.SortOptions.PublicationDemographic.Any())
                 {
-                    foreach (var demo in Model.SortOptions.Demographic)
+                    foreach (var demo in Model.SortOptions.PublicationDemographic)
                     {
                         <span class="badge bg-success">Đối tượng: @demo.ToUpperInvariant()</span>
                     }
                 }
-                @if (Model.SortOptions.Genres != null)
+                @if (!string.IsNullOrEmpty(Model.SortOptions.IncludedTagsStr))
                 {
-                    foreach (var genre in Model.SortOptions.Genres)
-                    {
-                        <span class="badge bg-secondary">@genre</span>
-                    }
-                }
-                @if (Model.SortOptions.IncludedTags != null)
-                {
-                    foreach (var tag in Model.SortOptions.IncludedTags)
-                    {
-                        <span class="badge bg-secondary">Tag: @tag</span>
-                    }
+                    <span class="badge bg-secondary">Có các thẻ...</span>
                 }
             </div>
         </div>
@@ -67,10 +57,10 @@ else
     {
         return status switch
         {
-            "ongoing" => "Đang tiến hành",
-            "completed" => "Hoàn thành",
-            "hiatus" => "Tạm ngưng",
-            "cancelled" => "Đã hủy",
+            "Ongoing" => "Đang tiến hành",
+            "Completed" => "Hoàn thành",
+            "Hiatus" => "Tạm ngưng",
+            "Cancelled" => "Đã hủy",
             _ => "Không rõ"
         };
     }

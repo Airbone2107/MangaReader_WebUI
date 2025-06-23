@@ -1,6 +1,5 @@
 using MangaReader.WebUI.Models.ViewModels.Chapter;
 using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Interfaces;
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
 using System.Text.Json;
 
@@ -8,36 +7,33 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
 {
     public class ChapterReadingServices
     {
-        private readonly IMangaReaderLibChapterPageClient _chapterPageClient;
+        private readonly IMangaReaderLibChapterClient _chapterClient;
         private readonly IMangaReaderLibMangaClient _mangaClient;
-        private readonly IMangaReaderLibToAtHomeServerResponseMapper _atHomeResponseMapper;
-        private readonly MangaIdService _mangaIdService;
+        private readonly IMangaReaderLibChapterPageClient _chapterPageClient;
+        private readonly IMangaReaderLibToPageServerResponseMapper _atHomeResponseMapper;
         private readonly ChapterLanguageServices _chapterLanguageServices;
         private readonly ChapterService _chapterService;
         private readonly ILogger<ChapterReadingServices> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IMangaDataExtractor _mangaDataExtractor;
 
         public ChapterReadingServices(
-            IMangaReaderLibChapterPageClient chapterPageClient,
+            IMangaReaderLibChapterClient chapterClient,
             IMangaReaderLibMangaClient mangaClient,
-            IMangaReaderLibToAtHomeServerResponseMapper atHomeResponseMapper,
-            MangaIdService mangaIdService,
+            IMangaReaderLibChapterPageClient chapterPageClient,
+            IMangaReaderLibToPageServerResponseMapper atHomeResponseMapper,
             ChapterLanguageServices chapterLanguageServices,
             ChapterService chapterService,
             IHttpContextAccessor httpContextAccessor,
-            ILogger<ChapterReadingServices> logger,
-            IMangaDataExtractor mangaDataExtractor)
+            ILogger<ChapterReadingServices> logger)
         {
-            _chapterPageClient = chapterPageClient;
+            _chapterClient = chapterClient;
             _mangaClient = mangaClient;
+            _chapterPageClient = chapterPageClient;
             _atHomeResponseMapper = atHomeResponseMapper;
-            _mangaIdService = mangaIdService;
             _chapterLanguageServices = chapterLanguageServices;
             _chapterService = chapterService;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
-            _mangaDataExtractor = mangaDataExtractor;
         }
 
         public async Task<ChapterReadViewModel> GetChapterReadViewModel(string chapterId)
@@ -50,6 +46,21 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
                 }
 
                 _logger.LogInformation("Đang tải chapter {ChapterId}", chapterId);
+                
+                var chapterDetailsResponse = await _chapterClient.GetChapterByIdAsync(chapterGuid);
+                if (chapterDetailsResponse?.Data?.Relationships == null)
+                {
+                    _logger.LogError("Không thể lấy chi tiết chapter {ChapterId}.", chapterId);
+                    throw new Exception("Không thể tải chi tiết chương này.");
+                }
+
+                var mangaRelationship = chapterDetailsResponse.Data.Relationships
+                                            .FirstOrDefault(r => r.Type.Equals("manga", StringComparison.OrdinalIgnoreCase));
+                if (mangaRelationship == null)
+                {
+                     throw new KeyNotFoundException($"Không tìm thấy relationship 'manga' cho Chapter: {chapterId}");
+                }
+                string mangaId = mangaRelationship.Id;
 
                 var pagesResponse = await _chapterPageClient.GetChapterPagesAsync(chapterGuid, limit: 500);
                 if (pagesResponse?.Data == null)
@@ -62,9 +73,6 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
                 List<string> pages = pageServerResponse.Chapter.Data;
                 
                 _logger.LogInformation("Đã tạo {Count} URL ảnh cho chapter {ChapterId}", pages.Count, chapterId);
-
-                string mangaId = await _mangaIdService.GetMangaIdFromChapterAsync(chapterId);
-                _logger.LogInformation("Đã xác định được mangaId: {MangaId} cho chapter {ChapterId}", mangaId, chapterId);
 
                 string currentChapterLanguage = await _chapterLanguageServices.GetChapterLanguageAsync(chapterId);
                 _logger.LogInformation("Đã lấy được ngôn ngữ {Language} cho chapter", currentChapterLanguage);
@@ -157,7 +165,7 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
             return new List<ChapterViewModel>();
         }
         
-        private (ChapterViewModel currentChapter, string prevId, string nextId) FindCurrentAndAdjacentChapters(
+        private (ChapterViewModel currentChapter, string? prevId, string? nextId) FindCurrentAndAdjacentChapters(
             List<ChapterViewModel> chapters, string chapterId)
         {
             var currentChapter = chapters.FirstOrDefault(c => c.Id == chapterId);
@@ -172,8 +180,8 @@ namespace MangaReader.WebUI.Services.MangaServices.ChapterServices
                 .ToList();
 
             int index = sortedChapters.FindIndex(c => c.Id == chapterId);
-            string prevId = (index > 0) ? sortedChapters[index - 1].Id : null;
-            string nextId = (index >= 0 && index < sortedChapters.Count - 1) ? sortedChapters[index + 1].Id : null;
+            string? prevId = (index > 0) ? sortedChapters[index - 1].Id : null;
+            string? nextId = (index >= 0 && index < sortedChapters.Count - 1) ? sortedChapters[index + 1].Id : null;
 
             return (currentChapter, prevId, nextId);
         }

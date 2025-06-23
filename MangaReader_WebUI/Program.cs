@@ -4,16 +4,15 @@ using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Services;
 using MangaReader.WebUI.Services.AuthServices;
 using MangaReader.WebUI.Services.MangaServices;
 using MangaReader.WebUI.Services.MangaServices.ChapterServices;
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaMapper;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
-using MangaReader.WebUI.Services.MangaServices.DataProcessing.Services;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaMapper;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaReaderLibMappers;
 using MangaReader.WebUI.Services.MangaServices.MangaPageService;
 using MangaReader.WebUI.Services.UtilityServices;
-using Microsoft.AspNetCore.Mvc.Razor;
 using MangaReaderLib.Services.Implementations;
+using MangaReaderLib.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc.Razor;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,30 +41,20 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient("BackendApiClient", client =>
 {
     var baseUrl = builder.Configuration["BackendApi:BaseUrl"];
+    if (string.IsNullOrEmpty(baseUrl)) throw new InvalidOperationException("BackendApi:BaseUrl is not configured.");
     client.BaseAddress = new Uri(baseUrl);
     client.DefaultRequestHeaders.Add("User-Agent", "MangaReaderWeb/1.0");
     client.DefaultRequestHeaders.Add("Accept", "application/json");
-})
-.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-{
-    AllowAutoRedirect = true,
-    MaxAutomaticRedirections = 5,
-    AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
 });
 
 // Thêm HttpClient cho MangaReaderLib API
 builder.Services.AddHttpClient("MangaReaderLibApiClient", client =>
 {
     var baseUrl = builder.Configuration["MangaReaderApiSettings:BaseUrl"];
+    if (string.IsNullOrEmpty(baseUrl)) throw new InvalidOperationException("MangaReaderApiSettings:BaseUrl is not configured.");
     client.BaseAddress = new Uri(baseUrl);
     client.DefaultRequestHeaders.Add("User-Agent", "MangaReaderWeb/1.0");
     client.DefaultRequestHeaders.Add("Accept", "application/json");
-})
-.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-{
-    AllowAutoRedirect = true,
-    MaxAutomaticRedirections = 5,
-    AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
 });
 
 // Đăng ký các MangaReaderLib Mappers
@@ -76,24 +65,43 @@ builder.Services.AddScoped<IMangaReaderLibToSimpleChapterInfoMapper, MangaReader
 builder.Services.AddScoped<IMangaReaderLibToMangaInfoViewModelMapper, MangaReaderLibToMangaInfoViewModelMapper>();
 builder.Services.AddScoped<IMangaReaderLibToChapterInfoMapper, MangaReaderLibToChapterInfoMapper>();
 builder.Services.AddScoped<IMangaReaderLibToTagListResponseMapper, MangaReaderLibToTagListResponseMapper>();
-builder.Services.AddScoped<IMangaReaderLibToAtHomeServerResponseMapper, MangaReaderLibToAtHomeServerResponseMapper>();
+builder.Services.AddScoped<IMangaReaderLibToPageServerResponseMapper, MangaReaderLibToPageServerResponseMapper>();
 
 // Đăng ký các Mappers cấp cao (ViewModel-to-ViewModel)
 builder.Services.AddScoped<IFollowedMangaViewModelMapper, FollowedMangaViewModelMapperService>();
 builder.Services.AddScoped<ILastReadMangaViewModelMapper, LastReadMangaViewModelMapperService>();
 
-// Đăng ký MangaDataExtractor
-builder.Services.AddScoped<IMangaDataExtractor, MangaDataExtractorService>();
-
 // Đăng ký các MangaReaderLib API Clients
-builder.Services.AddScoped<IMangaReaderLibApiClient, MangaReaderLibApiClientService>(provider =>
+// Client chính, dùng chung
+builder.Services.AddScoped<IApiClient>(provider =>
 {
     var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
     var httpClient = httpClientFactory.CreateClient("MangaReaderLibApiClient");
-    var innerClientLogger = provider.GetRequiredService<ILogger<ApiClient>>();
-    var wrapperLoggerForApiClient = provider.GetRequiredService<ILogger<MangaReaderLibApiClientService>>();
-    return new MangaReaderLibApiClientService(httpClient, innerClientLogger, wrapperLoggerForApiClient);
+    var logger = provider.GetRequiredService<ILogger<ApiClient>>();
+    return new ApiClient(httpClient, logger);
 });
+
+// Đăng ký các implementation cụ thể từ MangaReaderLib
+builder.Services.AddScoped<AuthorClient>();
+builder.Services.AddScoped<MangaClient>();
+builder.Services.AddScoped<TagClient>();
+builder.Services.AddScoped<CoverArtClient>();
+builder.Services.AddScoped<TranslatedMangaClient>();
+builder.Services.AddScoped<ChapterClient>();
+builder.Services.AddScoped<ChapterPageClient>();
+builder.Services.AddScoped<TagGroupClient>();
+
+// Đăng ký các interface Reader để DI có thể resolve chúng tới implementation cụ thể
+builder.Services.AddScoped<IAuthorReader>(p => p.GetRequiredService<AuthorClient>());
+builder.Services.AddScoped<IMangaReader>(p => p.GetRequiredService<MangaClient>());
+builder.Services.AddScoped<ITagReader>(p => p.GetRequiredService<TagClient>());
+builder.Services.AddScoped<ICoverArtReader>(p => p.GetRequiredService<CoverArtClient>());
+builder.Services.AddScoped<ITranslatedMangaReader>(p => p.GetRequiredService<TranslatedMangaClient>());
+builder.Services.AddScoped<IChapterReader>(p => p.GetRequiredService<ChapterClient>());
+builder.Services.AddScoped<IChapterPageReader>(p => p.GetRequiredService<ChapterPageClient>());
+builder.Services.AddScoped<ITagGroupReader>(p => p.GetRequiredService<TagGroupClient>());
+
+// Đăng ký các service wrapper của WebUI (chúng giờ đây sẽ nhận I...Reader)
 builder.Services.AddScoped<IMangaReaderLibAuthorClient, MangaReaderLibAuthorClientService>();
 builder.Services.AddScoped<IMangaReaderLibChapterClient, MangaReaderLibChapterClientService>();
 builder.Services.AddScoped<IMangaReaderLibChapterPageClient, MangaReaderLibChapterPageClientService>();
@@ -108,7 +116,6 @@ builder.Services.AddScoped<IUserService, UserService>();
 
 // Đăng ký các service tiện ích
 builder.Services.AddScoped<LocalizationService>();
-builder.Services.AddScoped<JsonConversionService>();
 builder.Services.AddScoped<ViewRenderService>();
 
 // Đăng ký các service tầng cao của ứng dụng
@@ -117,7 +124,6 @@ builder.Services.AddScoped<IFollowedMangaService, FollowedMangaService>();
 builder.Services.AddScoped<IMangaInfoService, MangaInfoService>();
 builder.Services.AddScoped<IReadingHistoryService, ReadingHistoryService>();
 builder.Services.AddScoped<ChapterService>();
-builder.Services.AddScoped<MangaIdService>();
 builder.Services.AddScoped<ChapterLanguageServices>();
 builder.Services.AddScoped<ChapterReadingServices>();
 builder.Services.AddScoped<MangaDetailsService>();

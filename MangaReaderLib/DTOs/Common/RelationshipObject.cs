@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace MangaReaderLib.DTOs.Common
@@ -15,6 +16,6 @@ namespace MangaReaderLib.DTOs.Common
         [JsonPropertyName("attributes")] 
         [JsonPropertyOrder(3)]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public object? Attributes { get; set; } 
+        public JsonElement? Attributes { get; set; } 
     }
 } 

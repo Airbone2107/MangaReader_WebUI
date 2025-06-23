@@ -1,10 +1,10 @@
 using MangaReader.WebUI.Models.ViewModels.Common;
-using MangaReaderLib.DTOs.Common;        // Cho ApiCollectionResponse, ResourceObject
-using MangaReaderLib.DTOs.Chapters;      // Cho ChapterPageAttributesDto
+using MangaReaderLib.DTOs.Common;
+using MangaReaderLib.DTOs.Chapters;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers
 {
-    public interface IMangaReaderLibToAtHomeServerResponseMapper
+    public interface IMangaReaderLibToPageServerResponseMapper
     {
         PageServerResponse MapToAtHomeServerResponse(
             ApiCollectionResponse<ResourceObject<ChapterPageAttributesDto>> chapterPagesData,

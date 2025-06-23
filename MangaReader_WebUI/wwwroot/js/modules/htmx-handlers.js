@@ -20,6 +20,7 @@ import SearchModule from './search.js';
 import { initSidebar, updateActiveSidebarLink } from './sidebar.js';
 import { initUIToggles } from './ui-toggles.js';
 import { adjustFooterPosition, adjustMangaTitles, createDefaultImage, fixAccordionIssues, initBackToTop, initResponsive, initTooltips } from './ui.js';
+import { createAuthorSearch } from './author-search.js';
 
 /**
  * Khởi tạo lại các chức năng cần thiết sau khi HTMX cập nhật nội dung
@@ -41,6 +42,8 @@ function reinitializeAfterHtmxSwap(targetElement) {
                 console.log('[HTMX Swap] Initializing Search Tags Dropdown for search form.');
                 window.initSearchTagsDropdown();
             }
+            createAuthorSearch('authorSearchContainer');
+            createAuthorSearch('artistSearchContainer');
         }
         if (targetElement.querySelector('.details-manga-header-background')) {
             initMangaDetailsPage();
@@ -139,6 +142,8 @@ function reinitializeAfterHtmxLoad(targetElement) {
             console.log('[HTMX Load] Initializing Search Tags Dropdown for search form.');
             window.initSearchTagsDropdown();
         }
+        createAuthorSearch('authorSearchContainer');
+        createAuthorSearch('artistSearchContainer');
         SearchModule.initPageGoTo?.();
     } else if (targetElement.querySelector('.details-manga-header-background')) {
         console.log('[HTMX Load] Reinitializing Manga Details Page...');

@@ -133,7 +133,7 @@ namespace MangaReaderLib.Services.Implementations
             AddQueryParam(queryParams, "orderBy", orderBy);
             AddQueryParam(queryParams, "ascending", ascending?.ToString().ToLower());
 
-            // THÊM THAM SỐ INCLUDES
+            // THAY ĐỔI: Sửa key từ "includes[]" thành "includes"
             if (includes != null && includes.Any())
             {
                 AddListQueryParam(queryParams, "includes", includes);

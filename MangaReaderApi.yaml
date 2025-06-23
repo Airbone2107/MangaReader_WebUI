@@ -1784,6 +1784,24 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "MangaId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Includes",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         ],
         "responses": {

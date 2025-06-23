@@ -14,6 +14,7 @@ import SearchModule from './modules/search.js';
 import { initSidebar } from './modules/sidebar.js';
 import { initUIToggles } from './modules/ui-toggles.js';
 import { initToasts } from './modules/toast.js';
+import { createAuthorSearch } from './modules/author-search.js';
 import {
     adjustFooterPosition,
     adjustMangaTitles,
@@ -76,6 +77,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.initSearchTagsDropdown) {
         window.initSearchTagsDropdown();
         console.log('Search tags dropdown module registered');
+    }
+    
+    // Khởi tạo các component tìm kiếm tác giả
+    if (document.getElementById('searchForm')) {
+        createAuthorSearch('authorSearchContainer');
+        createAuthorSearch('artistSearchContainer');
+        console.log('Author search components initialized');
     }
     
     // Tạo ảnh mặc định nếu chưa có

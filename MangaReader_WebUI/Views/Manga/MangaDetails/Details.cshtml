@@ -1,8 +1,22 @@
 @model MangaReader.WebUI.Models.ViewModels.Manga.MangaDetailViewModel
+@inject ILogger<Program> Logger
+
 @{
     ViewData["Title"] = Model.Manga?.Title ?? "Chi tiết manga";
+    
+    // LOGGING DỮ LIỆU TẠI VIEW
+    if (Model?.Manga != null)
+    {
+        Logger.LogInformation("[LOGGING - VIEW] Dữ liệu nhận được tại Details.cshtml: Author='{Author}', Artist='{Artist}', Status='{Status}'", 
+            Model.Manga.Author, Model.Manga.Artist, Model.Manga.Status);
+    }
+    else
+    {
+        Logger.LogWarning("[LOGGING - VIEW] Model.Manga là null tại Details.cshtml.");
+    }
 }
-<div class="details-manga-header-background" style="background-image: url('@Model.Manga.CoverUrl')"></div>
+
+<div class="details-manga-header-background" style="background-image: url('@Model.Manga?.CoverUrl')"></div>
 <div class="details-manga-details-container">
     @if (ViewBag.ErrorMessage != null)
     {
@@ -84,7 +98,7 @@
                                     </button>
                                 </div>
                                 <div class="mb-3">
-                                    <span class="badge bg-primary me-2">@TranslateStatus(Model.Manga.Status)</span>
+                                    <span class="badge bg-primary me-2">@Model.Manga.Status</span>
                                     @foreach (var tag in Model.Manga.Tags)
                                     {
                                         <span class="badge details-manga-tag me-2 mb-1">@tag</span>
@@ -263,7 +277,7 @@
                                 }
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <span><i class="bi bi-flag-fill me-2"></i>Trạng thái</span>
-                                    <span class="badge bg-primary">@TranslateStatus(Model.Manga.Status)</span>
+                                    <span class="badge bg-primary">@Model.Manga.Status</span>
                                 </li>
                                 @if (!string.IsNullOrEmpty(Model.Manga.OriginalLanguage))
                                 {

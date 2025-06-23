@@ -15,6 +15,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
         private readonly ChapterService _chapterService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMangaReaderLibToMangaDetailViewModelMapper _mangaDetailViewModelMapper;
+        private readonly JsonSerializerOptions _jsonSerializerOptions;
 
         public MangaDetailsService(
             IMangaReaderLibMangaClient mangaClient,
@@ -30,6 +31,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
             _chapterService = chapterService;
             _httpContextAccessor = httpContextAccessor;
             _mangaDetailViewModelMapper = mangaDetailViewModelMapper;
+            _jsonSerializerOptions = new JsonSerializerOptions { WriteIndented = true };
         }
 
         /// <summary>
@@ -41,22 +43,38 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
             {
                 if (!Guid.TryParse(id, out var mangaGuid))
                 {
-                    _logger.LogError("MangaId không hợp lệ: {MangaId}", id);
+                    _logger.LogError("[LOGGING] MangaId không hợp lệ: {MangaId}", id);
                     return new MangaDetailViewModel { Manga = new MangaViewModel { Id = id, Title = "ID Manga không hợp lệ" } };
                 }
 
-                _logger.LogInformation("Đang lấy chi tiết manga ID: {id}", id);
-                var mangaResponse = await _mangaClient.GetMangaByIdAsync(mangaGuid, new List<string> { "author", "cover_art", "tag" });
+                var includes = new List<string> { "author", "cover_art" };
+                _logger.LogInformation("[LOGGING] Chuẩn bị gọi GetMangaByIdAsync cho ID: {MangaId} với includes: {Includes}", id, string.Join(", ", includes));
+                
+                var mangaResponse = await _mangaClient.GetMangaByIdAsync(mangaGuid, includes);
+
+                // LOG DỮ LIỆU THÔ TỪ API
+                if (mangaResponse != null)
+                {
+                    _logger.LogInformation("[LOGGING] Dữ liệu JSON thô trả về từ API cho manga ID {MangaId}:\n{JsonResponse}", 
+                        id, JsonSerializer.Serialize(mangaResponse, _jsonSerializerOptions));
+                }
+                else
+                {
+                    _logger.LogWarning("[LOGGING] API không trả về dữ liệu (null) cho manga ID {MangaId}", id);
+                }
 
                 if (mangaResponse?.Data == null)
                 {
-                    _logger.LogError("Không thể lấy chi tiết manga {id}. API không trả về dữ liệu.", id);
+                    _logger.LogError("[LOGGING] Không thể lấy chi tiết manga {id}. API không trả về dữ liệu trong 'data' field.", id);
                     return new MangaDetailViewModel { Manga = new MangaViewModel { Id = id, Title = "Lỗi tải thông tin" } };
                 }
 
                 var mangaData = mangaResponse.Data;
                 var chapterViewModels = await GetChaptersAsync(id);
+
+                _logger.LogInformation("[LOGGING] Bắt đầu quá trình mapping dữ liệu cho manga ID: {MangaId}", id);
                 var mangaDetailViewModel = await _mangaDetailViewModelMapper.MapToMangaDetailViewModelAsync(mangaData, chapterViewModels);
+                _logger.LogInformation("[LOGGING] Hoàn tất quá trình mapping dữ liệu cho manga ID: {MangaId}", id);
 
                 if (mangaDetailViewModel.Manga != null)
                 {
@@ -73,7 +91,7 @@ namespace MangaReader.WebUI.Services.MangaServices.MangaPageService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi nghiêm trọng khi lấy chi tiết manga {id}", id);
+                _logger.LogError(ex, "[LOGGING] Lỗi nghiêm trọng khi lấy chi tiết manga {id}", id);
                 return new MangaDetailViewModel { Manga = new MangaViewModel { Id = id, Title = "Lỗi tải thông tin" } };
             }
         }

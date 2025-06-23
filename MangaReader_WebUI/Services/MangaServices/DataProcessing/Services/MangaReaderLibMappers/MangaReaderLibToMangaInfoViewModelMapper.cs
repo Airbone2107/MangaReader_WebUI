@@ -3,6 +3,8 @@ using MangaReader.WebUI.Services.APIServices.MangaReaderLibApiClients.Interfaces
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
 using MangaReaderLib.DTOs.Common;        // Cho ResourceObject
 using MangaReaderLib.DTOs.Mangas;        // Cho MangaAttributesDto
+using MangaReaderLib.DTOs.CoverArts;     // Cho CoverArtAttributesDto
+using MangaReaderLib.Extensions;         // Cho GetAttributesAs extension method
 using System.Diagnostics;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaReaderLibMappers
@@ -31,28 +33,25 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
             string title = attributes?.Title ?? "Lỗi tải tiêu đề";
             string coverUrl = "/images/cover-placeholder.jpg";
 
-            // Lấy Cover URL từ relationships (cần tìm relationship type "cover_art")
             var coverRelationship = relationships?.FirstOrDefault(r => r.Type == "cover_art");
             if (coverRelationship != null)
             {
-                // MangaReaderLib's GetCoverArtUrl doesn't need publicId as path parameter
-                // It only needs coverArtId and uses publicId as query param or not at all if publicId is part of CoverArtId
-                // For now, let's assume _coverApiService handles the full URL based on coverArtId.
-                // If MangaReaderLib's CoverArtAttributesDto has a PublicId field, we need to fetch it first.
-                try
+                var coverAttributes = coverRelationship.GetAttributesAs<CoverArtAttributesDto>();
+                if (coverAttributes != null && !string.IsNullOrEmpty(coverAttributes.PublicId))
                 {
-                    var coverArtResponse = _coverApiService.GetCoverArtByIdAsync(Guid.Parse(coverRelationship.Id)).Result; // Sync call for simplicity in mapper, better to make mapper async
-                    if (coverArtResponse?.Data?.Attributes?.PublicId != null)
-                    {
-                        coverUrl = _coverApiService.GetCoverArtUrl(coverRelationship.Id, coverArtResponse.Data.Attributes.PublicId);
-                    }
+                    // Lấy URL ảnh bìa từ PublicId trong attributes
+                    coverUrl = _coverApiService.GetCoverArtUrl(coverRelationship.Id, coverAttributes.PublicId);
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogError(ex, "Lỗi khi lấy cover URL cho MangaReaderLib manga ID: {MangaId}", id);
+                    _logger.LogWarning("Không tìm thấy attributes hoặc PublicId cho cover_art của manga ID: {MangaId}", id);
                 }
             }
-
+            else
+            {
+                 _logger.LogDebug("Không có relationship 'cover_art' cho manga ID: {MangaId}", id);
+            }
+            
             return new MangaInfoViewModel
             {
                 MangaId = id,

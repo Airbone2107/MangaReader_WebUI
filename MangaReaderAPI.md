@@ -160,7 +160,10 @@ Tất cả các phản hồi JSON đều tuân theo một cấu trúc thống nh
     "relationships": [
       {
         "id": "string (GUID của entity liên quan)",
-        "type": "string (loại của MỐI QUAN HỆ hoặc VAI TRÒ, ví dụ: 'author', 'artist', 'tag', 'cover_art')"
+        "type": "string (loại của MỐI QUAN HỆ hoặc VAI TRÒ, ví dụ: 'author', 'artist', 'cover_art')",
+        "attributes": { // (Tùy chọn)
+            // Thuộc tính chi tiết của thực thể liên quan, chỉ xuất hiện nếu được yêu cầu qua tham số `includes[]`.
+        }
       }
       // ... các relationships khác ...
     ]
@@ -173,7 +176,8 @@ Tất cả các phản hồi JSON đều tuân theo một cấu trúc thống nh
 *   **`data.attributes`**: Một đối tượng JSON chứa tất cả các thuộc tính của tài nguyên, trừ `id` và các mối quan hệ (tương ứng với các `*AttributesDto`).
 *   **`data.relationships`**: (Tùy chọn, có thể không có nếu không có mối quan hệ nào được trả về hoặc không liên quan) Một mảng các đối tượng `RelationshipObject`.
     *   **`id`**: Định danh duy nhất (GUID) của thực thể liên quan.
-    *   **`type`**: Mô tả vai trò hoặc bản chất của mối quan hệ đó đối với thực thể gốc (ví dụ: `"author"` cho tác giả, `"artist"` cho họa sĩ, `"tag"` cho thẻ, `"cover_art"` cho ảnh bìa).
+    *   **`type`**: Mô tả vai trò hoặc bản chất của mối quan hệ đó đối với thực thể gốc.
+    *   **`attributes`**: (Tùy chọn) Một đối tượng JSON chứa các thuộc tính chi tiết của thực thể liên quan. Trường này chỉ xuất hiện khi client yêu cầu thông qua tham số query `includes[]` (ví dụ: `?includes[]=author`).
 
 ### 5.2. Response Thành Công - Danh Sách Đối Tượng (`ApiCollectionResponse<TData>`)
 
@@ -475,8 +479,58 @@ Tài nguyên Manga đại diện cho các tác phẩm truyện tranh (manga, man
 *   **Mô tả:** Lấy thông tin chi tiết của một manga bằng ID.
 *   **Request Parameters:**
     *   `id`: (Path Parameter, GUID, Bắt buộc) Định danh duy nhất của manga.
+*   **Request Parameters (Query):**
+    *   `includes[]`: (Chuỗi, Tùy chọn) Một mảng các thông tin bổ sung muốn bao gồm trong kết quả. Các giá trị được hỗ trợ:
+        *   `author`: Trả về thông tin đầy đủ (`attributes`) của các tác giả (`author`) và họa sĩ (`artist`) trong mảng `relationships`.
+        *   `cover_art`: Trả về thông tin đầy đủ (`attributes`) của tất cả ảnh bìa (`cover_art`) liên quan trong mảng `relationships`.
 *   **Responses:**
-    *   `200 OK` (Ví dụ tương tự response `201 Created` ở trên)
+    *   `200 OK`
+        ```json
+        // Ví dụ response cho GET /Mangas/{id}?includes[]=author&includes[]=cover_art
+        {
+          "result": "ok",
+          "response": "entity",
+          "data": {
+            "id": "123e4567-e89b-12d3-a456-426614174000",
+            "type": "manga",
+            "attributes": { /* các thuộc tính của manga */ },
+            "relationships": [
+              { 
+                "id": "author-guid-1", 
+                "type": "author",
+                "attributes": {
+                  "name": "Eiichiro Oda",
+                  "biography": "...",
+                  "createdAt": "...",
+                  "updatedAt": "..."
+                }
+              },
+              {
+                "id": "cover-art-guid-1",
+                "type": "cover_art",
+                "attributes": {
+                  "volume": "1",
+                  "publicId": "mangas_v2/manga-guid/covers/...",
+                  "description": "Cover for volume 1",
+                  "createdAt": "...",
+                  "updatedAt": "..."
+                }
+              },
+              {
+                "id": "cover-art-guid-2",
+                "type": "cover_art",
+                "attributes": {
+                  "volume": "2",
+                  "publicId": "mangas_v2/manga-guid/covers/...",
+                  "description": "Cover for volume 2",
+                  "createdAt": "...",
+                  "updatedAt": "..."
+                }
+              }
+            ]
+          }
+        }
+        ```
     *   `404 Not Found`
 
 #### 6.2.3. `GET /Mangas`
@@ -495,6 +549,9 @@ Tài nguyên Manga đại diện cho các tác phẩm truyện tranh (manga, man
     *   `authorIdsFilter`: (Danh sách GUID, Tùy chọn) Lọc manga chứa **BẤT KỲ** tác giả/họa sĩ nào trong danh sách cung cấp.
     *   `orderBy`: (Chuỗi, Tùy chọn, mặc định: `UpdatedAt`) Tên trường để sắp xếp (`Title`, `Year`, `CreatedAt`, `UpdatedAt`).
     *   `ascending`: (Boolean, Tùy chọn, mặc định: `false`) `true` cho tăng dần, `false` cho giảm dần (mặc định giảm dần cho `UpdatedAt`).
+    *   `includes[]`: (Chuỗi, Tùy chọn) Một mảng các thông tin bổ sung muốn bao gồm trong kết quả. Các giá trị được hỗ trợ:
+        *   `author`: Trả về thông tin đầy đủ (`attributes`) của các tác giả (`author`) và họa sĩ (`artist`) trong mảng `relationships`.
+        *   `cover_art`: Trả về thông tin đầy đủ (`attributes`) của ảnh bìa **chính** (mới nhất) trong mảng `relationships`. ID của mối quan hệ này là `CoverId` (GUID).
 *   **Responses:**
     *   `200 OK` (Trả về `ApiCollectionResponse` với danh sách `ResourceObject<MangaAttributesDto>`)
 
@@ -952,7 +1009,7 @@ Tài nguyên Chapter đại diện cho một chương cụ thể của một `Tr
               "type": "chapter_page",
               "attributes": {
                 "pageNumber": 1,
-                "publicId": "chapters/123e4567-e89b-12d3-a456-426614174000/pages/dcb7e89b-12d3-a456-426614174000" // Public ID trên Cloudinary
+                "publicId": "chapters/chapter_guid/pages/1.jpg" // Public ID trên Cloudinary
               },
               "relationships": [
                 { "id": "123e4567-e89b-12d3-a456-426614174000", "type": "chapter" }
@@ -966,93 +1023,13 @@ Tài nguyên Chapter đại diện cho một chương cụ thể của một `Tr
         ```
     *   `404 Not Found` (Nếu `chapterId` không tồn tại)
 
-#### 6.6.8. `POST /Chapters/{chapterId}/pages/batch` (MỚI)
-
-*   **Mô tả:** Upload hàng loạt các trang ảnh mới cho một chương truyện. Mỗi file ảnh cần được đi kèm với số trang mong muốn. Các trang được tạo tuần tự và ảnh được upload lên Cloudinary.
-*   **Request Parameters:**
-    *   `chapterId`: (Path Parameter, GUID, Bắt buộc) Định danh duy nhất của chương mà các trang này thuộc về.
-*   **Request Body:** `multipart/form-data`
-    *   `files`: (Mảng `IFormFile`, Bắt buộc) Danh sách các file ảnh cần upload.
-    *   `pageNumbers`: (Mảng `int`, Bắt buộc) Danh sách số trang tương ứng với từng file trong `files`. Số lượng và thứ tự phải khớp với `files`. Số trang phải lớn hơn 0 và duy nhất trong chương.
-*   **Responses:**
-    *   `201 Created` (Trả về `ApiResponse` với `List<ChapterPageAttributesDto>` của các trang mới được tạo và upload)
-        ```json
-        {
-          "result": "ok",
-          "response": "entity", // Hoặc "collection" nếu bạn muốn
-          "data": [
-            {
-              "pageNumber": 1,
-              "publicId": "chapters/guid-chapter-id/pages/guid-page-1-id"
-            },
-            {
-              "pageNumber": 2,
-              "publicId": "chapters/guid-chapter-id/pages/guid-page-2-id"
-            }
-          ]
-        }
-        ```
-    *   `400 Bad Request` (Nếu `files` hoặc `pageNumbers` trống, số lượng không khớp, file không hợp lệ, `pageNumber` không hợp lệ hoặc đã tồn tại).
-    *   `404 Not Found` (Nếu `chapterId` không tồn tại).
-    *   `500 Internal Server Error` (Nếu có lỗi trong quá trình upload hoặc lưu DB).
-
-#### 6.6.9. `PUT /Chapters/{chapterId}/pages` (MỚI)
-
-*   **Mô tả:** Đồng bộ hóa toàn bộ danh sách trang của một chương truyện. Endpoint này cho phép thêm mới trang, cập nhật trang hiện có (thay đổi thứ tự hoặc thay thế ảnh) và xóa các trang không còn trong danh sách yêu cầu.
-*   **Request Parameters:**
-    *   `chapterId`: (Path Parameter, GUID, Bắt buộc) Định danh duy nhất của chương.
-*   **Request Body:** `multipart/form-data`
-    *   `pageOperationsJson`: (Chuỗi JSON, Bắt buộc) Một chuỗi JSON chứa một mảng các đối tượng `PageOperationDto`.
-        *   **Cấu trúc `PageOperationDto`:**
-            ```json
-            {
-              "pageId": "guid-cua-trang-neu-la-update", // (GUID, Tùy chọn) ID của trang hiện tại. Để null/trống nếu là trang mới.
-              "pageNumber": 1, // (Số nguyên, Bắt buộc) Số trang mong muốn (thứ tự mới). Phải lớn hơn 0 và duy nhất trong chapter.
-              "fileIdentifier": "file_key_1" // (Chuỗi, Tùy chọn) Tên định danh của file trong form-data (nếu trang này là mới hoặc cần thay thế ảnh).
-                                            // Để null/trống nếu không thay đổi ảnh của trang hiện tại (chỉ thay đổi PageNumber).
-            }
-            ```
-    *   `files`: (`IFormFileCollection`, Tùy chọn) Tập hợp các file ảnh mới hoặc cần thay thế. **Tên (key) của mỗi file trong `IFormFileCollection` phải khớp với giá trị `fileIdentifier`** trong `PageOperationDto` tương ứng.
-*   **Logic Xử Lý:**
-    1.  Các `ChapterPage` hiện có trong DB mà `PageId` không xuất hiện trong `pageOperationsJson` sẽ bị **XÓA**.
-    2.  Đối với mỗi `PageOperationDto`:
-        *   Nếu `pageId` được cung cấp và tồn tại trong DB:
-            *   `PageNumber` của trang sẽ được cập nhật thành `pageNumber` trong DTO.
-            *   Nếu `fileIdentifier` được cung cấp và có file tương ứng trong `files`, ảnh của trang sẽ được **THAY THẾ**. `PublicId` trên Cloudinary sẽ được ghi đè.
-        *   Nếu `pageId` là `null` hoặc không tồn tại trong DB (và `fileIdentifier` phải được cung cấp cùng file tương ứng):
-            *   Một `ChapterPage` mới sẽ được **TẠO RA** với `PageNumber` từ DTO.
-            *   Ảnh từ `fileIdentifier` sẽ được upload.
-            *   `PageId` sẽ được tạo tự động.
-*   **Responses:**
-    *   `200 OK` (Trả về `ApiResponse` với `List<ChapterPageAttributesDto>` của danh sách các trang cuối cùng của chapter sau khi đồng bộ)
-        ```json
-        {
-          "result": "ok",
-          "response": "entity", // Hoặc "collection"
-          "data": [ // Danh sách các trang sau khi đồng bộ, đã sắp xếp theo PageNumber
-            {
-              "pageNumber": 1,
-              "publicId": "chapters/guid-chapter-id/pages/guid-page-A-id"
-            },
-            {
-              "pageNumber": 2,
-              "publicId": "chapters/guid-chapter-id/pages/guid-page-B-id"
-            }
-            // ...
-          ]
-        }
-        ```
-    *   `400 Bad Request` (Nếu JSON không hợp lệ, `pageNumber` không hợp lệ/trùng lặp, `fileIdentifier` được yêu cầu nhưng không có file, hoặc các lỗi validation khác).
-    *   `404 Not Found` (Nếu `chapterId` không tồn tại).
-    *   `500 Internal Server Error`.
-
 ### 6.7. ChapterPages (Trang Chương)
 
 Tài nguyên ChapterPage đại diện cho một trang ảnh cụ thể trong một chương.
 
 #### 6.7.1. `POST /chapterpages/{pageId}/image`
 
-*   **Mô tả:** Upload ảnh cho một `ChapterPage` entry đã tồn tại. Public ID trên Cloudinary sẽ được tạo dựa trên `ChapterId` và `PageId`. Nếu ảnh đã tồn tại cho `PageId` đó, ảnh cũ sẽ được ghi đè.
+*   **Mô tả:** Upload ảnh cho một `ChapterPage` entry đã tồn tại. Public ID trên Cloudinary sẽ được tạo dựa trên ChapterId và PageNumber. Nếu ảnh đã tồn tại cho PageId đó, ảnh cũ sẽ bị xóa và ảnh mới sẽ được ghi đè.
 *   **Request Parameters:**
     *   `pageId`: (Path Parameter, GUID, Bắt buộc) Định danh duy nhất của `ChapterPage` entry đã được tạo trước đó.
 *   **Request Body:** `multipart/form-data`
@@ -1064,7 +1041,7 @@ Tài nguyên ChapterPage đại diện cho một trang ảnh cụ thể trong m�
           "result": "ok",
           "response": "entity",
           "data": {
-            "publicId": "chapters/guid-chapter-id/pages/guid-page-id" // Public ID của ảnh trên Cloudinary (không có đuôi file)
+            "publicId": "chapters/123e4567-e89b-12d3-a456-426614174000/pages/1.jpg" // Public ID của ảnh trên Cloudinary
           }
         }
         ```
@@ -1122,7 +1099,7 @@ Tài nguyên CoverArt đại diện cho một ảnh bìa của một Manga.
             "type": "cover_art",
             "attributes": {
               "volume": "Vol. 1",
-              "publicId": "mangas_v2/manga_guid/covers/Vol._1_uniqueid", // Public ID trên Cloudinary (không có đuôi file)
+              "publicId": "mangas_v2/manga_guid/covers/Vol._1_uniqueid.jpg", // Public ID trên Cloudinary
               "description": "Ảnh bìa tập 1.",
               "createdAt": "2023-10-27T10:00:00Z",
               "updatedAt": "2023-10-27T10:00:00Z"

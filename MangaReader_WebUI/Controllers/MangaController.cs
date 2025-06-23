@@ -17,6 +17,7 @@ namespace MangaReader.WebUI.Controllers
     public class MangaController : Controller
     {
         private readonly IMangaReaderLibTagClient _tagClient;
+        private readonly IMangaReaderLibAuthorClient _authorClient;
         private readonly IMangaReaderLibToTagListResponseMapper _tagListResponseMapper;
         private readonly ILogger<MangaController> _logger;
         private readonly MangaDetailsService _mangaDetailsService;
@@ -30,6 +31,7 @@ namespace MangaReader.WebUI.Controllers
 
         public MangaController(
             IMangaReaderLibTagClient tagClient,
+            IMangaReaderLibAuthorClient authorClient,
             IMangaReaderLibToTagListResponseMapper tagListResponseMapper,
             ILogger<MangaController> logger,
             MangaDetailsService mangaDetailsService,
@@ -42,6 +44,7 @@ namespace MangaReader.WebUI.Controllers
             IReadingHistoryService readingHistoryService)
         {
             _tagClient = tagClient;
+            _authorClient = authorClient;
             _tagListResponseMapper = tagListResponseMapper;
             _logger = logger;
             _mangaDetailsService = mangaDetailsService;
@@ -127,16 +130,14 @@ namespace MangaReader.WebUI.Controllers
         public async Task<IActionResult> Search(
             string title = "",
             List<string>? status = null,
-            string sortBy = "latest",
-            string authors = "",
-            string artists = "",
+            string sortBy = "updatedAt",
+            string? authors = null,
+            string? artists = null,
             int? year = null,
-            List<string>? availableTranslatedLanguage = null,
             List<string>? publicationDemographic = null,
             List<string>? contentRating = null,
             string includedTagsMode = "AND",
             string excludedTagsMode = "OR",
-            List<string>? genres = null,
             string includedTagsStr = "",
             string excludedTagsStr = "",
             int page = 1,
@@ -147,10 +148,18 @@ namespace MangaReader.WebUI.Controllers
                 _logger.LogInformation("[SEARCH_VIEW] Bắt đầu action Search với page={Page}, pageSize={PageSize}", page, pageSize);
                 ViewData["PageType"] = "home";
 
+                // Gộp 2 chuỗi ID từ authors và artists
+                var authorIds = new List<string>();
+                if (!string.IsNullOrEmpty(authors)) authorIds.AddRange(authors.Split(',', StringSplitOptions.RemoveEmptyEntries));
+                if (!string.IsNullOrEmpty(artists)) authorIds.AddRange(artists.Split(',', StringSplitOptions.RemoveEmptyEntries));
+                
+                // Lấy danh sách ID duy nhất
+                var uniqueAuthorIds = authorIds.Distinct().ToList();
+
                 var sortManga = _mangaSearchService.CreateSortMangaFromParameters(
-                    title, status, sortBy, authors, artists, year,
-                    availableTranslatedLanguage, publicationDemographic, contentRating,
-                    includedTagsMode, excludedTagsMode, genres, includedTagsStr, excludedTagsStr);
+                    title, status, sortBy, uniqueAuthorIds, year,
+                    publicationDemographic, contentRating,
+                    includedTagsMode, excludedTagsMode, includedTagsStr, excludedTagsStr);
 
                 var viewModel = await _mangaSearchService.SearchMangaAsync(page, pageSize, sortManga);
 
@@ -198,7 +207,7 @@ namespace MangaReader.WebUI.Controllers
                     PageSize = pageSize,
                     TotalCount = 0,
                     MaxPages = 0,
-                    SortOptions = new SortManga { Title = title, Status = status ?? new List<string>(), SortBy = sortBy ?? "latest" }
+                    SortOptions = new SortManga { Title = title, Status = status, SortBy = sortBy }
                 });
             }
         }
@@ -293,19 +302,35 @@ namespace MangaReader.WebUI.Controllers
         }
 
         public async Task<IActionResult> GetSearchResultsPartial(
-            string title = "", List<string>? status = null, string sortBy = "latest",
-            string authors = "", string artists = "", int? year = null,
-            List<string>? availableTranslatedLanguage = null, List<string>? publicationDemographic = null,
-            List<string>? contentRating = null, string includedTagsMode = "AND", string excludedTagsMode = "OR",
-            List<string>? genres = null, string includedTagsStr = "", string excludedTagsStr = "",
-            int page = 1, int pageSize = 24)
+            string title = "", 
+            List<string>? status = null, 
+            string sortBy = "updatedAt",
+            string? authors = null, 
+            string? artists = null,
+            int? year = null,
+            List<string>? publicationDemographic = null, 
+            List<string>? contentRating = null, 
+            string includedTagsMode = "AND", 
+            string excludedTagsMode = "OR",
+            string includedTagsStr = "", 
+            string excludedTagsStr = "",
+            int page = 1, 
+            int pageSize = 24)
         {
             try
             {
+                // Gộp 2 chuỗi ID từ authors và artists
+                var authorIds = new List<string>();
+                if (!string.IsNullOrEmpty(authors)) authorIds.AddRange(authors.Split(',', StringSplitOptions.RemoveEmptyEntries));
+                if (!string.IsNullOrEmpty(artists)) authorIds.AddRange(artists.Split(',', StringSplitOptions.RemoveEmptyEntries));
+                
+                // Lấy danh sách ID duy nhất
+                var uniqueAuthorIds = authorIds.Distinct().ToList();
+
                 var sortManga = _mangaSearchService.CreateSortMangaFromParameters(
-                    title, status, sortBy, authors, artists, year,
-                    availableTranslatedLanguage, publicationDemographic, contentRating,
-                    includedTagsMode, excludedTagsMode, genres, includedTagsStr, excludedTagsStr);
+                    title, status, sortBy, uniqueAuthorIds, year,
+                    publicationDemographic, contentRating,
+                    includedTagsMode, excludedTagsMode, includedTagsStr, excludedTagsStr);
 
                 var viewModel = await _mangaSearchService.SearchMangaAsync(page, pageSize, sortManga);
 
@@ -402,6 +427,37 @@ namespace MangaReader.WebUI.Controllers
                 }
                 ViewBag.ErrorMessage = "Không thể tải lịch sử đọc. Vui lòng thử lại sau.";
                 return View("History", new List<LastReadMangaViewModel>());
+            }
+        }
+
+        [HttpGet("api/manga/search-authors")]
+        public async Task<IActionResult> SearchAuthors([FromQuery] string nameFilter)
+        {
+            if (string.IsNullOrWhiteSpace(nameFilter) || nameFilter.Length < 2)
+            {
+                return Ok(new List<AuthorSearchResultViewModel>());
+            }
+
+            try
+            {
+                var authorResponse = await _authorClient.GetAuthorsAsync(nameFilter: nameFilter, limit: 10);
+                if (authorResponse?.Data == null)
+                {
+                    return Ok(new List<AuthorSearchResultViewModel>());
+                }
+
+                var results = authorResponse.Data.Select(a => new AuthorSearchResultViewModel
+                {
+                    Id = Guid.Parse(a.Id),
+                    Name = a.Attributes.Name
+                }).ToList();
+
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tìm kiếm tác giả với filter: {NameFilter}", nameFilter);
+                return StatusCode(500, "Lỗi máy chủ khi tìm kiếm tác giả.");
             }
         }
     }

@@ -13,14 +13,14 @@ Thư mục `Controllers` chứa các lớp Controller theo kiến trúc Model-Vi
   - Xử lý các action liên quan đến xác thực người dùng.
   - `Login`: Hiển thị trang đăng nhập.
   - `GoogleLogin`: Bắt đầu luồng đăng nhập bằng Google OAuth bằng cách gọi `UserService` để lấy URL xác thực và chuyển hướng người dùng.
-  - `Callback`: Xử lý callback từ Backend Auth API sau khi xác thực Google thành công, nhận JWT token và lưu trữ nó.
+  - `Callback`: Xử lý callback từ Auth API sau khi xác thực Google thành công, nhận JWT token và lưu trữ nó.
   - `Logout`: Xóa thông tin đăng nhập (token).
   - `GetCurrentUser`: API endpoint (AJAX/Fetch) để kiểm tra trạng thái đăng nhập và lấy thông tin người dùng hiện tại.
   - `Profile`: Hiển thị trang thông tin cá nhân của người dùng đã đăng nhập.
 - **`ChapterController.cs`**:
   - Xử lý các action liên quan đến việc đọc chapter.
   - `Read(string id)`: Hiển thị trang đọc của một chapter cụ thể. Gọi `ChapterReadingServices` để lấy toàn bộ thông tin cần thiết cho trang đọc.
-  - `SaveReadingProgress`: API endpoint để lưu tiến độ đọc của người dùng vào Backend Auth API.
+  - `SaveReadingProgress`: API endpoint để lưu tiến độ đọc của người dùng vào Auth API.
 - **`HomeController.cs`**:
   - Xử lý các action cho các trang cơ bản của ứng dụng.
   - `Index`: Hiển thị trang chủ, lấy danh sách manga mới cập nhật từ `MangaReaderLib API`.
@@ -31,7 +31,7 @@ Thư mục `Controllers` chứa các lớp Controller theo kiến trúc Model-Vi
   - `Details(string id)`: Hiển thị trang chi tiết của một manga. Sử dụng `MangaDetailsService` để lấy toàn bộ thông tin cần thiết.
   - `Search(...)`: Hiển thị trang tìm kiếm manga và xử lý kết quả tìm kiếm. Sử dụng `MangaSearchService` để phân tích tham số, gọi `MangaReaderLib API` và xử lý phân trang.
   - `GetTags()`: API endpoint để lấy danh sách tags từ `MangaReaderLib API`.
-  - `ToggleFollowProxy(...)`: Proxy action để xử lý việc theo dõi/hủy theo dõi manga thông qua Backend Auth API.
+  - `ToggleFollowProxy(...)`: Proxy action để xử lý việc theo dõi/hủy theo dõi manga thông qua Auth API.
   - `Followed()`: Hiển thị danh sách truyện đang theo dõi của người dùng.
   - `History()`: Hiển thị lịch sử đọc của người dùng.
 

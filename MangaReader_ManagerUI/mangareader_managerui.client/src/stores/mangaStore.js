@@ -8,6 +8,7 @@ import { DEFAULT_PAGE_LIMIT, RELATIONSHIP_TYPES } from '../constants/appConstant
  * @typedef {import('../types/manga').Manga} Manga
  * @typedef {import('../types/api').ApiCollectionResponse<Manga>} MangaCollectionResponse
  * @typedef {import('../types/api').AuthorInRelationshipAttributes} AuthorInRelationshipAttributes
+ * @typedef {import('../types/manga').CoverArtAttributes} CoverArtAttributes
  */
 
 const useMangaStore = create(persistStore((set, get) => ({
@@ -72,17 +73,14 @@ const useMangaStore = create(persistStore((set, get) => ({
       const mangasWithProcessedInfo = response.data.map(manga => {
         let coverArtPublicId = null;
         const coverArtRel = manga.relationships?.find(rel => rel.type === RELATIONSHIP_TYPES.COVER_ART);
-        if (coverArtRel && typeof coverArtRel.id === 'string') {
-          // Theo ClientAPI_Update.md mục 2.2, nếu includes[]=cover_art, thì `id` chính là publicId
-          coverArtPublicId = coverArtRel.id;
+        
+        // CẬP NHẬT LOGIC: Lấy publicId từ attributes của relationship
+        if (coverArtRel && coverArtRel.attributes) {
+            const coverAttributes = /** @type {CoverArtAttributes} */ (coverArtRel.attributes);
+            if (coverAttributes && typeof coverAttributes.publicId === 'string') {
+                coverArtPublicId = coverAttributes.publicId;
+            }
         }
-
-        // Xử lý thông tin tác giả/họa sĩ từ includes (ví dụ, lấy tên tác giả đầu tiên)
-        const authorRelationship = manga.relationships?.find(
-          rel => (rel.type === RELATIONSHIP_TYPES.AUTHOR || rel.type === RELATIONSHIP_TYPES.ARTIST) && rel.attributes
-        );
-        /** @type {AuthorInRelationshipAttributes | undefined} */
-        const mainAuthorAttributes = authorRelationship?.attributes;
 
         return { 
           ...manga, 

@@ -1,4 +1,4 @@
-using MangaReader.WebUI.Models;
+using MangaReader.WebUI.Models.ViewModels.Manga;
 using MangaReaderLib.DTOs.Common;
 using MangaReaderLib.DTOs.Mangas;
 using MangaReaderLib.DTOs.Authors;
@@ -8,14 +8,10 @@ using MangaReader.WebUI.Services.AuthServices;
 using MangaReader.WebUI.Services.MangaServices;
 using MangaReader.WebUI.Services.MangaServices.DataProcessing.Interfaces.MangaReaderLibMappers;
 using MangaReader.WebUI.Services.UtilityServices;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Linq;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Text.Json;
-using MangaReader.WebUI.Models.ViewModels.Manga;
+using MangaReaderLib.Extensions;
 
 namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.MangaReaderLibMappers
 {
@@ -26,23 +22,19 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
         private readonly IUserService _userService;
         private readonly IMangaFollowService _mangaFollowService;
         private readonly LocalizationService _localizationService;
-        private readonly string _cloudinaryBaseUrl;
 
         public MangaReaderLibToMangaViewModelMapper(
             ILogger<MangaReaderLibToMangaViewModelMapper> logger,
             IMangaReaderLibCoverApiService coverApiService,
             IUserService userService,
             IMangaFollowService mangaFollowService,
-            LocalizationService localizationService,
-            IConfiguration configuration)
+            LocalizationService localizationService)
         {
             _logger = logger;
             _coverApiService = coverApiService;
             _userService = userService;
             _mangaFollowService = mangaFollowService;
             _localizationService = localizationService;
-            _cloudinaryBaseUrl = configuration["MangaReaderApiSettings:CloudinaryBaseUrl"]?.TrimEnd('/') 
-                                ?? throw new InvalidOperationException("MangaReaderApiSettings:CloudinaryBaseUrl is not configured.");
         }
 
         public async Task<MangaViewModel> MapToMangaViewModelAsync(ResourceObject<MangaAttributesDto> mangaData, bool isFollowing = false)
@@ -58,19 +50,28 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
             {
                 string title = attributes.Title;
                 string description = "";
-                string coverUrl = "/images/cover-placeholder.jpg";
+                string coverUrl = "/images/cover-placeholder.jpg"; // Giá trị mặc định
                 string author = "Không rõ";
                 string artist = "Không rõ";
 
                 var coverRelationship = relationships?.FirstOrDefault(r => r.Type == "cover_art");
-                if (coverRelationship != null && !string.IsNullOrEmpty(coverRelationship.Id))
+                if (coverRelationship != null)
                 {
-                    coverUrl = $"{_cloudinaryBaseUrl}/{coverRelationship.Id}";
-                    _logger.LogDebug("MangaReaderLib Mapper: Cover URL set to {CoverUrl} using PublicId from relationship.", coverUrl);
+                    var coverAttributes = coverRelationship.GetAttributesAs<CoverArtAttributesDto>();
+                    if (coverAttributes != null && !string.IsNullOrEmpty(coverAttributes.PublicId))
+                    {
+                        // SỬ DỤNG SERVICE ĐỂ LẤY URL - ĐIỂM THAY ĐỔI CHÍNH
+                        coverUrl = _coverApiService.GetCoverArtUrl(coverRelationship.Id, coverAttributes.PublicId);
+                        _logger.LogDebug("MangaReaderLib Mapper: Cover URL set to {CoverUrl} using IMangaReaderLibCoverApiService.", coverUrl);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("MangaReaderLib Mapper: No PublicId found in cover_art attributes for manga {MangaId}. Using placeholder.", id);
+                    }
                 }
                 else
                 {
-                    _logger.LogWarning("MangaReaderLib Mapper: No cover_art relationship with PublicId found for manga {MangaId}. Using placeholder.", id);
+                    _logger.LogWarning("MangaReaderLib Mapper: No cover_art relationship found for manga {MangaId}. Using placeholder.", id);
                 }
 
                 if (relationships != null)
@@ -81,11 +82,11 @@ namespace MangaReader.WebUI.Services.MangaServices.DataProcessing.Services.Manga
                         {
                             try
                             {
-                                var relAttributes = JsonSerializer.Deserialize<AuthorAttributesDto>(JsonSerializer.Serialize(rel.Attributes));
-                                if (relAttributes != null)
+                                var authorAttributes = rel.GetAttributesAs<AuthorAttributesDto>();
+                                if (authorAttributes != null && !string.IsNullOrEmpty(authorAttributes.Name))
                                 {
-                                    if (rel.Type == "author") author = relAttributes.Name ?? author;
-                                    else if (rel.Type == "artist") artist = relAttributes.Name ?? artist;
+                                    if (rel.Type == "author") author = authorAttributes.Name;
+                                    else if (rel.Type == "artist") artist = authorAttributes.Name;
                                 }
                             }
                             catch (JsonException ex)
