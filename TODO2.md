@@ -1,1319 +1,1426 @@
-# TODO: Cập nhật Frontend để hỗ trợ tìm kiếm Manga nâng cao
+Chào bạn,
 
-Tài liệu này hướng dẫn các bước cần thiết để cập nhật dự án `MangaReader_ManagerUI` nhằm hỗ trợ các tính năng tìm kiếm mới cho Manga, bao gồm lọc theo Tác giả (Author), Họa sĩ (Artist) và Ngôn ngữ dịch có sẵn (Available Translated Languages).
+Tôi đã sẵn sàng giúp bạn triển khai Roles và Policies để bảo vệ các endpoint chỉnh sửa Manga. Dựa trên yêu cầu của bạn, tôi sẽ thực hiện các bước sau:
 
-Các thay đổi sẽ được thực hiện ở cả tầng Server (proxy) và Client (React) của `MangaReader_ManagerUI`.
+1.  **Định nghĩa các quyền (Permissions)** mới dành riêng cho việc quản lý Manga.
+2.  **Cập nhật Seeder** để tự động gán các quyền này cho vai trò `Admin` và `SuperAdmin` khi ứng dụng khởi chạy.
+3.  **Áp dụng các Policy** tương ứng lên các endpoint `POST`, `PUT`, `DELETE` trong tất cả các Controller liên quan đến việc chỉnh sửa dữ liệu Manga (bao gồm Authors, Tags, Chapters, Covers, v.v.).
 
----
+Các endpoint `GET` sẽ không được bảo vệ, đúng như yêu cầu của bạn.
 
-## Phần 1: Cập nhật Backend Proxy (`MangaReader_ManagerUI.Server`)
+Dưới đây là các tệp đã được cập nhật với đầy đủ mã nguồn.
 
-Bước đầu tiên là cập nhật `MangasController` để nó có thể nhận và chuyển tiếp các tham số query mới (`authors`, `artists`, `availableTranslatedLanguage`) đến `MangaReaderLib`.
+### 1. Định nghĩa các quyền mới trong `Domain/Constants/Permissions.cs`
 
-### Bước 1.1: Cập nhật `MangasController.cs`
+Chúng ta sẽ thêm một nhóm quyền mới cho việc quản lý Manga.
 
-Chỉnh sửa phương thức `GetMangas` để thay thế tham số `authorIdsFilter` cũ bằng các tham số `authors`, `artists`, và `availableTranslatedLanguage` mới.
-
-<!-- file path="MangaReader_ManagerUI\MangaReader_ManagerUI.Server\Controllers\MangasController.cs" -->
+<file path="Domain\Constants\Permissions.cs">
 ```csharp
-using MangaReaderLib.DTOs.Common;
-using MangaReaderLib.DTOs.CoverArts;
-using MangaReaderLib.DTOs.Mangas;
-using MangaReaderLib.DTOs.TranslatedMangas;
-using MangaReaderLib.Services.Interfaces;
-using Microsoft.AspNetCore.Mvc;
-using MangaReaderLib.Services.Exceptions;
-using System.Net;
-using MangaReaderLib.Enums;
-
-namespace MangaReader_ManagerUI.Server.Controllers
+namespace Domain.Constants
 {
-    public class MangasController : BaseApiController
+    public static class Permissions
     {
-        private readonly IMangaClient _mangaClient;
-        private readonly ILogger<MangasController> _logger;
-
-        public MangasController(IMangaClient mangaClient, ILogger<MangasController> logger)
+        public static class Users
         {
-            _mangaClient = mangaClient;
+            public const string View = "Permissions.Users.View";
+            public const string Create = "Permissions.Users.Create";
+            public const string Edit = "Permissions.Users.Edit";
+            public const string Delete = "Permissions.Users.Delete";
+        }
+
+        public static class Roles
+        {
+            public const string View = "Permissions.Roles.View";
+            public const string Create = "Permissions.Roles.Create";
+            public const string Edit = "Permissions.Roles.Edit";
+            public const string Delete = "Permissions.Roles.Delete";
+        }
+
+        // <<< THÊM MỚI BẮT ĐẦU >>>
+        /// <summary>
+        /// Các quyền liên quan đến quản lý nội dung Manga.
+        /// </summary>
+        public static class Manga
+        {
+            /// <summary>
+            /// Quyền tạo mới các tài nguyên liên quan đến manga (manga, author, tag, chapter, v.v.).
+            /// </summary>
+            public const string Create = "Permissions.Manga.Create";
+
+            /// <summary>
+            /// Quyền chỉnh sửa các tài nguyên liên quan đến manga.
+            /// </summary>
+            public const string Edit = "Permissions.Manga.Edit";
+
+            /// <summary>
+            /// Quyền xóa các tài nguyên liên quan đến manga.
+            /// </summary>
+            public const string Delete = "Permissions.Manga.Delete";
+        }
+        // <<< THÊM MỚI KẾT THÚC >>>
+    }
+}
+```
+</file>
+
+### 2. Cập nhật Seeder trong `Persistence/Data/SeedData.cs`
+
+Chúng ta sẽ cập nhật `SeedData` để gán các quyền mới cho vai trò `Admin`. Vai trò `SuperAdmin` đã được cấu hình để tự động nhận tất cả các quyền nên không cần thay đổi.
+
+<file path="Persistence\Data\SeedData.cs">
+```csharp
+using Domain.Constants;
+using Domain.Entities;
+using Microsoft.AspNetCore.Identity;
+using System.Linq;
+using System.Reflection;
+using System.Security.Claims;
+using System.Threading.Tasks;
+
+namespace Persistence.Data
+{
+    public static class SeedData
+    {
+        public static async Task SeedEssentialsAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        {
+            // Seed Roles
+            await SeedRolesAsync(roleManager);
+
+            // Seed SuperAdmin User
+            await SeedSuperAdminAsync(userManager, roleManager);
+        }
+
+        private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
+        {
+            // Tạo các vai trò từ AppRoles constants
+            await CreateRoleIfNotExists(roleManager, AppRoles.SuperAdmin);
+            await CreateRoleIfNotExists(roleManager, AppRoles.Admin);
+            await CreateRoleIfNotExists(roleManager, AppRoles.Moderator);
+            await CreateRoleIfNotExists(roleManager, AppRoles.User);
+        }
+
+        private static async Task CreateRoleIfNotExists(RoleManager<IdentityRole> roleManager, string roleName)
+        {
+            if (!await roleManager.RoleExistsAsync(roleName))
+            {
+                await roleManager.CreateAsync(new IdentityRole(roleName));
+            }
+        }
+
+        private static async Task SeedSuperAdminAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        {
+            // Tạo user SuperAdmin mặc định
+            var defaultUser = new ApplicationUser 
+            { 
+                UserName = "superadmin", 
+                Email = "superadmin@mangareader.com", 
+                EmailConfirmed = true 
+            };
+
+            if (userManager.Users.All(u => u.Id != defaultUser.Id))
+            {
+                var user = await userManager.FindByEmailAsync(defaultUser.Email);
+                if (user == null)
+                {
+                    await userManager.CreateAsync(defaultUser, "123456");
+                    await userManager.AddToRoleAsync(defaultUser, AppRoles.SuperAdmin);
+                    await userManager.AddToRoleAsync(defaultUser, AppRoles.Admin);
+                    await userManager.AddToRoleAsync(defaultUser, AppRoles.Moderator);
+                    await userManager.AddToRoleAsync(defaultUser, AppRoles.User);
+                }
+            }
+            
+            // Gán tất cả quyền cho vai trò SuperAdmin
+            await AddAllPermissionsToRole(roleManager, AppRoles.SuperAdmin);
+            
+            // <<< THÊM MỚI BẮT ĐẦU >>>
+            // Gán các quyền quản lý Manga cho vai trò Admin
+            await AddMangaPermissionsToAdminRole(roleManager);
+            // <<< THÊM MỚI KẾT THÚC >>>
+        }
+        
+        // <<< THÊM MỚI BẮT ĐẦU >>>
+        private static async Task AddMangaPermissionsToAdminRole(RoleManager<IdentityRole> roleManager)
+        {
+            var adminRole = await roleManager.FindByNameAsync(AppRoles.Admin);
+            if (adminRole == null) return;
+            
+            var adminClaims = await roleManager.GetClaimsAsync(adminRole);
+            var mangaPermissions = new List<string>
+            {
+                Permissions.Manga.Create,
+                Permissions.Manga.Edit,
+                Permissions.Manga.Delete
+            };
+            
+            foreach (var permission in mangaPermissions)
+            {
+                if (!adminClaims.Any(c => c.Type == "permission" && c.Value == permission))
+                {
+                    await roleManager.AddClaimAsync(adminRole, new Claim("permission", permission));
+                }
+            }
+        }
+        // <<< THÊM MỚI KẾT THÚC >>>
+
+        public static async Task AddAllPermissionsToRole(RoleManager<IdentityRole> roleManager, string roleName)
+        {
+            var role = await roleManager.FindByNameAsync(roleName);
+            if (role == null) return;
+            
+            var allClaims = await roleManager.GetClaimsAsync(role);
+            var allPermissions = GetAllPermissions();
+            
+            foreach (var permission in allPermissions)
+            {
+                if (!allClaims.Any(c => c.Type == "permission" && c.Value == permission))
+                {
+                    await roleManager.AddClaimAsync(role, new Claim("permission", permission));
+                }
+            }
+        }
+
+        private static List<string> GetAllPermissions()
+        {
+            var permissions = new List<string>();
+            var nestedTypes = typeof(Permissions).GetNestedTypes();
+            foreach (var type in nestedTypes)
+            {
+                var fields = type.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+                permissions.AddRange(fields.Select(fi => (string)fi.GetValue(null)!));
+            }
+            return permissions;
+        }
+    }
+}
+```
+</file>
+
+### 3. Áp dụng Policies vào các Controllers
+
+Bây giờ, chúng ta sẽ thêm attribute `[Authorize(Policy = "...")]` vào các action `POST`, `PUT`, `DELETE` của các controller liên quan đến Manga.
+
+#### `MangaReaderDB/Controllers/AuthorsController.cs`
+
+<file path="MangaReaderDB\Controllers\AuthorsController.cs">
+```csharp
+// MangaReaderDB/Controllers/AuthorsController.cs
+using Application.Common.DTOs.Authors;
+using Application.Common.Models;
+using Application.Common.Responses;
+using Application.Exceptions;
+using Application.Features.Authors.Commands.CreateAuthor;
+using Application.Features.Authors.Commands.DeleteAuthor;
+using Application.Features.Authors.Commands.UpdateAuthor;
+using Application.Features.Authors.Queries.GetAuthorById;
+using Application.Features.Authors.Queries.GetAuthors;
+using Domain.Constants; // <<< THÊM MỚI
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization; // <<< THÊM MỚI
+using Microsoft.AspNetCore.Mvc;
+
+namespace MangaReaderDB.Controllers
+{
+    public class AuthorsController : BaseApiController
+    {
+        private readonly IValidator<CreateAuthorDto> _createAuthorDtoValidator;
+        private readonly IValidator<UpdateAuthorDto> _updateAuthorDtoValidator;
+        private readonly ILogger<AuthorsController> _logger;
+
+        public AuthorsController(
+            IValidator<CreateAuthorDto> createAuthorDtoValidator,
+            IValidator<UpdateAuthorDto> updateAuthorDtoValidator,
+            ILogger<AuthorsController> logger)
+        {
+            _createAuthorDtoValidator = createAuthorDtoValidator;
+            _updateAuthorDtoValidator = updateAuthorDtoValidator;
             _logger = logger;
         }
 
-        // GET: api/Mangas
-        [HttpGet]
-        [ProducesResponseType(typeof(ApiCollectionResponse<ResourceObject<MangaAttributesDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetMangas(
-            [FromQuery] int? offset, 
-            [FromQuery] int? limit, 
-            [FromQuery] string? titleFilter,
-            [FromQuery] string? statusFilter, 
-            [FromQuery] string? contentRatingFilter, 
-            [FromQuery(Name = "publicationDemographicsFilter[]")] List<PublicationDemographic>? publicationDemographicsFilter,
-            [FromQuery] string? originalLanguageFilter,
-            [FromQuery] int? yearFilter,
-            [FromQuery(Name = "authors[]")] List<Guid>? authors, // THAY ĐỔI
-            [FromQuery(Name = "artists[]")] List<Guid>? artists, // THÊM MỚI
-            [FromQuery(Name = "availableTranslatedLanguage[]")] List<string>? availableTranslatedLanguage, // THÊM MỚI
-            [FromQuery(Name = "includedTags[]")] List<Guid>? includedTags,
-            [FromQuery] string? includedTagsMode,
-            [FromQuery(Name = "excludedTags[]")] List<Guid>? excludedTags,
-            [FromQuery] string? excludedTagsMode,
-            [FromQuery] string? orderBy, 
-            [FromQuery] bool? ascending,
-            [FromQuery(Name = "includes[]")] List<string>? includes)
-        {
-            _logger.LogInformation("API: Requesting list of mangas.");
-            try
-            {
-                var result = await _mangaClient.GetMangasAsync(
-                    offset, 
-                    limit, 
-                    titleFilter, 
-                    statusFilter, 
-                    contentRatingFilter, 
-                    publicationDemographicsFilter, 
-                    originalLanguageFilter,
-                    yearFilter, 
-                    authors, // THAY ĐỔI
-                    artists, // THÊM MỚI
-                    availableTranslatedLanguage, // THÊM MỚI
-                    includedTags,
-                    includedTagsMode,
-                    excludedTags,
-                    excludedTagsMode,
-                    orderBy, 
-                    ascending,
-                    includes,
-                    HttpContext.RequestAborted);
-                
-                if (result == null)
-                {
-                    return StatusCode(StatusCodes.Status500InternalServerError, 
-                        new ApiErrorResponse(new ApiError(500, "API Error", "Failed to fetch mangas from the backend API.")));
-                }
-                return Ok(result);
-            }
-            catch (ApiException ex)
-            {
-                _logger.LogError(ex, "API Error from MangaReaderAPI. Status: {StatusCode}", ex.StatusCode);
-                if (ex.ApiErrorResponse != null)
-                {
-                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
-                }
-                return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, "API Error", ex.Message)));
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "HTTP Request Error. Status: {StatusCode}", ex.StatusCode);
-                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "HTTP Error", ex.Message)));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Internal server error while fetching mangas.");
-                return StatusCode(StatusCodes.Status500InternalServerError, 
-                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
-            }
-        }
-
-        // GET: api/Mangas/{mangaId}
-        [HttpGet("{mangaId}")]
-        [ProducesResponseType(typeof(ApiResponse<ResourceObject<MangaAttributesDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetMangaById(Guid mangaId, [FromQuery(Name = "includes[]")] List<string>? includes)
-        {
-            _logger.LogInformation("API: Requesting manga by ID: {MangaId}", mangaId);
-            try
-            {
-                var result = await _mangaClient.GetMangaByIdAsync(mangaId, includes, HttpContext.RequestAborted);
-                if (result == null || result.Data == null)
-                {
-                    return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", $"Manga with ID {mangaId} not found.")));
-                }
-                return Ok(result);
-            }
-            catch (ApiException ex)
-            {
-                _logger.LogWarning("API: Manga with ID {MangaId} not found in backend. Status: {StatusCode}", mangaId, ex.StatusCode);
-                if (ex.ApiErrorResponse != null)
-                {
-                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
-                }
-                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "API Error fetching manga {MangaId}. Status: {StatusCode}", mangaId, ex.StatusCode);
-                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Internal server error while fetching manga {MangaId}.", mangaId);
-                return StatusCode(StatusCodes.Status500InternalServerError, 
-                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
-            }
-        }
-
-        // POST: api/Mangas
         [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse<ResourceObject<MangaAttributesDto>>), StatusCodes.Status201Created)]
+        [Authorize(Policy = Permissions.Manga.Create)] // <<< THÊM MỚI
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<AuthorAttributesDto>>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreateManga([FromBody] CreateMangaRequestDto createDto)
+        public async Task<IActionResult> CreateAuthor([FromBody] CreateAuthorDto createAuthorDto)
         {
-            _logger.LogInformation("API: Request to create manga: {Title}", createDto.Title);
-            if (!ModelState.IsValid)
+            var validationResult = await _createAuthorDtoValidator.ValidateAsync(createAuthorDto);
+            if (!validationResult.IsValid)
             {
-                var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                     .Select(e => new ApiError(400, "Validation Error", e.ErrorMessage, context: new { field = e.ErrorMessage }))
-                                     .ToList();
-                return BadRequest(new ApiErrorResponse(errors));
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
             }
-            try
+
+            var command = new CreateAuthorCommand 
+            { 
+                Name = createAuthorDto.Name, 
+                Biography = createAuthorDto.Biography 
+            };
+            var authorId = await Mediator.Send(command);
+            
+            var authorResource = await Mediator.Send(new GetAuthorByIdQuery { AuthorId = authorId });
+            if (authorResource == null)
             {
-                var result = await _mangaClient.CreateMangaAsync(createDto, HttpContext.RequestAborted);
-                if (result == null || result.Data == null) 
-                {
-                    return BadRequest(new ApiErrorResponse(new ApiError(400, "Creation Failed", "Could not create manga via backend API.")));
-                }
-                return CreatedAtAction(nameof(GetMangaById), new { mangaId = Guid.Parse(result.Data.Id) }, result);
-            }
-            catch (ApiException ex)
-            {
-                _logger.LogError(ex, "API Error creating manga. Status: {StatusCode}", ex.StatusCode);
-                if (ex.ApiErrorResponse != null)
-                {
-                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
-                }
-                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "API Error creating manga. Status: {StatusCode}", ex.StatusCode);
-                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Internal server error while creating manga.");
+                 _logger.LogError($"FATAL: Author with ID {authorId} was not found after creation!");
                  return StatusCode(StatusCodes.Status500InternalServerError, 
-                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
+                    new ApiErrorResponse(new ApiError(500, "Creation Error", "Failed to retrieve resource after creation.")));
             }
-        }
-        
-        // PUT: api/Mangas/{mangaId}
-        [HttpPut("{mangaId}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateManga(Guid mangaId, [FromBody] UpdateMangaRequestDto updateDto)
-        {
-            _logger.LogInformation("API: Request to update manga: {MangaId}", mangaId);
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                     .Select(e => new ApiError(400, "Validation Error", e.ErrorMessage, context: new { field = e.ErrorMessage }))
-                                     .ToList();
-                return BadRequest(new ApiErrorResponse(errors));
-            }
-            try
-            {
-                await _mangaClient.UpdateMangaAsync(mangaId, updateDto, HttpContext.RequestAborted);
-                return NoContent();
-            }
-            catch (ApiException ex)
-            {
-                _logger.LogWarning("API: Manga with ID {MangaId} not found for update. Status: {StatusCode}", mangaId, ex.StatusCode);
-                if (ex.ApiErrorResponse != null)
-                {
-                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
-                }
-                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "API Error updating manga {MangaId}. Status: {StatusCode}", mangaId, ex.StatusCode);
-                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Internal server error while updating manga {MangaId}.", mangaId);
-                 return StatusCode(StatusCodes.Status500InternalServerError, 
-                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
-            }
+            return Created(nameof(GetAuthorById), new { id = authorId }, authorResource);
         }
 
-        // DELETE: api/Mangas/{mangaId}
-        [HttpDelete("{mangaId}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<AuthorAttributesDto>>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DeleteManga(Guid mangaId)
+        public async Task<IActionResult> GetAuthorById(Guid id)
         {
-            _logger.LogInformation("API: Request to delete manga: {MangaId}", mangaId);
-            try
+            var query = new GetAuthorByIdQuery { AuthorId = id };
+            var authorResource = await Mediator.Send(query);
+            if (authorResource == null)
             {
-                await _mangaClient.DeleteMangaAsync(mangaId, HttpContext.RequestAborted);
-                return NoContent();
+                throw new NotFoundException(nameof(Domain.Entities.Author), id);
             }
-            catch (ApiException ex)
-            {
-                _logger.LogWarning("API: Manga with ID {MangaId} not found for deletion. Status: {StatusCode}", mangaId, ex.StatusCode);
-                if (ex.ApiErrorResponse != null)
-                {
-                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
-                }
-                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "API Error deleting manga {MangaId}. Status: {StatusCode}", mangaId, ex.StatusCode);
-                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Internal server error while deleting manga {MangaId}.", mangaId);
-                 return StatusCode(StatusCodes.Status500InternalServerError, 
-                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
-            }
+            return Ok(authorResource);
         }
-        
-        // POST: api/Mangas/{mangaId}/covers
-        [HttpPost("{mangaId}/covers")]
-        [Consumes("multipart/form-data")]
-        [ProducesResponseType(typeof(ApiResponse<ResourceObject<CoverArtAttributesDto>>), StatusCodes.Status201Created)]
+
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiCollectionResponse<ResourceObject<AuthorAttributesDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAuthors([FromQuery] GetAuthorsQuery query)
+        {
+            var result = await Mediator.Send(query); // QueryHandler trả về PagedResult<ResourceObject<AuthorAttributesDto>>
+            return Ok(result);
+        }
+
+        [HttpPut("{id:guid}")]
+        [Authorize(Policy = Permissions.Manga.Edit)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UploadMangaCover(Guid mangaId, [FromForm] IFormFile file, [FromForm] string? volume, [FromForm] string? description)
+        public async Task<IActionResult> UpdateAuthor(Guid id, [FromBody] UpdateAuthorDto updateAuthorDto)
         {
-            _logger.LogInformation("API: Request to upload cover for Manga ID: {MangaId}", mangaId);
+            var validationResult = await _updateAuthorDtoValidator.ValidateAsync(updateAuthorDto);
+            if (!validationResult.IsValid)
+            {
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
+            }
+
+            var command = new UpdateAuthorCommand
+            {
+                AuthorId = id,
+                Name = updateAuthorDto.Name,
+                Biography = updateAuthorDto.Biography
+            };
+            await Mediator.Send(command); 
+            return NoContent();
+        }
+
+        [HttpDelete("{id:guid}")]
+        [Authorize(Policy = Permissions.Manga.Delete)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteAuthor(Guid id)
+        {
+            var command = new DeleteAuthorCommand { AuthorId = id };
+            await Mediator.Send(command);
+            return NoContent();
+        }
+    }
+}
+```
+</file>
+
+#### `MangaReaderDB/Controllers/ChaptersController.cs` và `ChapterPagesController`
+
+<file path="MangaReaderDB\Controllers\ChaptersController.cs">
+```csharp
+// File: MangaReaderDB/Controllers/ChaptersController.cs
+// comment
+using Application.Common.DTOs.Chapters;
+using Application.Common.Models; // For ResourceObject
+using Application.Common.Responses;
+// Application.Exceptions đã được using, nhưng ta sẽ chỉ định rõ ràng khi new ValidationException
+using Application.Features.Chapters.Commands.CreateChapter;
+using Application.Features.Chapters.Commands.CreateChapterPageEntry;
+using Application.Features.Chapters.Commands.DeleteChapter;
+using Application.Features.Chapters.Commands.DeleteChapterPage;
+using Application.Features.Chapters.Commands.SyncChapterPages;
+using Application.Features.Chapters.Commands.UpdateChapter;
+using Application.Features.Chapters.Commands.UpdateChapterPageDetails;
+using Application.Features.Chapters.Commands.UploadChapterPageImage;
+using Application.Features.Chapters.Commands.UploadChapterPages;
+using Application.Features.Chapters.Queries.GetChapterById;
+using Application.Features.Chapters.Queries.GetChapterPages;
+using Application.Features.Chapters.Queries.GetChaptersByTranslatedManga;
+using Domain.Constants; // <<< THÊM MỚI
+using Microsoft.AspNetCore.Authorization; // <<< THÊM MỚI
+using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+
+namespace MangaReaderDB.Controllers
+{
+    public class ChaptersController : BaseApiController
+    {
+        private readonly FluentValidation.IValidator<CreateChapterDto> _createChapterDtoValidator;
+        private readonly FluentValidation.IValidator<UpdateChapterDto> _updateChapterDtoValidator;
+        private readonly FluentValidation.IValidator<CreateChapterPageDto> _createChapterPageDtoValidator;
+        private readonly ILogger<ChaptersController> _logger;
+
+        public ChaptersController(
+            FluentValidation.IValidator<CreateChapterDto> createChapterDtoValidator,
+            FluentValidation.IValidator<UpdateChapterDto> updateChapterDtoValidator,
+            FluentValidation.IValidator<CreateChapterPageDto> createChapterPageDtoValidator,
+            ILogger<ChaptersController> logger)
+        {
+            _createChapterDtoValidator = createChapterDtoValidator;
+            _updateChapterDtoValidator = updateChapterDtoValidator;
+            _createChapterPageDtoValidator = createChapterPageDtoValidator;
+            _logger = logger;
+        }
+
+        [HttpPost]
+        [Authorize(Policy = Permissions.Manga.Create)] // <<< THÊM MỚI
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<ChapterAttributesDto>>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CreateChapter([FromBody] CreateChapterDto createDto)
+        {
+            var validationResult = await _createChapterDtoValidator.ValidateAsync(createDto);
+            if (!validationResult.IsValid)
+            {
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
+            }
+
+            var command = new CreateChapterCommand
+            {
+                TranslatedMangaId = createDto.TranslatedMangaId,
+                UploadedByUserId = createDto.UploadedByUserId,
+                Volume = createDto.Volume,
+                ChapterNumber = createDto.ChapterNumber,
+                Title = createDto.Title,
+                PublishAt = createDto.PublishAt,
+                ReadableAt = createDto.ReadableAt
+            };
+            var chapterId = await Mediator.Send(command);
+            var chapterResource = await Mediator.Send(new GetChapterByIdQuery { ChapterId = chapterId });
+
+            if (chapterResource == null)
+            {
+                _logger.LogError($"FATAL: Chapter with ID {chapterId} was not found after creation!");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new ApiErrorResponse(new ApiError(500, "Creation Error", "Failed to retrieve resource after creation.")));
+            }
+            return Created(nameof(GetChapterById), new { id = chapterId }, chapterResource);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<ChapterAttributesDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetChapterById(Guid id)
+        {
+            var query = new GetChapterByIdQuery { ChapterId = id };
+            var chapterResource = await Mediator.Send(query);
+            if (chapterResource == null)
+            {
+                throw new Application.Exceptions.NotFoundException(nameof(Domain.Entities.Chapter), id);
+            }
+            return Ok(chapterResource);
+        }
+
+        [HttpGet("/translatedmangas/{translatedMangaId:guid}/chapters")]
+        [ProducesResponseType(typeof(ApiCollectionResponse<ResourceObject<ChapterAttributesDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetChaptersByTranslatedManga(Guid translatedMangaId, [FromQuery] GetChaptersByTranslatedMangaQuery query)
+        {
+            query.TranslatedMangaId = translatedMangaId;
+            var result = await Mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpPut("{id:guid}")]
+        [Authorize(Policy = Permissions.Manga.Edit)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateChapter(Guid id, [FromBody] UpdateChapterDto updateDto)
+        {
+            var validationResult = await _updateChapterDtoValidator.ValidateAsync(updateDto);
+            if (!validationResult.IsValid)
+            {
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
+            }
+
+            var command = new UpdateChapterCommand
+            {
+                ChapterId = id,
+                Volume = updateDto.Volume,
+                ChapterNumber = updateDto.ChapterNumber,
+                Title = updateDto.Title,
+                PublishAt = updateDto.PublishAt,
+                ReadableAt = updateDto.ReadableAt
+            };
+            await Mediator.Send(command);
+            return NoContent();
+        }
+
+        [HttpDelete("{id:guid}")]
+        [Authorize(Policy = Permissions.Manga.Delete)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteChapter(Guid id)
+        {
+            var command = new DeleteChapterCommand { ChapterId = id };
+            await Mediator.Send(command);
+            return NoContent();
+        }
+
+        [HttpPost("{chapterId:guid}/pages/entry")]
+        [Authorize(Policy = Permissions.Manga.Create)] // <<< THÊM MỚI
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CreateChapterPageEntry(Guid chapterId, [FromBody] CreateChapterPageDto createPageDto)
+        {
+            var validationResult = await _createChapterPageDtoValidator.ValidateAsync(createPageDto);
+            if (!validationResult.IsValid)
+            {
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
+            }
+
+            var command = new CreateChapterPageEntryCommand
+            {
+                ChapterId = chapterId,
+                PageNumber = createPageDto.PageNumber
+            };
+            var pageId = await Mediator.Send(command);
+
+            var responsePayload = new { PageId = pageId };
+
+            return CreatedAtAction(
+                actionName: nameof(ChapterPagesController.UploadChapterPageImage),
+                controllerName: "ChapterPages", // Tên controller mà không có "Controller" ở cuối
+                routeValues: new { pageId = pageId },
+                value: new ApiResponse<object>(responsePayload)
+            );
+        }
+
+        [HttpGet("{chapterId:guid}/pages")]
+        [ProducesResponseType(typeof(ApiCollectionResponse<ResourceObject<ChapterPageAttributesDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetChapterPages(Guid chapterId, [FromQuery] GetChapterPagesQuery query)
+        {
+            query.ChapterId = chapterId;
+            var result = await Mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpPost("{chapterId:guid}/pages/batch")]
+        [Authorize(Policy = Permissions.Manga.Create)] // <<< THÊM MỚI
+        [ProducesResponseType(typeof(ApiResponse<List<ChapterPageAttributesDto>>), StatusCodes.Status201Created)] // Sử dụng 200 OK để đơn giản, hoặc 201 nếu tất cả đều mới
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UploadChapterPages(Guid chapterId, [FromForm] List<IFormFile> files, [FromForm] List<int> pageNumbers)
+        {
+            if (files == null || !files.Any())
+            {
+                throw new Application.Exceptions.ValidationException("files", "At least one file is required.");
+            }
+            if (pageNumbers == null || !pageNumbers.Any())
+            {
+                throw new Application.Exceptions.ValidationException("pageNumbers", "Page numbers are required for all files.");
+            }
+            if (files.Count != pageNumbers.Count)
+            {
+                throw new Application.Exceptions.ValidationException("files/pageNumbers", "The number of files must match the number of page numbers provided.");
+            }
+
+            var filesToUpload = new List<FileToUpload>();
+            for (int i = 0; i < files.Count; i++)
+            {
+                var file = files[i];
+                var pageNumber = pageNumbers[i];
+
+                if (file.Length == 0)
+                    throw new Application.Exceptions.ValidationException($"files[{i}]", "File content cannot be empty.");
+                if (file.Length > 10 * 1024 * 1024) // 10MB limit
+                    throw new Application.Exceptions.ValidationException($"files[{i}]", "File size cannot exceed 10MB.");
+
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (string.IsNullOrEmpty(ext) || !allowedExtensions.Contains(ext))
+                {
+                    throw new Application.Exceptions.ValidationException($"files[{i}]", "Invalid file type. Allowed types are: " + string.Join(", ", allowedExtensions));
+                }
+                if (pageNumber <= 0)
+                {
+                    throw new Application.Exceptions.ValidationException($"pageNumbers[{i}]", "Page number must be greater than 0.");
+                }
+
+                var memoryStream = new MemoryStream();
+                await file.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
+
+                filesToUpload.Add(new FileToUpload
+                {
+                    ImageStream = memoryStream,
+                    OriginalFileName = file.FileName,
+                    ContentType = file.ContentType,
+                    DesiredPageNumber = pageNumber
+                });
+            }
+
+            var command = new UploadChapterPagesCommand
+            {
+                ChapterId = chapterId,
+                Files = filesToUpload
+            };
+
+            var result = await Mediator.Send(command);
+            return Ok(result); // BaseApiController.Ok sẽ wrap nó trong ApiResponse
+        }
+
+        [HttpPut("{chapterId:guid}/pages")]
+        [Authorize(Policy = Permissions.Manga.Edit)] // <<< THÊM MỚI
+        [ProducesResponseType(typeof(ApiResponse<List<ChapterPageAttributesDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> SyncChapterPages(Guid chapterId, [FromForm] string pageOperationsJson /* Bỏ , [FromForm] IFormFileCollection files */)
+        {
+            // Lấy files trực tiếp từ Request.Form
+            var formFiles = Request.Form.Files;
+
+            _logger.LogInformation("SyncChapterPages called for ChapterId: {ChapterId}", chapterId);
+            _logger.LogInformation("Received pageOperationsJson: {PageOperationsJson}", pageOperationsJson);
+
+            if (formFiles != null && formFiles.Any())
+            {
+                _logger.LogInformation("Received {FilesCount} files in Request.Form.Files:", formFiles.Count);
+                foreach (var f in formFiles)
+                {
+                    _logger.LogInformation("- File Name (from IFormFile.Name - should be FileIdentifier): '{FormFileName}', OriginalFileName: '{OriginalFileName}', ContentType: '{ContentType}', Length: {Length} bytes",
+                        f.Name, f.FileName, f.ContentType, f.Length);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("No files received in Request.Form.Files.");
+            }
+            
+            if (string.IsNullOrEmpty(pageOperationsJson))
+            {
+                throw new Application.Exceptions.ValidationException("pageOperationsJson", "Page operations JSON is required.");
+            }
+
+            List<PageOperationDto>? pageOperations;
+            try
+            {
+                pageOperations = JsonSerializer.Deserialize<List<PageOperationDto>>(pageOperationsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize pageOperationsJson.");
+                throw new Application.Exceptions.ValidationException("pageOperationsJson", "Invalid JSON format for page operations.");
+            }
+
+            if (pageOperations == null)
+            {
+                 _logger.LogError("pageOperationsJson deserialized to null.");
+                throw new Application.Exceptions.ValidationException("pageOperationsJson", "Page operations cannot be null after deserialization.");
+            }
+             _logger.LogInformation("Deserialized {PageOperationsCount} page operations from JSON:", pageOperations.Count);
+            foreach (var opLog in pageOperations)
+            {
+                _logger.LogInformation("- Operation: PageId='{PageId}', PageNumber={PageNumber}, FileIdentifier='{FileIdentifier}'",
+                    opLog.PageId?.ToString() ?? "null", opLog.PageNumber, opLog.FileIdentifier ?? "null");
+            }
+
+            // Tạo fileMap một cách an toàn hơn, ưu tiên file đầu tiên nếu có trùng tên form field.
+            // Tuy nhiên, client NÊN đảm bảo mỗi FileIdentifier là duy nhất cho mỗi file trong request.
+            var fileMap = new Dictionary<string, IFormFile>();
+            if (formFiles != null)
+            {
+                foreach (var file in formFiles)
+                {
+                    if (!fileMap.TryAdd(file.Name, file))
+                    {
+                        _logger.LogWarning("Duplicate form field name (FileIdentifier) detected: '{FileIdentifier}'. Only the first file with this identifier will be used.", file.Name);
+                        // Cân nhắc: Có nên throw lỗi ở đây để client sửa không?
+                        // throw new Application.Exceptions.ValidationException($"Duplicate FileIdentifier '{file.Name}' received. Each file must have a unique FileIdentifier as its form field name.");
+                    }
+                }
+            }
+
+            var instructions = new List<PageSyncInstruction>();
+            foreach (var op in pageOperations)
+            {
+                if (op.PageNumber <= 0)
+                {
+                    string errorContext = op.PageId.HasValue ? $"PageId '{op.PageId.Value}'" : $"FileIdentifier '{op.FileIdentifier}'";
+                    throw new Application.Exceptions.ValidationException($"PageOperation.PageNumber", $"Page number '{op.PageNumber}' for operation related to {errorContext} must be positive.");
+                }
+                FileToUploadInfo? fileToUploadInfo = null;
+                if (!string.IsNullOrEmpty(op.FileIdentifier))
+                {
+                    _logger.LogInformation("Processing operation for FileIdentifier: '{FileIdentifier}'", op.FileIdentifier);
+                    if (fileMap.TryGetValue(op.FileIdentifier, out var formFileFromMap))
+                    {
+                        _logger.LogInformation("Found matching file in IFormFileCollection for FileIdentifier: '{FileIdentifier}'. OriginalFileName: {OriginalFileName}", op.FileIdentifier, formFileFromMap.FileName);
+                        
+                        if (formFileFromMap.Length == 0) throw new Application.Exceptions.ValidationException(op.FileIdentifier, "File content cannot be empty.");
+                        if (formFileFromMap.Length > 10 * 1024 * 1024) throw new Application.Exceptions.ValidationException(op.FileIdentifier, "File size cannot exceed 10MB.");
+                        
+                        var memoryStream = new MemoryStream();
+                        await formFileFromMap.CopyToAsync(memoryStream);
+                        memoryStream.Position = 0;
+                        fileToUploadInfo = new FileToUploadInfo
+                        {
+                            ImageStream = memoryStream,
+                            OriginalFileName = formFileFromMap.FileName,
+                            ContentType = formFileFromMap.ContentType
+                        };
+                    }
+                    else
+                    {
+                        _logger.LogWarning("File with identifier '{FileIdentifier}' was specified in pageOperationsJson but not found in the uploaded files (Request.Form.Files) for chapter {ChapterId}. PageId: {PageId}, PageNumber: {PageNumber}",
+                            op.FileIdentifier, chapterId, op.PageId?.ToString() ?? "new", op.PageNumber);
+                        throw new Application.Exceptions.ValidationException(op.FileIdentifier, $"File with identifier '{op.FileIdentifier}' was specified but not found in the uploaded files.");
+                    }
+                }
+                else
+                {
+                     _logger.LogInformation("No FileIdentifier specified for operation with PageId: {PageId}, PageNumber: {PageNumber}. This page will not have its image updated/added unless it's an existing page and no image change is intended.",
+                       op.PageId?.ToString() ?? "new", op.PageNumber);
+                }
+
+                instructions.Add(new PageSyncInstruction
+                {
+                    PageId = op.PageId ?? Guid.NewGuid(), // Nếu PageId null (trang mới), sẽ tạo Guid mới trong controller/handler
+                    DesiredPageNumber = op.PageNumber,
+                    ImageFileToUpload = fileToUploadInfo
+                });
+            }
+
+            var command = new SyncChapterPagesCommand
+            {
+                ChapterId = chapterId,
+                Instructions = instructions
+            };
+
+            var result = await Mediator.Send(command);
+            return Ok(result); // BaseApiController.Ok sẽ wrap
+        }
+    }
+
+    [Route("chapterpages")] // Đảm bảo controller này có route riêng
+    public class ChapterPagesController : BaseApiController
+    {
+        private readonly FluentValidation.IValidator<UpdateChapterPageDto> _updateChapterPageDtoValidator;
+        private readonly ILogger<ChapterPagesController> _logger;
+
+        public ChapterPagesController(
+            FluentValidation.IValidator<UpdateChapterPageDto> updateChapterPageDtoValidator,
+            ILogger<ChapterPagesController> logger)
+        {
+            _updateChapterPageDtoValidator = updateChapterPageDtoValidator;
+            _logger = logger;
+        }
+
+        [HttpPost("{pageId:guid}/image")]
+        [Authorize(Policy = Permissions.Manga.Edit)] // <<< THÊM MỚI (Coi upload ảnh là 1 hành động edit)
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)] // Trả về OK thay vì Created
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UploadChapterPageImage(Guid pageId, IFormFile file)
+        {
             if (file == null || file.Length == 0)
             {
-                return BadRequest(new ApiErrorResponse(new ApiError(400, "Validation Error", "No file uploaded.")));
+                throw new Application.Exceptions.ValidationException("file", "File is required.");
             }
-            try
+            if (file.Length > 5 * 1024 * 1024) // 5MB limit
             {
-                using var stream = file.OpenReadStream();
-                var result = await _mangaClient.UploadMangaCoverAsync(mangaId, stream, file.FileName, volume, description, HttpContext.RequestAborted);
-                
-                if (result == null || result.Data == null)
-                {
-                    return BadRequest(new ApiErrorResponse(new ApiError(400, "Upload Failed", "Could not upload cover via backend API.")));
-                }
-                // FrontendAPI.md trả về 201 Created cho POST /mangas/{mangaId}/covers
-                return CreatedAtAction(nameof(CoverArtsController.GetCoverArtById), "CoverArts", new { id = Guid.Parse(result.Data.Id) }, result);
+                throw new Application.Exceptions.ValidationException("file", "File size cannot exceed 5MB.");
             }
-            catch (ApiException ex)
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (string.IsNullOrEmpty(ext) || !allowedExtensions.Contains(ext))
             {
-                _logger.LogWarning("API: Manga with ID {MangaId} not found for cover upload. Status: {StatusCode}", mangaId, ex.StatusCode);
-                if (ex.ApiErrorResponse != null)
-                {
-                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
-                }
-                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
+                 throw new Application.Exceptions.ValidationException("file", "Invalid file type. Allowed types are: " + string.Join(", ", allowedExtensions));
             }
-            catch (HttpRequestException ex)
+
+            using var stream = file.OpenReadStream();
+            var command = new UploadChapterPageImageCommand
             {
-                _logger.LogError(ex, "API Error uploading cover for manga {MangaId}. Status: {StatusCode}", mangaId, ex.StatusCode);
-                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Internal server error while uploading cover for manga {MangaId}.", mangaId);
-                return StatusCode(StatusCodes.Status500InternalServerError, 
-                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
-            }
+                ChapterPageId = pageId,
+                ImageStream = stream,
+                OriginalFileName = file.FileName,
+                ContentType = file.ContentType
+            };
+            var publicId = await Mediator.Send(command);
+
+            var responsePayload = new { PublicId = publicId };
+            return Ok(responsePayload); // Sử dụng Ok từ BaseApiController
         }
 
-        // GET: api/Mangas/{mangaId}/covers
-        [HttpGet("{mangaId}/covers")]
+        [HttpPut("{pageId:guid}/details")]
+        [Authorize(Policy = Permissions.Manga.Edit)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateChapterPageDetails(Guid pageId, [FromBody] UpdateChapterPageDto updateDto)
+        {
+            var validationResult = await _updateChapterPageDtoValidator.ValidateAsync(updateDto);
+            if (!validationResult.IsValid)
+            {
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
+            }
+
+            var command = new UpdateChapterPageDetailsCommand
+            {
+                PageId = pageId,
+                PageNumber = updateDto.PageNumber
+            };
+            await Mediator.Send(command);
+            return NoContent();
+        }
+
+        [HttpDelete("{pageId:guid}")]
+        [Authorize(Policy = Permissions.Manga.Delete)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteChapterPage(Guid pageId)
+        {
+            var command = new DeleteChapterPageCommand { PageId = pageId };
+            await Mediator.Send(command);
+            return NoContent();
+        }
+    }
+}
+```
+</file>
+
+#### `MangaReaderDB/Controllers/CoverArtsController.cs`
+
+<file path="MangaReaderDB\Controllers\CoverArtsController.cs">
+```csharp
+using Application.Common.DTOs.CoverArts;
+using Application.Common.Models; // For ResourceObject
+using Application.Common.Responses;
+using Application.Exceptions;
+using Application.Features.CoverArts.Commands.DeleteCoverArt;
+using Application.Features.CoverArts.Commands.UploadCoverArtImage;
+using Application.Features.CoverArts.Queries.GetCoverArtById;
+using Application.Features.CoverArts.Queries.GetCoverArtsByManga;
+using Domain.Constants; // <<< THÊM MỚI
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization; // <<< THÊM MỚI
+using Microsoft.AspNetCore.Mvc;
+
+namespace MangaReaderDB.Controllers
+{
+    public class CoverArtsController : BaseApiController
+    {
+        // Validator for CreateCoverArtDto (used in UploadCoverArtImageCommand)
+        private readonly IValidator<CreateCoverArtDto> _createCoverArtDtoValidator;
+        private readonly ILogger<CoverArtsController> _logger; // Thêm logger
+
+        public CoverArtsController(
+            IValidator<CreateCoverArtDto> createCoverArtDtoValidator,
+            ILogger<CoverArtsController> logger) // Inject logger
+        {
+            _createCoverArtDtoValidator = createCoverArtDtoValidator;
+            _logger = logger; // Gán logger
+        }
+
+        [HttpPost("/mangas/{mangaId:guid}/covers")] // Custom route to associate with manga
+        [Authorize(Policy = Permissions.Manga.Create)] // <<< THÊM MỚI
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<CoverArtAttributesDto>>), StatusCodes.Status201Created)] // Sửa ProducesResponseType
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UploadCoverArtImage(Guid mangaId, IFormFile file, [FromForm] string? volume, [FromForm] string? description) // Sử dụng FromForm cho metadata
+        {
+            if (file == null || file.Length == 0)
+            {
+                throw new Application.Exceptions.ValidationException("file", "File is required.");
+            }
+             if (file.Length > 5 * 1024 * 1024) 
+            {
+                throw new Application.Exceptions.ValidationException("file", "File size cannot exceed 5MB.");
+            }
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (string.IsNullOrEmpty(ext) || !allowedExtensions.Contains(ext))
+            {
+                 throw new Application.Exceptions.ValidationException("file", "Invalid file type. Allowed types are: " + string.Join(", ", allowedExtensions));
+            }
+
+            var metadataDto = new CreateCoverArtDto { MangaId = mangaId, Volume = volume, Description = description };
+            var validationResult = await _createCoverArtDtoValidator.ValidateAsync(metadataDto);
+            if (!validationResult.IsValid)
+            {
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
+            }
+
+            using var stream = file.OpenReadStream();
+            var command = new UploadCoverArtImageCommand
+            {
+                MangaId = mangaId,
+                Volume = volume,
+                Description = description,
+                ImageStream = stream,
+                OriginalFileName = file.FileName,
+                ContentType = file.ContentType
+            };
+
+            var coverId = await Mediator.Send(command);
+            var coverArtResource = await Mediator.Send(new GetCoverArtByIdQuery { CoverId = coverId });
+
+            if (coverArtResource == null)
+            {
+                _logger.LogError($"FATAL: CoverArt with ID {coverId} was not found after creation! This indicates a critical issue.");
+                throw new InvalidOperationException($"Could not retrieve CoverArt with ID {coverId} after creation. This is an unexpected error.");
+            }
+            return Created(nameof(GetCoverArtById), new { id = coverId }, coverArtResource);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<CoverArtAttributesDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetCoverArtById(Guid id)
+        {
+            var query = new GetCoverArtByIdQuery { CoverId = id };
+            var coverArtResource = await Mediator.Send(query);
+            if (coverArtResource == null)
+            {
+                 throw new NotFoundException(nameof(Domain.Entities.CoverArt), id);
+            }
+            return Ok(coverArtResource);
+        }
+
+        [HttpGet("/mangas/{mangaId:guid}/covers")] // Custom route
         [ProducesResponseType(typeof(ApiCollectionResponse<ResourceObject<CoverArtAttributesDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetMangaCovers(Guid mangaId, [FromQuery] int? offset, [FromQuery] int? limit)
+        public async Task<IActionResult> GetCoverArtsByManga(Guid mangaId, [FromQuery] GetCoverArtsByMangaQuery query)
         {
-            _logger.LogInformation("API: Requesting covers for manga ID: {MangaId}", mangaId);
-            try
-            {
-                var result = await _mangaClient.GetMangaCoversAsync(mangaId, offset, limit, HttpContext.RequestAborted);
-                if (result == null)
-                {
-                    // This case implies an issue with the ApiClient or a non-HTTP error before the request
-                    return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", $"Manga with ID {mangaId} not found or has no covers.")));
-                }
-                return Ok(result);
-            }
-            catch (ApiException ex)
-            {
-                _logger.LogWarning("API: Manga with ID {MangaId} not found when fetching covers. Status: {StatusCode}", mangaId, ex.StatusCode);
-                if (ex.ApiErrorResponse != null)
-                {
-                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
-                }
-                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "API Error fetching covers for manga {MangaId}. Status: {StatusCode}", mangaId, ex.StatusCode);
-                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Internal server error while fetching covers for manga {MangaId}.", mangaId);
-                return StatusCode(StatusCodes.Status500InternalServerError, 
-                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
-            }
+            query.MangaId = mangaId;
+            var result = await Mediator.Send(query);
+            return Ok(result);
         }
 
-        // GET: api/Mangas/{mangaId}/translations
-        [HttpGet("{mangaId}/translations")]
+        [HttpDelete("{id:guid}")]
+        [Authorize(Policy = Permissions.Manga.Delete)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteCoverArt(Guid id)
+        {
+            var command = new DeleteCoverArtCommand { CoverId = id };
+            await Mediator.Send(command);
+            return NoContent();
+        }
+    }
+}
+```
+</file>
+
+#### `MangaReaderDB/Controllers/MangasController.cs`
+
+<file path="MangaReaderDB\Controllers\MangasController.cs">
+```csharp
+using Application.Common.DTOs.Mangas;
+using Application.Common.Models; // For ResourceObject
+using Application.Common.Responses;
+using Application.Exceptions;
+using Application.Features.Mangas.Commands.CreateManga;
+using Application.Features.Mangas.Commands.DeleteManga;
+using Application.Features.Mangas.Commands.UpdateManga;
+using Application.Features.Mangas.Queries.GetMangaById;
+using Application.Features.Mangas.Queries.GetMangas;
+using Domain.Constants; // <<< THÊM MỚI
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization; // <<< THÊM MỚI
+using Microsoft.AspNetCore.Mvc;
+
+namespace MangaReaderDB.Controllers
+{
+    public class MangasController : BaseApiController
+    {
+        private readonly IValidator<CreateMangaDto> _createMangaDtoValidator;
+        private readonly IValidator<UpdateMangaDto> _updateMangaDtoValidator;
+        private readonly ILogger<MangasController> _logger; // Thêm logger
+
+        public MangasController(
+            IValidator<CreateMangaDto> createMangaDtoValidator,
+            IValidator<UpdateMangaDto> updateMangaDtoValidator,
+            ILogger<MangasController> logger) // Inject logger
+        {
+            _createMangaDtoValidator = createMangaDtoValidator;
+            _updateMangaDtoValidator = updateMangaDtoValidator;
+            _logger = logger; // Gán logger
+        }
+
+        [HttpPost]
+        [Authorize(Policy = Permissions.Manga.Create)] // <<< THÊM MỚI
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<MangaAttributesDto>>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> CreateManga([FromBody] CreateMangaDto createDto)
+        {
+            var validationResult = await _createMangaDtoValidator.ValidateAsync(createDto);
+            if (!validationResult.IsValid)
+            {
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
+            }
+
+            var command = new CreateMangaCommand
+            {
+                Title = createDto.Title,
+                OriginalLanguage = createDto.OriginalLanguage,
+                PublicationDemographic = createDto.PublicationDemographic,
+                Status = createDto.Status,
+                Year = createDto.Year,
+                ContentRating = createDto.ContentRating,
+                TagIds = createDto.TagIds,
+                Authors = createDto.Authors
+            };
+            var mangaId = await Mediator.Send(command);
+            var mangaResource = await Mediator.Send(new GetMangaByIdQuery { MangaId = mangaId });
+
+            if (mangaResource == null)
+            {
+                 _logger.LogError($"FATAL: Manga with ID {mangaId} was not found after creation!");
+                 return StatusCode(StatusCodes.Status500InternalServerError, 
+                    new ApiErrorResponse(new ApiError(500, "Creation Error", "Failed to retrieve resource after creation.")));
+            }
+            return Created(nameof(GetMangaById), new { id = mangaId }, mangaResource);
+        }
+
+        // ---------- BẮT ĐẦU THAY ĐỔI TẠI ĐÂY ----------
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<MangaAttributesDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetMangaById([FromRoute] Guid id, [FromQuery] GetMangaByIdQuery query)
+        {
+            // Gán ID từ route vào query object đã được binding từ query string
+            query.MangaId = id;
+
+            var mangaResource = await Mediator.Send(query);
+            if (mangaResource == null)
+            {
+                throw new NotFoundException(nameof(Domain.Entities.Manga), id);
+            }
+            return Ok(mangaResource);
+        }
+        // ---------- KẾT THÚC THAY ĐỔI ----------
+
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiCollectionResponse<ResourceObject<MangaAttributesDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetMangas([FromQuery] GetMangasQuery query)
+        {
+            var result = await Mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpPut("{id:guid}")]
+        [Authorize(Policy = Permissions.Manga.Edit)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateManga(Guid id, [FromBody] UpdateMangaDto updateDto)
+        {
+            var validationResult = await _updateMangaDtoValidator.ValidateAsync(updateDto);
+            if (!validationResult.IsValid)
+            {
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
+            }
+
+            var command = new UpdateMangaCommand
+            {
+                MangaId = id,
+                Title = updateDto.Title,
+                OriginalLanguage = updateDto.OriginalLanguage,
+                PublicationDemographic = updateDto.PublicationDemographic,
+                Status = updateDto.Status,
+                Year = updateDto.Year,
+                ContentRating = updateDto.ContentRating,
+                IsLocked = updateDto.IsLocked,
+                TagIds = updateDto.TagIds,
+                Authors = updateDto.Authors
+            };
+            await Mediator.Send(command);
+            return NoContent();
+        }
+
+        [HttpDelete("{id:guid}")]
+        [Authorize(Policy = Permissions.Manga.Delete)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteManga(Guid id)
+        {
+            var command = new DeleteMangaCommand { MangaId = id };
+            await Mediator.Send(command);
+            return NoContent();
+        }
+    }
+}
+```
+</file>
+
+#### `MangaReaderDB/Controllers/TagGroupsController.cs`
+
+<file path="MangaReaderDB\Controllers\TagGroupsController.cs">
+```csharp
+using Application.Common.DTOs.TagGroups;
+using Application.Common.Models; // For ResourceObject
+using Application.Common.Responses;
+using Application.Exceptions;
+using Application.Features.TagGroups.Commands.CreateTagGroup;
+using Application.Features.TagGroups.Commands.DeleteTagGroup;
+using Application.Features.TagGroups.Commands.UpdateTagGroup;
+using Application.Features.TagGroups.Queries.GetTagGroupById;
+using Application.Features.TagGroups.Queries.GetTagGroups;
+using Domain.Constants; // <<< THÊM MỚI
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization; // <<< THÊM MỚI
+using Microsoft.AspNetCore.Mvc;
+
+namespace MangaReaderDB.Controllers
+{
+    public class TagGroupsController : BaseApiController
+    {
+        private readonly IValidator<CreateTagGroupDto> _createTagGroupDtoValidator;
+        private readonly IValidator<UpdateTagGroupDto> _updateTagGroupDtoValidator;
+        private readonly ILogger<TagGroupsController> _logger; // Thêm logger
+
+        public TagGroupsController(
+            IValidator<CreateTagGroupDto> createTagGroupDtoValidator,
+            IValidator<UpdateTagGroupDto> updateTagGroupDtoValidator,
+            ILogger<TagGroupsController> logger) // Inject logger
+        {
+            _createTagGroupDtoValidator = createTagGroupDtoValidator;
+            _updateTagGroupDtoValidator = updateTagGroupDtoValidator;
+            _logger = logger; // Gán logger
+        }
+
+        [HttpPost]
+        [Authorize(Policy = Permissions.Manga.Create)] // <<< THÊM MỚI
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<TagGroupAttributesDto>>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> CreateTagGroup([FromBody] CreateTagGroupDto createDto)
+        {
+            var validationResult = await _createTagGroupDtoValidator.ValidateAsync(createDto);
+            if (!validationResult.IsValid)
+            {
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
+            }
+
+            var command = new CreateTagGroupCommand { Name = createDto.Name };
+            var tagGroupId = await Mediator.Send(command);
+            var tagGroupResource = await Mediator.Send(new GetTagGroupByIdQuery { TagGroupId = tagGroupId });
+
+            if (tagGroupResource == null)
+            {
+                _logger.LogError($"FATAL: TagGroup with ID {tagGroupId} was not found after creation!");
+                return StatusCode(StatusCodes.Status500InternalServerError, 
+                    new ApiErrorResponse(new ApiError(500, "Creation Error", "Failed to retrieve resource after creation.")));
+            }
+            return Created(nameof(GetTagGroupById), new { id = tagGroupId }, tagGroupResource);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<TagGroupAttributesDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetTagGroupById(Guid id)
+        {
+            var query = new GetTagGroupByIdQuery { TagGroupId = id };
+            var tagGroupResource = await Mediator.Send(query);
+            if (tagGroupResource == null)
+            {
+                throw new NotFoundException(nameof(Domain.Entities.TagGroup), id);
+            }
+            return Ok(tagGroupResource);
+        }
+
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiCollectionResponse<ResourceObject<TagGroupAttributesDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetTagGroups([FromQuery] GetTagGroupsQuery query)
+        {
+            var result = await Mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpPut("{id:guid}")]
+        [Authorize(Policy = Permissions.Manga.Edit)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateTagGroup(Guid id, [FromBody] UpdateTagGroupDto updateDto)
+        {
+            var validationResult = await _updateTagGroupDtoValidator.ValidateAsync(updateDto);
+            if (!validationResult.IsValid)
+            {
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
+            }
+
+            var command = new UpdateTagGroupCommand { TagGroupId = id, Name = updateDto.Name };
+            await Mediator.Send(command);
+            return NoContent();
+        }
+
+        [HttpDelete("{id:guid}")]
+        [Authorize(Policy = Permissions.Manga.Delete)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)] 
+        public async Task<IActionResult> DeleteTagGroup(Guid id)
+        {
+            var command = new DeleteTagGroupCommand { TagGroupId = id };
+            await Mediator.Send(command);
+            return NoContent();
+        }
+    }
+}
+```
+</file>
+
+#### `MangaReaderDB/Controllers/TagsController.cs`
+
+<file path="MangaReaderDB\Controllers\TagsController.cs">
+```csharp
+// MangaReaderDB/Controllers/TagsController.cs
+using Application.Common.DTOs.Tags;
+using Application.Common.Models; // For ResourceObject
+using Application.Common.Responses;
+using Application.Exceptions;
+using Application.Features.Tags.Commands.CreateTag;
+using Application.Features.Tags.Commands.DeleteTag;
+using Application.Features.Tags.Commands.UpdateTag;
+using Application.Features.Tags.Queries.GetTagById;
+using Application.Features.Tags.Queries.GetTags;
+using Domain.Constants; // <<< THÊM MỚI
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization; // <<< THÊM MỚI
+using Microsoft.AspNetCore.Mvc;
+
+namespace MangaReaderDB.Controllers
+{
+    public class TagsController : BaseApiController
+    {
+        private readonly IValidator<CreateTagDto> _createTagDtoValidator;
+        private readonly IValidator<UpdateTagDto> _updateTagDtoValidator;
+        private readonly ILogger<TagsController> _logger; // Thêm logger
+
+        public TagsController(
+            IValidator<CreateTagDto> createTagDtoValidator,
+            IValidator<UpdateTagDto> updateTagDtoValidator,
+            ILogger<TagsController> logger) // Inject logger
+        {
+            _createTagDtoValidator = createTagDtoValidator;
+            _updateTagDtoValidator = updateTagDtoValidator;
+            _logger = logger; // Gán logger
+        }
+
+        [HttpPost]
+        [Authorize(Policy = Permissions.Manga.Create)] // <<< THÊM MỚI
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<TagAttributesDto>>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)] 
+        public async Task<IActionResult> CreateTag([FromBody] CreateTagDto createDto)
+        {
+            var validationResult = await _createTagDtoValidator.ValidateAsync(createDto);
+            if (!validationResult.IsValid)
+            {
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
+            }
+
+            var command = new CreateTagCommand { Name = createDto.Name, TagGroupId = createDto.TagGroupId };
+            var tagId = await Mediator.Send(command);
+            var tagResource = await Mediator.Send(new GetTagByIdQuery { TagId = tagId });
+            
+            if (tagResource == null)
+            {
+                _logger.LogError($"FATAL: Tag with ID {tagId} was not found after creation!");
+                 return StatusCode(StatusCodes.Status500InternalServerError, 
+                    new ApiErrorResponse(new ApiError(500, "Creation Error", "Failed to retrieve resource after creation.")));
+            }
+            return Created(nameof(GetTagById), new { id = tagId }, tagResource);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<TagAttributesDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetTagById(Guid id)
+        {
+            var query = new GetTagByIdQuery { TagId = id };
+            var tagResource = await Mediator.Send(query);
+            if (tagResource == null)
+            {
+                throw new NotFoundException(nameof(Domain.Entities.Tag), id);
+            }
+            return Ok(tagResource);
+        }
+
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiCollectionResponse<ResourceObject<TagAttributesDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetTags([FromQuery] GetTagsQuery query)
+        {
+            var result = await Mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpPut("{id:guid}")]
+        [Authorize(Policy = Permissions.Manga.Edit)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateTag(Guid id, [FromBody] UpdateTagDto updateDto)
+        {
+            var validationResult = await _updateTagDtoValidator.ValidateAsync(updateDto);
+            if (!validationResult.IsValid)
+            {
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
+            }
+
+            var command = new UpdateTagCommand { TagId = id, Name = updateDto.Name, TagGroupId = updateDto.TagGroupId };
+            await Mediator.Send(command);
+            return NoContent();
+        }
+
+        [HttpDelete("{id:guid}")]
+        [Authorize(Policy = Permissions.Manga.Delete)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteTag(Guid id)
+        {
+            var command = new DeleteTagCommand { TagId = id };
+            await Mediator.Send(command);
+            return NoContent();
+        }
+    }
+}
+```
+</file>
+
+#### `MangaReaderDB/Controllers/TranslatedMangasController.cs`
+
+<file path="MangaReaderDB\Controllers\TranslatedMangasController.cs">
+```csharp
+using Application.Common.DTOs.TranslatedMangas;
+using Application.Common.Models; // For ResourceObject
+using Application.Common.Responses;
+using Application.Exceptions;
+using Application.Features.TranslatedMangas.Commands.CreateTranslatedManga;
+using Application.Features.TranslatedMangas.Commands.DeleteTranslatedManga;
+using Application.Features.TranslatedMangas.Commands.UpdateTranslatedManga;
+using Application.Features.TranslatedMangas.Queries.GetTranslatedMangaById;
+using Application.Features.TranslatedMangas.Queries.GetTranslatedMangasByManga;
+using Domain.Constants; // <<< THÊM MỚI
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization; // <<< THÊM MỚI
+using Microsoft.AspNetCore.Mvc;
+
+namespace MangaReaderDB.Controllers
+{
+    public class TranslatedMangasController : BaseApiController
+    {
+        private readonly IValidator<CreateTranslatedMangaDto> _createDtoValidator;
+        private readonly IValidator<UpdateTranslatedMangaDto> _updateDtoValidator;
+        private readonly ILogger<TranslatedMangasController> _logger; // Thêm logger
+
+        public TranslatedMangasController(
+            IValidator<CreateTranslatedMangaDto> createDtoValidator,
+            IValidator<UpdateTranslatedMangaDto> updateDtoValidator,
+            ILogger<TranslatedMangasController> logger) // Inject logger
+        {
+            _createDtoValidator = createDtoValidator;
+            _updateDtoValidator = updateDtoValidator;
+            _logger = logger; // Gán logger
+        }
+
+        [HttpPost]
+        [Authorize(Policy = Permissions.Manga.Create)] // <<< THÊM MỚI
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<TranslatedMangaAttributesDto>>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)] 
+        public async Task<IActionResult> CreateTranslatedManga([FromBody] CreateTranslatedMangaDto createDto)
+        {
+            var validationResult = await _createDtoValidator.ValidateAsync(createDto);
+            if (!validationResult.IsValid)
+            {
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
+            }
+
+            var command = new CreateTranslatedMangaCommand
+            {
+                MangaId = createDto.MangaId,
+                LanguageKey = createDto.LanguageKey,
+                Title = createDto.Title,
+                Description = createDto.Description
+            };
+            var translatedMangaId = await Mediator.Send(command);
+            var translatedMangaResource = await Mediator.Send(new GetTranslatedMangaByIdQuery { TranslatedMangaId = translatedMangaId });
+            
+            if(translatedMangaResource == null)
+            {
+                _logger.LogError($"FATAL: TranslatedManga with ID {translatedMangaId} was not found after creation!");
+                 return StatusCode(StatusCodes.Status500InternalServerError, 
+                    new ApiErrorResponse(new ApiError(500, "Creation Error", "Failed to retrieve resource after creation.")));
+            }
+            return Created(nameof(GetTranslatedMangaById), new { id = translatedMangaId }, translatedMangaResource);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ResourceObject<TranslatedMangaAttributesDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetTranslatedMangaById(Guid id)
+        {
+            var query = new GetTranslatedMangaByIdQuery { TranslatedMangaId = id };
+            var translatedMangaResource = await Mediator.Send(query);
+            if (translatedMangaResource == null)
+            {
+                 throw new NotFoundException(nameof(Domain.Entities.TranslatedManga), id);
+            }
+            return Ok(translatedMangaResource);
+        }
+
+        [HttpGet("/mangas/{mangaId:guid}/translations")] 
         [ProducesResponseType(typeof(ApiCollectionResponse<ResourceObject<TranslatedMangaAttributesDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetMangaTranslations(Guid mangaId, [FromQuery] int? offset, [FromQuery] int? limit, [FromQuery] string? orderBy, [FromQuery] bool? ascending)
+        public async Task<IActionResult> GetTranslatedMangasByManga(Guid mangaId, [FromQuery] GetTranslatedMangasByMangaQuery query)
         {
-            _logger.LogInformation("API: Requesting translations for manga ID: {MangaId}", mangaId);
-            try
+            query.MangaId = mangaId;
+            var result = await Mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpPut("{id:guid}")]
+        [Authorize(Policy = Permissions.Manga.Edit)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateTranslatedManga(Guid id, [FromBody] UpdateTranslatedMangaDto updateDto)
+        {
+            var validationResult = await _updateDtoValidator.ValidateAsync(updateDto);
+            if (!validationResult.IsValid)
             {
-                var result = await _mangaClient.GetMangaTranslationsAsync(mangaId, offset, limit, orderBy, ascending, HttpContext.RequestAborted);
-                if (result == null)
-                {
-                    return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", $"Manga with ID {mangaId} not found or has no translations.")));
-                }
-                return Ok(result);
+                throw new Application.Exceptions.ValidationException(validationResult.Errors);
             }
-            catch (ApiException ex)
+
+            var command = new UpdateTranslatedMangaCommand
             {
-                _logger.LogWarning("API: Manga with ID {MangaId} not found when fetching translations. Status: {StatusCode}", mangaId, ex.StatusCode);
-                if (ex.ApiErrorResponse != null)
-                {
-                    return StatusCode(((int?)ex.StatusCode) ?? StatusCodes.Status500InternalServerError, ex.ApiErrorResponse);
-                }
-                return NotFound(new ApiErrorResponse(new ApiError(404, "Not Found", ex.Message)));
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "API Error fetching translations for manga {MangaId}. Status: {StatusCode}", mangaId, ex.StatusCode);
-                return StatusCode(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, 
-                                  new ApiErrorResponse(new ApiError(((int?)ex.StatusCode) ?? (int)HttpStatusCode.InternalServerError, "API Error", ex.Message)));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Internal server error while fetching translations for manga {MangaId}.", mangaId);
-                return StatusCode(StatusCodes.Status500InternalServerError, 
-                    new ApiErrorResponse(new ApiError(500, "Server Error", ex.Message)));
-            }
+                TranslatedMangaId = id,
+                LanguageKey = updateDto.LanguageKey,
+                Title = updateDto.Title,
+                Description = updateDto.Description
+            };
+            await Mediator.Send(command);
+            return NoContent();
+        }
+
+        [HttpDelete("{id:guid}")]
+        [Authorize(Policy = Permissions.Manga.Delete)] // <<< THÊM MỚI
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteTranslatedManga(Guid id)
+        {
+            var command = new DeleteTranslatedMangaCommand { TranslatedMangaId = id };
+            await Mediator.Send(command);
+            return NoContent();
         }
     }
 }
 ```
----
+</file>
 
-## Phần 2: Cập nhật Frontend Client (`mangareader_managerui.client`)
+### Hoàn tất
 
-Bây giờ, chúng ta sẽ cập nhật các thành phần trên giao diện người dùng React để sử dụng các tính năng tìm kiếm mới.
-
-### Bước 2.1: Cập nhật Định nghĩa Types
-
-Đồng bộ interface `GetMangasParams` trong `types/manga.ts` với các tham số mới của API.
-
-<!-- file path="MangaReader_ManagerUI\mangareader_managerui.client\src\types\manga.ts" -->
-```typescript
-import { RelationshipObject, ResourceObject } from './api'
-
-// DTO mới cho Tag khi được nhúng trong Manga Attributes
-export interface TagInMangaAttributesDto {
-  name: string;
-  tagGroupName: string;
-}
-
-// Attributes DTOs
-export interface MangaAttributes {
-  title: string
-  originalLanguage: string
-  publicationDemographic: 'Shounen' | 'Shoujo' | 'Josei' | 'Seinen' | 'None' | null
-  status: 'Ongoing' | 'Completed' | 'Hiatus' | 'Cancelled'
-  year?: number | null
-  contentRating: 'Safe' | 'Suggestive' | 'Erotica' | 'Pornographic'
-  isLocked: boolean
-  createdAt: string
-  updatedAt: string
-  tags: ResourceObject<TagInMangaAttributesDto>[]
-  availableTranslatedLanguages?: string[] // THÊM DÒNG NÀY
-}
-
-export interface AuthorAttributes {
-  name: string
-  biography?: string
-  createdAt: string
-  updatedAt: string
-}
-
-export interface TagAttributes {
-  name: string
-  tagGroupName: string
-  createdAt: string
-  updatedAt: string
-}
-
-export interface TagGroupAttributes {
-  name: string
-  createdAt: string
-  updatedAt: string
-}
-
-export interface TranslatedMangaAttributes {
-  languageKey: string
-  title: string
-  description?: string
-  createdAt: string
-  updatedAt: string
-}
-
-export interface ChapterAttributes {
-  volume?: string
-  chapterNumber?: string
-  title?: string
-  pagesCount: number
-  publishAt: string
-  readableAt: string
-  createdAt: string
-  updatedAt: string
-}
-
-export interface ChapterPageAttributes {
-  pageNumber: number
-  publicId: string
-}
-
-export interface CoverArtAttributes {
-  volume?: string
-  publicId: string
-  description?: string
-  createdAt: string
-  updatedAt: string
-}
-
-// Full Resource Objects (including ID, type, attributes, relationships)
-export interface Manga {
-  id: string
-  type: 'manga'
-  attributes: MangaAttributes
-  relationships?: RelationshipObject[]
-  coverArtPublicId?: string
-}
-
-export interface Author {
-  id: string
-  type: 'author'
-  attributes: AuthorAttributes
-  relationships?: RelationshipObject[]
-}
-
-export interface Tag {
-  id: string
-  type: 'tag'
-  attributes: TagAttributes
-  relationships?: RelationshipObject[]
-}
-
-export interface TagGroup {
-  id: string
-  type: 'tag_group'
-  attributes: TagGroupAttributes
-  relationships?: RelationshipObject[]
-}
-
-export interface TranslatedManga {
-  id: string
-  type: 'translated_manga'
-  attributes: TranslatedMangaAttributes
-  relationships?: RelationshipObject[]
-}
-
-export interface Chapter {
-  id: string
-  type: 'chapter'
-  attributes: ChapterAttributes
-  relationships?: RelationshipObject[]
-}
-
-export interface ChapterPage {
-  id: string
-  type: 'chapter_page'
-  attributes: ChapterPageAttributes
-  relationships?: RelationshipObject[]
-}
-
-export interface CoverArt {
-  id: string
-  type: 'cover_art'
-  attributes: CoverArtAttributes
-  relationships?: RelationshipObject[]
-}
-
-// Request DTOs and Params
-export type PublicationDemographicType = 'Shounen' | 'Shoujo' | 'Josei' | 'Seinen' | 'None';
-export type MangaStatusType = 'Ongoing' | 'Completed' | 'Hiatus' | 'Cancelled';
-export type ContentRatingType = 'Safe' | 'Suggestive' | 'Erotica' | 'Pornographic';
-
-export interface GetMangasParams {
-  offset?: number;
-  limit?: number;
-  titleFilter?: string;
-  statusFilter?: MangaStatusType | '';
-  contentRatingFilter?: ContentRatingType | '';
-  publicationDemographicsFilter?: PublicationDemographicType[];
-  originalLanguageFilter?: string;
-  yearFilter?: number | null;
-  authors?: string[]; // THAY ĐỔI
-  artists?: string[]; // THÊM MỚI
-  availableTranslatedLanguage?: string[]; // THÊM MỚI
-  includedTags?: string[];
-  includedTagsMode?: 'AND' | 'OR';
-  excludedTags?: string[];
-  excludedTagsMode?: 'AND' | 'OR';
-  orderBy?: string;
-  ascending?: boolean;
-  includes?: ('cover_art' | 'author' | 'artist')[];
-}
-
-export interface CreateMangaRequest {
-  title: string
-  originalLanguage: string
-  publicationDemographic?: 'Shounen' | 'Shoujo' | 'Josei' | 'Seinen' | 'None' | null
-  status: 'Ongoing' | 'Completed' | 'Hiatus' | 'Cancelled'
-  year?: number | null
-  contentRating: 'Safe' | 'Suggestive' | 'Erotica' | 'Pornographic'
-  tagIds?: string[] // Array of GUID strings
-  authors?: MangaAuthorInput[]
-}
-
-export interface UpdateMangaRequest {
-  title: string
-  originalLanguage: string
-  publicationDemographic?: 'Shounen' | 'Shoujo' | 'Josei' | 'Seinen' | 'None' | null
-  status: 'Ongoing' | 'Completed' | 'Hiatus' | 'Cancelled'
-  year?: number | null
-  contentRating: 'Safe' | 'Suggestive' | 'Erotica' | 'Pornographic'
-  isLocked: boolean
-  tagIds?: string[]
-  authors?: MangaAuthorInput[]
-}
-
-export interface MangaAuthorInput {
-  authorId: string // GUID string
-  role: 'Author' | 'Artist'
-}
-
-export interface CreateAuthorRequest {
-  name: string
-  biography?: string
-}
-
-export interface UpdateAuthorRequest {
-  name: string
-  biography?: string
-}
-
-export interface CreateTagRequest {
-  name: string
-  tagGroupId: string
-}
-
-export interface UpdateTagRequest {
-  name: string
-  tagGroupId: string
-}
-
-export interface CreateTagGroupRequest {
-  name: string
-}
-
-export interface UpdateTagGroupRequest {
-  name: string
-}
-
-export interface CreateTranslatedMangaRequest {
-  mangaId: string
-  languageKey: string
-  title: string
-  description?: string
-}
-
-export interface UpdateTranslatedMangaRequest {
-  languageKey: string
-  title: string
-  description?: string
-}
-
-export interface CreateChapterRequest {
-  translatedMangaId: string
-  uploadedByUserId: number 
-  volume?: string
-  chapterNumber?: string
-  title?: string
-  publishAt: string 
-  readableAt: string 
-}
-
-export interface UpdateChapterRequest {
-  volume?: string
-  chapterNumber?: string
-  title?: string
-  publishAt: string 
-  readableAt: string 
-}
-
-export interface CreateChapterPageEntryRequest {
-  pageNumber: number
-}
-
-export interface UpdateChapterPageDetailsRequest {
-  pageNumber: number
-}
-
-export interface UploadCoverArtRequest {
-  file: File; 
-  volume?: string;
-  description?: string;
-}
-
-export interface SelectedRelationship {
-  id: string;
-  name: string; 
-  role?: 'Author' | 'Artist'; 
-}
-```
-
-### Bước 2.2: Cập nhật State Management (`mangaStore`)
-
-Điều chỉnh `filters` trong `mangaStore.js` để lưu trạng thái của các bộ lọc mới và cập nhật logic fetch dữ liệu.
-
-<!-- file path="MangaReader_ManagerUI\mangareader_managerui.client\src\stores\mangaStore.js" -->
-```javascript
-import { create } from 'zustand'
-import { persistStore } from '../utils/zustandPersist'
-import mangaApi from '../api/mangaApi'
-import { showSuccessToast } from '../components/common/Notification'
-import { DEFAULT_PAGE_LIMIT, RELATIONSHIP_TYPES } from '../constants/appConstants'
-
-/**
- * @typedef {import('../types/manga').Manga} Manga
- * @typedef {import('../types/api').ApiCollectionResponse<Manga>} MangaCollectionResponse
- * @typedef {import('../types/api').AuthorInRelationshipAttributes} AuthorInRelationshipAttributes
- * @typedef {import('../types/manga').CoverArtAttributes} CoverArtAttributes
- */
-
-const useMangaStore = create(persistStore((set, get) => ({
-  /** @type {Manga[]} */
-  mangas: [],
-  totalMangas: 0,
-  page: 0,
-  rowsPerPage: DEFAULT_PAGE_LIMIT,
-  filters: {
-    titleFilter: '',
-    statusFilter: '',
-    contentRatingFilter: '',
-    publicationDemographicsFilter: [],
-    originalLanguageFilter: '',
-    yearFilter: null,
-    includedTags: [],
-    includedTagsMode: 'AND',
-    excludedTags: [],
-    excludedTagsMode: 'OR',
-    authors: [], // THAY ĐỔI
-    artists: [], // THÊM MỚI
-    availableTranslatedLanguage: [], // THÊM MỚI
-  },
-  sort: {
-    orderBy: 'updatedAt',
-    ascending: false,
-  },
-
-  /**
-   * Fetch mangas from API.
-   * @param {boolean} [resetPagination=false] - Whether to reset page and offset.
-   */
-  fetchMangas: async (resetPagination = false) => {
-    const { page, rowsPerPage, filters, sort } = get()
-    const offset = resetPagination ? 0 : page * rowsPerPage
-
-    /** @type {import('../types/manga').GetMangasParams} */
-    const queryParams = {
-      offset: offset,
-      limit: rowsPerPage,
-      titleFilter: filters.titleFilter || undefined,
-      statusFilter: filters.statusFilter || undefined,
-      contentRatingFilter: filters.contentRatingFilter || undefined,
-      publicationDemographicsFilter: filters.publicationDemographicsFilter?.length > 0 ? filters.publicationDemographicsFilter : undefined,
-      originalLanguageFilter: filters.originalLanguageFilter || undefined,
-      yearFilter: filters.yearFilter === null || filters.yearFilter === undefined ? undefined : filters.yearFilter,
-      includedTags: filters.includedTags?.length > 0 ? filters.includedTags : undefined,
-      includedTagsMode: filters.includedTags?.length > 0 ? filters.includedTagsMode : undefined,
-      excludedTags: filters.excludedTags?.length > 0 ? filters.excludedTags : undefined,
-      excludedTagsMode: filters.excludedTags?.length > 0 ? filters.excludedTagsMode : undefined,
-      authors: filters.authors?.length > 0 ? filters.authors : undefined, // THAY ĐỔI
-      artists: filters.artists?.length > 0 ? filters.artists : undefined, // THÊM MỚI
-      availableTranslatedLanguage: filters.availableTranslatedLanguage?.length > 0 ? filters.availableTranslatedLanguage : undefined, // THÊM MỚI
-      orderBy: sort.orderBy,
-      ascending: sort.ascending,
-      includes: ['cover_art', 'author', 'artist'],
-    }
-    
-    // Xóa các trường undefined để query string sạch hơn
-    Object.keys(queryParams).forEach(key => queryParams[key] === undefined && delete queryParams[key]);
-
-    try {
-      /** @type {MangaCollectionResponse} */
-      const response = await mangaApi.getMangas(queryParams)
-      
-      const mangasWithProcessedInfo = response.data.map(manga => {
-        let coverArtPublicId = null;
-        const coverArtRel = manga.relationships?.find(rel => rel.type === RELATIONSHIP_TYPES.COVER_ART);
-        
-        if (coverArtRel && coverArtRel.attributes) {
-            const coverAttributes = /** @type {CoverArtAttributes} */ (coverArtRel.attributes);
-            if (coverAttributes && typeof coverAttributes.publicId === 'string') {
-                coverArtPublicId = coverAttributes.publicId;
-            }
-        }
-
-        return { 
-          ...manga, 
-          coverArtPublicId,
-        };
-      });
-
-      set({
-        mangas: mangasWithProcessedInfo,
-        totalMangas: response.total,
-        page: resetPagination ? 0 : response.offset / response.limit,
-      })
-    } catch (error) {
-      console.error('Failed to fetch mangas:', error)
-      set({ mangas: [], totalMangas: 0 })
-    }
-  },
-
-  /**
-   * Handle page change from DataTableMUI.
-   * @param {React.MouseEvent<HTMLButtonElement> | null} event
-   * @param {number} newPage
-   */
-  setPage: (event, newPage) => {
-    set({ page: newPage });
-    get().fetchMangas(false); 
-  },
-
-  /**
-   * Handle rows per page change from DataTableMUI.
-   * @param {React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>} event
-   */
-  setRowsPerPage: (event) => {
-    set({ rowsPerPage: parseInt(event.target.value, 10), page: 0 });
-    get().fetchMangas(true); 
-  },
-
-  /**
-   * Handle sort change from DataTableMUI.
-   * @param {string} orderBy - The field to sort by.
-   * @param {'asc' | 'desc'} order - The sort order.
-   */
-  setSort: (orderBy, order) => {
-    set({ sort: { orderBy, ascending: order === 'asc' }, page: 0 });
-    get().fetchMangas(true); 
-  },
-
-  /**
-   * Update a specific filter value in the store.
-   * This does NOT trigger a fetch immediately.
-   * @param {string} filterName - The name of the filter property (e.g., 'titleFilter').
-   * @param {any} value - The new value for the filter.
-   */
-  setFilter: (filterName, value) => {
-    set(state => ({
-      filters: { ...state.filters, [filterName]: value }
-    }));
-  },
-
-  /**
-   * Apply filters and refetch mangas.
-   * @param {object} newFilters - New filter values.
-   */
-  applyFilters: (newFilters) => {
-    set((state) => ({
-      filters: { ...state.filters, ...newFilters },
-      page: 0, 
-    }));
-    // fetchMangas sẽ được gọi riêng sau khi applyFilters trong component
-  },
-
-  /**
-   * Reset all filters to their initial state.
-   */
-  resetFilters: () => {
-    set({
-      filters: {
-        titleFilter: '',
-        statusFilter: '',
-        contentRatingFilter: '',
-        publicationDemographicsFilter: [],
-        originalLanguageFilter: '',
-        yearFilter: null,
-        includedTags: [],
-        includedTagsMode: 'AND',
-        excludedTags: [],
-        excludedTagsMode: 'OR',
-        authors: [], // THAY ĐỔI
-        artists: [], // THÊM MỚI
-        availableTranslatedLanguage: [], // THÊM MỚI
-      },
-      page: 0,
-    });
-    get().fetchMangas(true);
-  },
-
-  /**
-   * Delete a manga.
-   * @param {string} id - ID of the manga to delete.
-   */
-  deleteManga: async (id) => {
-    try {
-      await mangaApi.deleteManga(id)
-      showSuccessToast('Xóa manga thành công!')
-      get().fetchMangas() 
-    } catch (error) {
-      console.error('Failed to delete manga:', error)
-    }
-  },
-}), 'manga'))
-
-export default useMangaStore
-```
-
-### Bước 2.3: Cập nhật Giao diện Tìm kiếm (`MangaListPage.jsx`)
-
-Đây là thay đổi lớn nhất, nơi chúng ta sẽ thêm các trường `Autocomplete` và `Select` mới vào form lọc.
-
-<!-- file path="MangaReader_ManagerUI\mangareader_managerui.client\src\features\manga\pages\MangaListPage.jsx" -->
-```javascript
-import AddIcon from '@mui/icons-material/Add'
-import ClearIcon from '@mui/icons-material/Clear'
-import SearchIcon from '@mui/icons-material/Search'
-import {
-    Autocomplete,
-    Box,
-    Button,
-    Chip,
-    Grid,
-    MenuItem,
-    TextField,
-    Typography,
-    FormControl,
-    InputLabel,
-    Select,
-    OutlinedInput,
-    Checkbox,
-    ListItemText,
-} from '@mui/material'
-import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import authorApi from '../../../api/authorApi'
-import tagApi from '../../../api/tagApi'
-import {
-    CONTENT_RATING_OPTIONS,
-    MANGA_STATUS_OPTIONS,
-    ORIGINAL_LANGUAGE_OPTIONS,
-    PUBLICATION_DEMOGRAPHIC_OPTIONS,
-} from '../../../constants/appConstants'
-import useMangaStore from '../../../stores/mangaStore'
-import useUiStore from '../../../stores/uiStore'
-import { handleApiError } from '../../../utils/errorUtils'
-import MangaTable from '../components/MangaTable'
-
-/**
- * @typedef {import('../../../types/manga').Author} AuthorForFilter
- * @typedef {import('../../../types/manga').Tag} TagForFilter
- * @typedef {import('../../../types/manga').PublicationDemographicType} PublicationDemographicType
- */
-
-function MangaListPage() {
-  const navigate = useNavigate()
-  const {
-    mangas,
-    totalMangas,
-    page,
-    rowsPerPage,
-    filters,
-    sort,
-    fetchMangas,
-    setPage,
-    setRowsPerPage,
-    setSort,
-    applyFilters,
-    resetFilters,
-    deleteManga,
-  } = useMangaStore()
-
-  const isLoading = useUiStore(state => state.isLoading);
-
-  /** @type {[AuthorForFilter[], React.Dispatch<React.SetStateAction<AuthorForFilter[]>>]} */
-  const [availableAuthors, setAvailableAuthors] = useState([])
-  /** @type {[TagForFilter[], React.Dispatch<React.SetStateAction<TagForFilter[]>>]} */
-  const [availableTags, setAvailableTags] = useState([])
-  
-  const [localFilters, setLocalFilters] = useState(filters);
-
-  useEffect(() => {
-    setLocalFilters(filters); 
-  }, [filters]);
-
-  useEffect(() => {
-    fetchMangas(true); 
-  }, [fetchMangas]);
-
-  useEffect(() => {
-    const fetchFilterOptions = async () => {
-      try {
-        const authorsResponse = await authorApi.getAuthors({ limit: 1000 });
-        setAvailableAuthors(authorsResponse.data.map(a => ({ id: a.id, name: a.attributes.name, type: 'author' })))
-
-        const tagsResponse = await tagApi.getTags({ limit: 1000 });
-        setAvailableTags(tagsResponse.data.map(t => ({ id: t.id, name: t.attributes.name, type: 'tag' })));
-      } catch (error) {
-        handleApiError(error, 'Không thể tải tùy chọn lọc.');
-      }
-    };
-    fetchFilterOptions();
-  }, []);
-
-  const handleLocalFilterChange = (filterName, value) => {
-    setLocalFilters(prev => ({ ...prev, [filterName]: value }));
-  };
-
-  const handleApplyLocalFilters = () => {
-    applyFilters(localFilters); 
-    fetchMangas(true); 
-  }
-
-  const handleResetLocalFilters = () => {
-    resetFilters(); 
-    setLocalFilters(useMangaStore.getState().filters); 
-  }
-
-  const ITEM_HEIGHT = 48;
-  const ITEM_PADDING_TOP = 8;
-  const MenuProps = {
-    PaperProps: {
-      style: {
-        maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-        width: 250,
-      },
-    },
-  };
-  
-  const renderMultiSelectDisplay = (selectedItems, getTagProps, maxItemsToShow = 2) => {
-    const numItems = selectedItems.length;
-    const itemsToRender = selectedItems.slice(0, maxItemsToShow);
-    
-    let displayChips = itemsToRender.map((item, index) => {
-      const label = typeof item === 'object' ? (item.name || item.label) : item;
-      const key = typeof item === 'object' ? (item.id || item.value || index) : item;
-
-      return (
-        <Chip 
-          variant="outlined" 
-          label={label}
-          size="small" 
-          {...(getTagProps ? getTagProps({ index }) : {})} 
-          key={key} 
-          sx={{ 
-            maxWidth: '120px', 
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            mr: 0.5, 
-            '&:last-child': {
-                mr: (numItems <= maxItemsToShow && index === itemsToRender.length -1) ? 0 : 0.5,
-            }
-          }}
-        />
-      );
-    });
-
-    if (numItems > maxItemsToShow) {
-      displayChips.push(
-        <Chip 
-          variant="outlined" 
-          label={`+${numItems - maxItemsToShow}`} 
-          size="small" 
-          key="more-items" 
-        />
-      );
-    }
-    return displayChips;
-  };
-
-
-  return (
-    <Box className="manga-list-page">
-      <Typography variant="h4" component="h1" gutterBottom className="page-header">
-        Quản lý Manga
-      </Typography>
-      <Box className="filter-section">
-        <Grid 
-          container 
-          spacing={2} 
-          alignItems="stretch"
-        >
-          {/* Dòng 1 */}
-          <Grid size={12}>
-            <TextField
-              label="Lọc theo Tiêu đề"
-              variant="outlined"
-              fullWidth
-              value={localFilters.titleFilter || ''}
-              onChange={(e) => handleLocalFilterChange('titleFilter', e.target.value)}
-            />
-          </Grid>
-
-          {/* Dòng 2 */}
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <TextField
-              select
-              label="Trạng thái"
-              variant="outlined"
-              fullWidth
-              value={localFilters.statusFilter || ''}
-              onChange={(e) => handleLocalFilterChange('statusFilter', e.target.value)}
-            >
-              <MenuItem value="">Tất cả</MenuItem>
-              {MANGA_STATUS_OPTIONS.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <TextField
-              select
-              label="Ngôn ngữ gốc"
-              variant="outlined"
-              fullWidth
-              value={localFilters.originalLanguageFilter || ''}
-              onChange={(e) => handleLocalFilterChange('originalLanguageFilter', e.target.value)}
-            >
-              <MenuItem value="">Tất cả</MenuItem>
-              {ORIGINAL_LANGUAGE_OPTIONS.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <FormControl fullWidth variant="outlined">
-              <InputLabel id="available-language-filter-label">Ngôn ngữ dịch</InputLabel>
-              <Select
-                labelId="available-language-filter-label"
-                multiple
-                value={localFilters.availableTranslatedLanguage || []}
-                onChange={(e) => handleLocalFilterChange('availableTranslatedLanguage', e.target.value)}
-                input={<OutlinedInput label="Ngôn ngữ dịch" />}
-                renderValue={(selected) => ( 
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {renderMultiSelectDisplay(
-                      selected.map(val => ORIGINAL_LANGUAGE_OPTIONS.find(opt => opt.value === val) || { value: val, label: val }),
-                      null, 2
-                    )}
-                  </Box>
-                )}
-                MenuProps={MenuProps}
-              >
-                {ORIGINAL_LANGUAGE_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    <Checkbox checked={(localFilters.availableTranslatedLanguage || []).indexOf(option.value) > -1} />
-                    <ListItemText primary={option.label} />
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          {/* Dòng 3: Tác giả, Họa sĩ, Năm */}
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <Autocomplete
-              multiple
-              options={availableAuthors}
-              getOptionLabel={(option) => option.name}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              value={availableAuthors.filter(a => (localFilters.authors || []).includes(a.id))}
-              onChange={(event, newValue) => {
-                handleLocalFilterChange('authors', newValue.map(item => item.id));
-              }}
-              renderInput={(params) => <TextField {...params} label="Lọc theo Tác giả" variant="outlined" />}
-              fullWidth
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <Autocomplete
-              multiple
-              options={availableAuthors}
-              getOptionLabel={(option) => option.name}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              value={availableAuthors.filter(a => (localFilters.artists || []).includes(a.id))}
-              onChange={(event, newValue) => {
-                handleLocalFilterChange('artists', newValue.map(item => item.id));
-              }}
-              renderInput={(params) => <TextField {...params} label="Lọc theo Họa sĩ" variant="outlined" />}
-              fullWidth
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <TextField
-              label="Năm"
-              variant="outlined"
-              fullWidth
-              type="number"
-              value={localFilters.yearFilter || ''}
-              onChange={(e) => handleLocalFilterChange('yearFilter', e.target.value === '' ? null : parseInt(e.target.value, 10))}
-              inputProps={{ min: 1000, max: new Date().getFullYear() + 5, step: 1 }}
-            />
-          </Grid>
-
-          {/* Dòng 4: Tags */}
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-             <Autocomplete
-              multiple
-              options={availableTags}
-              getOptionLabel={(option) => option.name}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              value={availableTags.filter(t => (localFilters.includedTags || []).includes(t.id))}
-              onChange={(event, newValue) => {
-                handleLocalFilterChange('includedTags', newValue.map(item => item.id));
-              }}
-              renderInput={(params) => <TextField {...params} label="Tags Phải Có" variant="outlined" />}
-              fullWidth
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-            <TextField
-              select
-              label="Chế độ Tags Phải Có"
-              variant="outlined"
-              fullWidth
-              value={localFilters.includedTagsMode || 'AND'}
-              onChange={(e) => handleLocalFilterChange('includedTagsMode', e.target.value)}
-              disabled={!localFilters.includedTags || localFilters.includedTags.length === 0}
-            >
-              <MenuItem value="AND">VÀ (Tất cả)</MenuItem>
-              <MenuItem value="OR">HOẶC (Bất kỳ)</MenuItem>
-            </TextField>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <Autocomplete
-              multiple
-              options={availableTags}
-              getOptionLabel={(option) => option.name}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              value={availableTags.filter(t => (localFilters.excludedTags || []).includes(t.id))}
-              onChange={(event, newValue) => {
-                handleLocalFilterChange('excludedTags', newValue.map(item => item.id));
-              }}
-              renderInput={(params) => <TextField {...params} label="Tags Không Có" variant="outlined" />}
-              fullWidth
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-            <TextField
-              select
-              label="Chế độ Tags Không Có"
-              variant="outlined"
-              fullWidth
-              value={localFilters.excludedTagsMode || 'OR'}
-              onChange={(e) => handleLocalFilterChange('excludedTagsMode', e.target.value)}
-              disabled={!localFilters.excludedTags || localFilters.excludedTags.length === 0}
-            >
-              <MenuItem value="OR">HOẶC (Bất kỳ)</MenuItem>
-            </TextField>
-          </Grid>
-
-          {/* Dòng 5: Các nút */}
-          <Grid sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 1 }} size={12}>
-             <Button
-              variant="contained"
-              color="primary"
-              startIcon={<SearchIcon />}
-              onClick={handleApplyLocalFilters}
-              sx={{ height: '56px' }}  
-            >
-              Áp dụng
-            </Button>
-            <Button
-              variant="outlined"
-              color="inherit"
-              startIcon={<ClearIcon />}
-              onClick={handleResetLocalFilters}
-              sx={{ height: '56px' }} 
-            >
-              Đặt lại
-            </Button>
-          </Grid>
-        </Grid>
-      </Box>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, mt: 3 }}>
-        <Button
-          variant="contained"
-          color="success"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/mangas/create')}
-        >
-          Thêm Manga mới
-        </Button>
-      </Box>
-      <MangaTable
-        mangas={mangas}
-        totalMangas={totalMangas}
-        page={page}
-        rowsPerPage={rowsPerPage}
-        onPageChange={(event, newPageVal) => setPage(event, newPageVal)}
-        onRowsPerPageChange={(event) => setRowsPerPage(event)}
-        onSort={(orderBy, orderDir) => setSort(orderBy, orderDir)}
-        orderBy={sort.orderBy}
-        order={sort.ascending ? 'asc' : 'desc'}
-        onDelete={deleteManga}
-        onEdit={(id) => navigate(`/mangas/edit/${id}`)}
-        onViewCovers={(id) => navigate(`/mangas/${id}/covers`)}
-        onViewTranslations={(id) => navigate(`/mangas/${id}/translations`)}
-        isLoading={isLoading}
-      />
-    </Box>
-  );
-}
-
-export default MangaListPage
-```
-
----
-
-Sau khi áp dụng các thay đổi này, ứng dụng `MangaReader_ManagerUI` của bạn sẽ có thể:
-1.  Nhận diện và gửi các tham số tìm kiếm mới (`authors`, `artists`, `availableTranslatedLanguage`) từ client đến server proxy.
-2.  Server proxy sẽ chuyển tiếp chính xác các tham số này đến API Backend thực sự.
-3.  Giao diện người dùng sẽ có các bộ lọc riêng biệt cho Tác giả, Họa sĩ và Ngôn ngữ dịch, cho phép người dùng thực hiện các truy vấn tìm kiếm phức tạp hơn.
-4.  Dữ liệu trả về sẽ được xử lý đúng cách, bao gồm cả trường `availableTranslatedLanguages` mới.
-
-Chúc bạn thành công!
-```
+Như vậy, tất cả các endpoint chỉnh sửa (tạo, sửa, xóa) liên quan đến Manga và các tài nguyên phụ thuộc của nó đã được bảo vệ. Người dùng cần phải đăng nhập và có các quyền `Permissions.Manga.Create`, `Permissions.Manga.Edit`, hoặc `Permissions.Manga.Delete` tương ứng trong vai trò của mình để có thể thực hiện các thao tác này. Các endpoint `GET` vẫn được công khai như yêu cầu.

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../constants/appConstants';
 import useUiStore from '../stores/uiStore';
+import useAuthStore from '../stores/authStore';
 import { handleApiError } from '../utils/errorUtils';
 
 const apiClient = axios.create({
@@ -10,10 +11,14 @@ const apiClient = axios.create({
   },
 })
 
-// Request interceptor: Hiển thị loading spinner
+// Request interceptor: Gắn token và hiển thị loading spinner
 apiClient.interceptors.request.use(
   (config) => {
     useUiStore.getState().setLoading(true)
+    const token = useAuthStore.getState().accessToken;
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
     return config
   },
   (error) => {
@@ -31,6 +36,14 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     useUiStore.getState().setLoading(false)
+    
+    // Nếu lỗi là 401 Unauthorized, thực hiện logout
+    if (error.response && error.response.status === 401) {
+      useAuthStore.getState().logout();
+      // Chuyển hướng về trang login, có thể thực hiện ở đây hoặc trong component
+      // window.location.href = '/login'; 
+    }
+    
     handleApiError(error)
     return Promise.reject(error)
   },

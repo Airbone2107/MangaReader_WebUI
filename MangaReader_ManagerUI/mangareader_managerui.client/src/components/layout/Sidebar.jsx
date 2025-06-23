@@ -3,6 +3,8 @@ import CategoryIcon from '@mui/icons-material/Category'
 import LocalOfferIcon from '@mui/icons-material/LocalOffer'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import PersonIcon from '@mui/icons-material/Person'
+import SecurityIcon from '@mui/icons-material/Security'
+import SupervisedUserCircleIcon from '@mui/icons-material/SupervisedUserCircle'
 import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar, useMediaQuery, useTheme } from '@mui/material'
 import React from 'react'
 import { NavLink } from 'react-router-dom'
@@ -21,6 +23,8 @@ function Sidebar() {
     { text: 'Authors', icon: <PersonIcon />, path: '/authors' },
     { text: 'Tags', icon: <LocalOfferIcon />, path: '/tags' },
     { text: 'Tag Groups', icon: <CategoryIcon />, path: '/taggroups' },
+    { text: 'Users', icon: <SupervisedUserCircleIcon />, path: '/users' },
+    { text: 'Roles', icon: <SecurityIcon />, path: '/roles' },
   ]
 
   const drawerContent = (

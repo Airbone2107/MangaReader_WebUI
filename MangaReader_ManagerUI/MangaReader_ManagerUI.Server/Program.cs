@@ -1,3 +1,4 @@
+using MangaReader_ManagerUI.Server;
 using MangaReaderLib.Services.Implementations;
 using MangaReaderLib.Services.Interfaces;
 using System.Text.Json.Serialization;
@@ -6,13 +7,20 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+// Thêm IHttpContextAccessor để có thể truy cập HttpContext từ các service khác
+builder.Services.AddHttpContextAccessor();
+// Đăng ký handler như một transient service
+builder.Services.AddTransient<AuthenticationHeaderHandler>();
+
 // 1. Cấu hình HttpClientFactory và BaseAddress cho MangaReaderAPI (Backend thực sự)
 builder.Services.AddHttpClient<IApiClient, ApiClient>(client =>
 {
     string apiBaseUrl = builder.Configuration["MangaReaderApiSettings:BaseUrl"] 
                         ?? throw new InvalidOperationException("MangaReaderApiSettings:BaseUrl is not configured.");
     client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/"); 
-});
+})
+// Thêm Message Handler để tự động đính kèm token
+.AddHttpMessageHandler<AuthenticationHeaderHandler>();
 
 // 2. Đăng ký các Client Services từ MangaReaderLib
 // Đăng ký implementation cụ thể
@@ -24,6 +32,9 @@ builder.Services.AddScoped<CoverArtClient>();
 builder.Services.AddScoped<TranslatedMangaClient>();
 builder.Services.AddScoped<ChapterClient>();
 builder.Services.AddScoped<ChapterPageClient>();
+builder.Services.AddScoped<AuthClient>();
+builder.Services.AddScoped<UserClient>();
+builder.Services.AddScoped<RoleClient>();
 
 // Đăng ký các interface để DI có thể resolve chúng tới implementation cụ thể
 // Author
@@ -65,6 +76,11 @@ builder.Services.AddScoped<IChapterWriter>(p => p.GetRequiredService<ChapterClie
 builder.Services.AddScoped<IChapterPageClient>(p => p.GetRequiredService<ChapterPageClient>());
 builder.Services.AddScoped<IChapterPageReader>(p => p.GetRequiredService<ChapterPageClient>());
 builder.Services.AddScoped<IChapterPageWriter>(p => p.GetRequiredService<ChapterPageClient>());
+
+// NEW Auth/User/Role Clients
+builder.Services.AddScoped<IAuthClient>(p => p.GetRequiredService<AuthClient>());
+builder.Services.AddScoped<IUserClient>(p => p.GetRequiredService<UserClient>());
+builder.Services.AddScoped<IRoleClient>(p => p.GetRequiredService<RoleClient>());
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

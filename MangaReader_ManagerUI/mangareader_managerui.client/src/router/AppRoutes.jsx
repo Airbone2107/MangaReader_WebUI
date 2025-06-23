@@ -17,6 +17,9 @@ import TagListPage from '../features/tag/pages/TagListPage'
 import TagGroupCreatePage from '../features/tagGroup/pages/TagGroupCreatePage'
 import TagGroupEditPage from '../features/tagGroup/pages/TagGroupEditPage'
 import TagGroupListPage from '../features/tagGroup/pages/TagGroupListPage'
+import ProtectedRoute from './ProtectedRoute'
+import RoleListPage from '../features/role/pages/RoleListPage'
+import UserListPage from '../features/user/pages/UserListPage'
 
 function AppRoutes() {
   // For now, all routes are public. We'll implement ProtectedRoute in Step 5.
@@ -28,11 +31,12 @@ function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
 
       {/* Admin Protected Routes */}
-      {/* For demo, always render AdminLayout. In a real app, wrap with <ProtectedRoute> */}
       <Route
         path="/"
         element={
-          isAuthenticated ? <AdminLayout /> : <Navigate to="/login" replace />
+          <ProtectedRoute>
+            <AdminLayout />
+          </ProtectedRoute>
         }
       >
         <Route index element={<Navigate to="/mangas" replace />} />
@@ -62,6 +66,10 @@ function AppRoutes() {
         <Route path="taggroups" element={<TagGroupListPage />} />
         <Route path="taggroups/create" element={<TagGroupCreatePage />} />
         <Route path="taggroups/edit/:id" element={<TagGroupEditPage />} />
+
+        {/* User and Role Management (NEW) */}
+        <Route path="users" element={<UserListPage />} />
+        <Route path="roles" element={<RoleListPage />} />
 
         {/* Catch-all for undefined routes */}
         <Route path="*" element={<Navigate to="/mangas" replace />} />
